@@ -85,3 +85,8 @@ process.on('unhandledRejection', (err, promise) => {
   // Close server & exit process
   server.close(() => process.exit(1));
 });
+
+// Health check endpoint for DigitalOcean
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});

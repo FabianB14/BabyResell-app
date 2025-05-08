@@ -1,0 +1,56 @@
+name: babyresell
+region: sfo2
+services:
+  - name: api
+    github:
+      repo: FabianB14/BabyResell-app
+      branch: main
+    source_dir: backend
+    dockerfile_path: Dockerfile
+    http_port: 5000
+    instance_size_slug: basic-xs
+    instance_count: 1
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "5000"
+      - key: MONGO_URI
+        type: SECRET
+      - key: JWT_SECRET
+        value: "bhq7UWFcKuR5nBpA9M3XLTzVDJGeY4s6xZ2QdgN8"
+      - key: JWT_EXPIRE
+        value: "30d"
+      - key: DO_SPACES_KEY
+        value: "D08019XB2UL2FNWEEUF3"
+      - key: DO_SPACES_SECRET
+        value: "cxT8MvTvGB9IO23Y8wFKt7bjYBdnw8Iw2MTQGq+u1dw"
+      - key: DO_SPACES_BUCKET
+        value: "babyresell-files"
+      - key: DO_SPACES_REGION
+        value: "sfo2"
+      - key: DO_SPACES_ENDPOINT
+        value: "https://sfo2.digitaloceanspaces.com"
+    health_check:
+      http_path: /api/health
+  
+  - name: web
+    github:
+      repo: FabianB14/BabyResell-app
+      branch: main
+    source_dir: frontend
+    build_command: npm ci && npm run build
+    run_command: npx serve -s build
+    instance_size_slug: basic-xs
+    instance_count: 1
+    routes:
+      - path: /
+    envs:
+      - key: REACT_APP_API_URL
+        value: ${APP_URL}/api
+
+databases:
+  - name: babyresell-db
+    engine: mongodb
+    cluster_name: babyresell-cluster
+    production: true
