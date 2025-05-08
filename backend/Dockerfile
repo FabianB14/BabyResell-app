@@ -4,7 +4,8 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci --only=production
+# Replace npm ci with npm install
+RUN npm install --production
 
 COPY . .
 
