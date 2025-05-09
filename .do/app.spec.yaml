@@ -37,35 +37,18 @@ services:
       http_path: /api/health
   
   - name: web
+    type: static # This is the key change
     github:
       repo: FabianB14/BabyResell-app
       branch: main
     source_dir: frontend
     build_command: npm ci && npm run build
-    run_command: node server.js
-    instance_size_slug: basic-xs
-    instance_count: 1
-    routes:
-      - path: /
+    output_dir: build # This should match your React build directory
     envs:
       - key: REACT_APP_API_URL
         value: ${APP_URL}/api
-    cors:
-      allow_origins:
-        - regex: .*
-      allow_methods:
-        - GET
-        - POST
-        - PUT
-        - DELETE
-        - OPTIONS
-      allow_headers:
-        - Accept
-        - Authorization
-        - Content-Type
-        - Origin
-        - X-Requested-With
-
+    routes:
+      - path: /
 databases:
   - name: babyresell-db
     engine: mongodb

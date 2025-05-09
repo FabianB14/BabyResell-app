@@ -7,7 +7,6 @@
     "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "^14.4.3",
     "axios": "^1.9.0",
-    "express": "^4.21.2",
     "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -19,8 +18,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "serve": "node server.js"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
