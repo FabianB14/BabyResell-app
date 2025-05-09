@@ -1,3 +1,4 @@
+// server.js - Improved for serving React static files
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -5,38 +6,42 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Check if build directory exists
-const buildPath = path.join(__dirname, 'build');
-if (fs.existsSync(buildPath)) {
-  console.log('Build directory exists at:', buildPath);
-  
-  // Serve static files from React build
-  app.use(express.static(buildPath));
-  
-  // List files in build directory for debugging
-  fs.readdir(buildPath, (err, files) => {
-    if (err) {
-      console.error('Error reading build directory:', err);
-    } else {
-      console.log('Files in build directory:', files);
+// Serve static files with explicit content types
+app.use(express.static(path.join(__dirname, 'build'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    } else if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    } else if (filePath.endsWith('.json')) {
+      res.setHeader('Content-Type', 'application/json');
     }
-  });
+  }
+}));
+
+// Add API health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
+});
+
+// All other routes - serve index.html (SPA)
+app.get('*', (req, res) => {
+  // Skip API routes (assuming your backend is separate)
+  if (req.url.startsWith('/api/')) {
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
   
-  // Serve index.html for all routes (SPA)
-  app.get('*', (req, res) => {
-    console.log('Serving index.html for path:', req.path);
-    res.sendFile(path.join(buildPath, 'index.html'));
-  });
-} else {
-  console.error('Build directory does not exist! Expected at:', buildPath);
+  // Serve the React app
+  const indexPath = path.join(__dirname, 'build', 'index.html');
   
-  // Fallback route
-  app.get('*', (req, res) => {
-    res.send('Build directory not found. Please check server logs.');
-  });
-}
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(500).send('Error: Build files not found. Please check your deployment.');
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log('Current directory:', __dirname);
+  console.log('Serving static files from:', path.join(__dirname, 'build'));
 });
