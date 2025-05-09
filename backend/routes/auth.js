@@ -8,6 +8,9 @@ const asyncHandler = require('../middleware/async');
 const ErrorResponse = require('../utils/errorResponse');
 const sendEmail = require('../utils/sendEmail');
 
+
+app.use('/api/auth', require('./routes/auth'));
+
 // @route   POST /api/auth/register
 // @desc    Register a new user
 // @access  Public
