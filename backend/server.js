@@ -11,6 +11,15 @@ const connectDB = require('./config/db');
 const errorHandler = require('./middleware/error');
 const path = require('path');
 
+// Load env vars
+dotenv.config({ path: './config/config.env' });
+
+// Connect to database
+connectDB();
+
+// Initialize app - MOVED UP
+const app = express();
+
 // CORS configuration
 const corsOptions = {
   origin: [
@@ -24,21 +33,14 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
+// Apply CORS - NOW app EXISTS
 app.use(cors(corsOptions));
 
+// Add CORS debugging middleware
 app.use((req, res, next) => {
   console.log(`[CORS] Request from: ${req.headers.origin} to ${req.method} ${req.originalUrl}`);
   next();
 });
-
-// Load env vars
-dotenv.config({ path: './config/config.env' });
-
-// Connect to database
-connectDB();
-
-// Initialize app
-const app = express();
 
 // Body parser
 app.use(express.json());
@@ -47,30 +49,6 @@ app.use(express.json());
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
-
-// CORS configuration based on environment
-const allowedOrigins = [
-  'https://babyresell-62jr6.ondigitalocean.app',
-  'http://localhost:3000',
-  'http://localhost:8080'
-];
-
-// Security middleware - CORS with proper configuration
-app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, etc)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      console.log(`Origin blocked: ${origin}`);
-      return callback(null, true); // Temporarily allow all origins for testing
-    }
-    
-    return callback(null, true);
-  },
-  credentials: true,
-  optionsSuccessStatus: 200
-}));
 
 // Configure Helmet for security but with looser restrictions
 app.use(
@@ -94,19 +72,25 @@ app.use(xss());
 // Prevent HTTP Parameter Pollution
 app.use(hpp());
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`[REQUEST] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Adding a simple route for the root path
 app.get('/', (req, res) => {
   res.json({ message: 'BabyResell API is running' });
 });
 
+// Add a test endpoint at /api
+app.get('/api', (req, res) => {
+  res.json({ message: 'API endpoint is working' });
+});
+
 // Health check endpoint for DigitalOcean
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
-});
-
-app.use((req, res, next) => {
-  console.log(`[REQUEST] ${req.method} ${req.originalUrl}`);
-  next();
 });
 
 // Define API routes
