@@ -5,10 +5,11 @@ const isProduction = window.location.hostname !== 'localhost';
 
 // Set the base URL based on environment
 const baseURL = isProduction 
-  ? 'https://babyresell-62jr6.ondigitalocean.app/api' // Production API URL
-  : 'http://localhost:5000/api';             // Development API URL
+  ? '/api' // Use relative URL in production
+  : 'http://localhost:5000/api';
 
 console.log('API is using baseURL:', baseURL);
+
 
 // Create axios instance with base URL
 const api = axios.create({

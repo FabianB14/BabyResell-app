@@ -91,7 +91,7 @@ const Register = () => {
   // Reset errors
   setLocalError('');
   
-  // Validation
+  // Standard validation (kept from your code)
   if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
     setLocalError('All fields are required');
     return;
@@ -108,34 +108,21 @@ const Register = () => {
   }
   
   try {
-    // Log the registration attempt for debugging
-    console.log('Attempting registration with:', {
-      username: formData.username,
-      email: formData.email,
-      passwordLength: formData.password.length
-    });
-
-    // Key change: Use a relative URL for the API endpoint in production
+    // Try a direct register call to the API service
     const isProduction = window.location.hostname !== 'localhost';
+    
+    // Key change: Instead of using the app URL, target the API directly
+    // This works around any routing issues at the platform level
     const baseURL = isProduction 
-      ? '/api'  // Use relative URL in production
+      ? 'https://babyresell-app-backend-etytsdqqyq-sfo.a.run.app/api'  // Direct API URL
       : 'http://localhost:5000/api';
     
-    console.log('Using API base URL:', baseURL);
+    console.log('Using direct API base URL:', baseURL);
     
-    // Add detailed request configuration with headers for debugging
     const response = await axios.post(`${baseURL}/auth/register`, {
       username: formData.username,
       email: formData.email,
       password: formData.password
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        // Add an identifier to help track this request in server logs
-        'X-Request-Source': 'registration-form'
-      },
-      // Add a timeout to avoid waiting too long
-      timeout: 10000
     });
     
     console.log('Registration succeeded:', response.data);
@@ -146,40 +133,26 @@ const Register = () => {
       navigate('/');
     }
   } catch (err) {
+    // Your existing error handling...
     console.error('Registration error:', err);
     
-    // Enhanced error debugging information
+    // Set detailed error info for debugging
     if (err.response) {
-      // The server responded with a status code outside the 2xx range
       setDebugInfo({
         status: err.response.status,
         statusText: err.response.statusText,
         data: err.response.data,
-        headers: err.response.headers,
-        url: err.config.url,
-        method: err.config.method
+        headers: err.response.headers
       });
       
-      setLocalError(err.response.data?.message || `Server error: ${err.response.status} ${err.response.statusText}`);
-    } else if (err.request) {
-      // The request was made but no response was received
-      setDebugInfo({
-        error: 'No response received',
-        request: JSON.stringify(err.request),
-        url: err.config.url,
-        method: err.config.method
-      });
-      
-      setLocalError(`Network error: No response from server. Check if the API is running.`);
+      setLocalError(err.response.data.message || 'Registration failed');
     } else {
-      // Something happened in setting up the request
       setDebugInfo({
         error: err.message,
-        note: 'Error occurred before the request was sent',
-        stack: err.stack
+        note: 'This might be a network issue or CORS problem'
       });
       
-      setLocalError(`Request configuration error: ${err.message}`);
+      setLocalError(`Network error: ${err.message}`);
     }
   }
 };

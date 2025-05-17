@@ -11,6 +11,7 @@ const connectDB = require('./config/db');
 const errorHandler = require('./middleware/error');
 const path = require('path');
 
+
 // Load env vars
 dotenv.config({ path: './config/config.env' });
 
@@ -84,6 +85,11 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+app.use((req, res, next) => {
+  console.log(`[REQUEST] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Define API routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
@@ -119,9 +125,4 @@ process.on('unhandledRejection', (err, promise) => {
   console.log(`Error: ${err.message}`);
   // Close server & exit process
   server.close(() => process.exit(1));
-});
-
-app.use((req, res, next) => {
-  console.log(`[REQUEST] ${req.method} ${req.originalUrl}`);
-  next();
 });
