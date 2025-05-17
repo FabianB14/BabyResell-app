@@ -38,6 +38,7 @@ services:
     cors:
       allow_origins:
         - regex: .*
+        - https://babyresell-62jr6.ondigitalocean.app
       allow_methods:
         - GET
         - POST

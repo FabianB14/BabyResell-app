@@ -11,6 +11,25 @@ const connectDB = require('./config/db');
 const errorHandler = require('./middleware/error');
 const path = require('path');
 
+// CORS configuration
+const corsOptions = {
+  origin: [
+    'https://babyresell-62jr6.ondigitalocean.app',
+    'http://localhost:3000',
+    'http://localhost:8080'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+
+app.use((req, res, next) => {
+  console.log(`[CORS] Request from: ${req.headers.origin} to ${req.method} ${req.originalUrl}`);
+  next();
+});
 
 // Load env vars
 dotenv.config({ path: './config/config.env' });

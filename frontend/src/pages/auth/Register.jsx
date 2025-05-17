@@ -120,10 +120,15 @@ const Register = () => {
     console.log('Using direct API base URL:', baseURL);
     
     const response = await axios.post(`${baseURL}/auth/register`, {
-      username: formData.username,
-      email: formData.email,
-      password: formData.password
-    });
+  username: formData.username,
+  email: formData.email,
+  password: formData.password
+}, {
+  withCredentials: true, // Add this
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
     
     console.log('Registration succeeded:', response.data);
     
