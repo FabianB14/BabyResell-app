@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import axios from 'axios';
 
 const Register = () => {
   const navigate = useNavigate();
   const { themeColors } = useTheme();
-  const { register, loading, error } = useAuth();
+  const { register, loading, error, isAuthenticated, testConnection } = useAuth();
   
   const [formData, setFormData] = useState({
     username: '',
@@ -15,6 +16,64 @@ const Register = () => {
     confirmPassword: ''
   });
   const [localError, setLocalError] = useState('');
+  const [apiStatus, setApiStatus] = useState({ 
+    checked: false, 
+    working: false,
+    message: ''
+  });
+  const [debugInfo, setDebugInfo] = useState(null);
+  
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
+  
+  // Test direct API access on component mount
+  useEffect(() => {
+    const checkApiAccess = async () => {
+      try {
+        // Getting the base URL based on environment
+        const isProduction = window.location.hostname !== 'localhost';
+        const baseURL = isProduction 
+          ? 'https://babyresell-62jr6.ondigitalocean.app/api'
+          : 'http://localhost:5000/api';
+        
+        // Test with a direct axios call to avoid any interceptor issues
+        const response = await axios.get(`${baseURL}/health`);
+        
+        setApiStatus({ 
+          checked: true, 
+          working: true,
+          message: `API connected successfully: ${JSON.stringify(response.data)}`
+        });
+      } catch (err) {
+        console.error('API connection test failed:', err);
+        setApiStatus({
+          checked: true,
+          working: false,
+          message: `API connection failed: ${err.message}`
+        });
+        
+        if (err.response) {
+          setDebugInfo({
+            status: err.response.status,
+            statusText: err.response.statusText,
+            data: err.response.data,
+            headers: err.response.headers
+          });
+        } else {
+          setDebugInfo({
+            error: err.message,
+            note: 'This might be a CORS issue or the API server is not running'
+          });
+        }
+      }
+    };
+    
+    checkApiAccess();
+  }, []);
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,6 +86,10 @@ const Register = () => {
   
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setDebugInfo(null);
+    
+    // Reset errors
+    setLocalError('');
     
     // Validation
     if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
@@ -44,14 +107,47 @@ const Register = () => {
       return;
     }
     
-    const success = await register({
-      username: formData.username,
-      email: formData.email,
-      password: formData.password
-    });
-    
-    if (success) {
-      navigate('/');
+    try {
+      // Try a direct register call for better error handling
+      const isProduction = window.location.hostname !== 'localhost';
+      const baseURL = isProduction 
+        ? 'https://babyresell-62jr6.ondigitalocean.app/api'
+        : 'http://localhost:5000/api';
+      
+      const response = await axios.post(`${baseURL}/auth/register`, {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password
+      });
+      
+      console.log('Registration succeeded:', response.data);
+      
+      // Store the token and navigate
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        navigate('/');
+      }
+    } catch (err) {
+      console.error('Registration error:', err);
+      
+      // Set detailed error info for debugging
+      if (err.response) {
+        setDebugInfo({
+          status: err.response.status,
+          statusText: err.response.statusText,
+          data: err.response.data,
+          headers: err.response.headers
+        });
+        
+        setLocalError(err.response.data.message || 'Registration failed');
+      } else {
+        setDebugInfo({
+          error: err.message,
+          note: 'This might be a network issue or CORS problem'
+        });
+        
+        setLocalError(`Network error: ${err.message}`);
+      }
     }
   };
   
@@ -132,11 +228,49 @@ const Register = () => {
     marginBottom: '20px',
     fontSize: '14px'
   };
+
+  const infoStyle = {
+    padding: '8px',
+    borderRadius: '8px',
+    marginBottom: '16px',
+    fontSize: '14px',
+    textAlign: 'center',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    color: '#60a5fa'
+  };
+
+  const apiStatusStyle = {
+    padding: '8px',
+    borderRadius: '8px',
+    marginBottom: '16px',
+    fontSize: '14px',
+    textAlign: 'center',
+    backgroundColor: apiStatus.working ? 'rgba(5, 150, 105, 0.1)' : 'rgba(220, 38, 38, 0.1)',
+    color: apiStatus.working ? '#10b981' : '#ef4444'
+  };
+
+  const debugStyle = {
+    padding: '8px',
+    borderRadius: '8px',
+    marginTop: '16px',
+    fontSize: '12px',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    color: '#ffffff',
+    maxHeight: '200px',
+    overflowY: 'auto',
+    wordBreak: 'break-word'
+  };
   
   return (
     <div style={containerStyle}>
       <div style={formContainerStyle}>
         <h2 style={titleStyle}>Create your account</h2>
+        
+        {apiStatus.checked && (
+          <div style={apiStatus.working ? infoStyle : apiStatusStyle}>
+            {apiStatus.message}
+          </div>
+        )}
         
         {(error || localError) && (
           <div style={errorStyle}>
@@ -240,6 +374,13 @@ const Register = () => {
             </a>
           </p>
         </div>
+
+        {debugInfo && (
+          <div style={debugStyle}>
+            <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Debug Info:</p>
+            <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+          </div>
+        )}
       </div>
     </div>
   );

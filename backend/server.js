@@ -28,12 +28,38 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// Security middleware
+// CORS configuration based on environment
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://babyresell-62jr6.ondigitalocean.app',
+  'https://www.babyresell-62jr6.ondigitalocean.app'
+];
+
+// Security middleware - CORS with proper configuration
 app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    
+    return callback(null, true);
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
 }));
-app.use(helmet());
+
+// Configure Helmet for security but with looser restrictions
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // This can sometimes cause issues with frontend
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
 // Rate limiting
 const limiter = rateLimit({
@@ -49,7 +75,17 @@ app.use(xss());
 // Prevent HTTP Parameter Pollution
 app.use(hpp());
 
-// Define routes
+// Adding a simple route for the root path
+app.get('/', (req, res) => {
+  res.json({ message: 'BabyResell API is running' });
+});
+
+// Health check endpoint for DigitalOcean
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+// Define API routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/pins', require('./routes/pins'));
@@ -79,19 +115,9 @@ const server = app.listen(
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)
 );
 
-// Adding a simple route for the root path
-app.get('/', (req, res) => {
-  res.json({ message: 'BabyResell API is running' });
-});
-
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
   console.log(`Error: ${err.message}`);
   // Close server & exit process
   server.close(() => process.exit(1));
-});
-
-// Health check endpoint for DigitalOcean
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
 });

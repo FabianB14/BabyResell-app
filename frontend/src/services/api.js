@@ -1,11 +1,22 @@
 import axios from 'axios';
 
+// Determine if we're in production
+const isProduction = window.location.hostname !== 'localhost';
+
+// Set the base URL based on environment
+const baseURL = isProduction 
+  ? 'https://babyresell-62jr6.ondigitalocean.app/api' // Production API URL
+  : 'http://localhost:5000/api';             // Development API URL
+
+console.log('API is using baseURL:', baseURL);
+
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'https://babyresell-62jr6.ondigitalocean.app',
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true // Important for sessions/cookies if you use them
 });
 
 // Add a request interceptor to include auth token
@@ -20,22 +31,20 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-api.interceptors.request.use(
-  (config) => {
-    console.log('Request:', config);
-    // Rest of your existing code
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
+// Add a response interceptor for debugging
 api.interceptors.response.use(
   (response) => {
-    console.log('Response:', response);
+    // Do something with response data
     return response;
   },
   (error) => {
-    console.error('API Error:', error);
+    // Log any error for debugging
+    console.error('API Error:', error.response ? {
+      status: error.response.status,
+      statusText: error.response.statusText,
+      data: error.response.data,
+      url: error.config.url
+    } : error.message);
     return Promise.reject(error);
   }
 );
@@ -49,6 +58,8 @@ export const authAPI = {
   updateProfile: (data) => api.put('/users/me', data),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   resetPassword: (token, password) => api.put(`/auth/reset-password/${token}`, { password }),
+  // Test endpoint to verify API connectivity
+  testConnection: () => api.get('/health'),
 };
 
 // Pins/Items endpoints
