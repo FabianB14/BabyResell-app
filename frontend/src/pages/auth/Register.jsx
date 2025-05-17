@@ -85,71 +85,104 @@ const Register = () => {
   };
   
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setDebugInfo(null);
+  e.preventDefault();
+  setDebugInfo(null);
+  
+  // Reset errors
+  setLocalError('');
+  
+  // Validation
+  if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
+    setLocalError('All fields are required');
+    return;
+  }
+  
+  if (formData.password !== formData.confirmPassword) {
+    setLocalError('Passwords do not match');
+    return;
+  }
+  
+  if (formData.password.length < 6) {
+    setLocalError('Password must be at least 6 characters');
+    return;
+  }
+  
+  try {
+    // Log the registration attempt for debugging
+    console.log('Attempting registration with:', {
+      username: formData.username,
+      email: formData.email,
+      passwordLength: formData.password.length
+    });
+
+    // Key change: Use a relative URL for the API endpoint in production
+    const isProduction = window.location.hostname !== 'localhost';
+    const baseURL = isProduction 
+      ? '/api'  // Use relative URL in production
+      : 'http://localhost:5000/api';
     
-    // Reset errors
-    setLocalError('');
+    console.log('Using API base URL:', baseURL);
     
-    // Validation
-    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
-      setLocalError('All fields are required');
-      return;
+    // Add detailed request configuration with headers for debugging
+    const response = await axios.post(`${baseURL}/auth/register`, {
+      username: formData.username,
+      email: formData.email,
+      password: formData.password
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        // Add an identifier to help track this request in server logs
+        'X-Request-Source': 'registration-form'
+      },
+      // Add a timeout to avoid waiting too long
+      timeout: 10000
+    });
+    
+    console.log('Registration succeeded:', response.data);
+    
+    // Store the token and navigate
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      navigate('/');
     }
+  } catch (err) {
+    console.error('Registration error:', err);
     
-    if (formData.password !== formData.confirmPassword) {
-      setLocalError('Passwords do not match');
-      return;
-    }
-    
-    if (formData.password.length < 6) {
-      setLocalError('Password must be at least 6 characters');
-      return;
-    }
-    
-    try {
-      // Try a direct register call for better error handling
-      const isProduction = window.location.hostname !== 'localhost';
-      const baseURL = isProduction 
-        ? 'https://babyresell-62jr6.ondigitalocean.app/api'
-        : 'http://localhost:5000/api';
-      
-      const response = await axios.post(`${baseURL}/auth/register`, {
-        username: formData.username,
-        email: formData.email,
-        password: formData.password
+    // Enhanced error debugging information
+    if (err.response) {
+      // The server responded with a status code outside the 2xx range
+      setDebugInfo({
+        status: err.response.status,
+        statusText: err.response.statusText,
+        data: err.response.data,
+        headers: err.response.headers,
+        url: err.config.url,
+        method: err.config.method
       });
       
-      console.log('Registration succeeded:', response.data);
+      setLocalError(err.response.data?.message || `Server error: ${err.response.status} ${err.response.statusText}`);
+    } else if (err.request) {
+      // The request was made but no response was received
+      setDebugInfo({
+        error: 'No response received',
+        request: JSON.stringify(err.request),
+        url: err.config.url,
+        method: err.config.method
+      });
       
-      // Store the token and navigate
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        navigate('/');
-      }
-    } catch (err) {
-      console.error('Registration error:', err);
+      setLocalError(`Network error: No response from server. Check if the API is running.`);
+    } else {
+      // Something happened in setting up the request
+      setDebugInfo({
+        error: err.message,
+        note: 'Error occurred before the request was sent',
+        stack: err.stack
+      });
       
-      // Set detailed error info for debugging
-      if (err.response) {
-        setDebugInfo({
-          status: err.response.status,
-          statusText: err.response.statusText,
-          data: err.response.data,
-          headers: err.response.headers
-        });
-        
-        setLocalError(err.response.data.message || 'Registration failed');
-      } else {
-        setDebugInfo({
-          error: err.message,
-          note: 'This might be a network issue or CORS problem'
-        });
-        
-        setLocalError(`Network error: ${err.message}`);
-      }
+      setLocalError(`Request configuration error: ${err.message}`);
     }
-  };
+  }
+};
   
   // Dark theme styles for register page
   const containerStyle = {

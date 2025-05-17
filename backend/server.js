@@ -30,10 +30,9 @@ if (process.env.NODE_ENV === 'development') {
 
 // CORS configuration based on environment
 const allowedOrigins = [
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
   'https://babyresell-62jr6.ondigitalocean.app',
-  'https://www.babyresell-62jr6.ondigitalocean.app'
+  'http://localhost:3000',
+  'http://localhost:8080'
 ];
 
 // Security middleware - CORS with proper configuration
@@ -43,8 +42,8 @@ app.use(cors({
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+      console.log(`Origin blocked: ${origin}`);
+      return callback(null, true); // Temporarily allow all origins for testing
     }
     
     return callback(null, true);
@@ -120,4 +119,9 @@ process.on('unhandledRejection', (err, promise) => {
   console.log(`Error: ${err.message}`);
   // Close server & exit process
   server.close(() => process.exit(1));
+});
+
+app.use((req, res, next) => {
+  console.log(`[REQUEST] ${req.method} ${req.originalUrl}`);
+  next();
 });

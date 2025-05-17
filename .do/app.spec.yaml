@@ -35,6 +35,23 @@ services:
       - path: /api
     health_check:
       http_path: /api/health
+    cors:
+      allow_origins:
+        - regex: .*
+      allow_methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+        - PATCH
+      allow_headers:
+        - Accept
+        - Authorization
+        - Content-Type
+        - Origin
+        - X-Requested-With
+        - X-Request-Source
   
   - name: web
     github:
@@ -43,6 +60,7 @@ services:
     source_dir: frontend
     build_command: npm ci && npm run build
     run_command: node server.js
+    http_port: 8080  # Explicitly set the port to match your code
     instance_size_slug: basic-xs
     instance_count: 1
     routes:
@@ -50,6 +68,8 @@ services:
     envs:
       - key: REACT_APP_API_URL
         value: ${APP_URL}/api
+      - key: PORT
+        value: "8080"  # Ensure the PORT environment variable is set
     cors:
       allow_origins:
         - regex: .*
