@@ -17,31 +17,62 @@ dotenv.config({ path: './config/config.env' });
 // Connect to database
 connectDB();
 
-// Initialize app - MOVED UP
+// Initialize app
 const app = express();
+
+// Body parser
+app.use(express.json());
 
 // CORS configuration
 const corsOptions = {
-  origin: [
-    'https://babyresell-62jr6.ondigitalocean.app',
-    'http://localhost:3000',
-    'http://localhost:8080'
-  ],
+  origin: function (origin, callback) {
+    console.log("Origin requesting access:", origin);
+    const allowedOrigins = [
+      'https://babyresell-62jr6.ondigitalocean.app',
+      'http://localhost:3000',
+      'http://localhost:8080'
+    ];
+    
+    // Allow requests with no origin (like mobile apps, curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log("Origin blocked:", origin);
+      // For now, allow all origins for testing
+      callback(null, true);
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept'],
   credentials: true,
   optionsSuccessStatus: 200
 };
 
+// Apply CORS middleware FIRST
+app.use(cors(corsOptions));
 
-// Add CORS debugging middleware
+// Add explicit CORS headers for all requests
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'https://babyresell-62jr6.ondigitalocean.app');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle OPTIONS method for preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
+// Add CORS logging middleware
 app.use((req, res, next) => {
   console.log(`[CORS] Request from: ${req.headers.origin} to ${req.method} ${req.originalUrl}`);
   next();
 });
-
-// Body parser
-app.use(express.json());
 
 // Dev logging middleware
 if (process.env.NODE_ENV === 'development') {
@@ -76,6 +107,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// Special handler for OPTIONS requests
+app.options('*', (req, res) => {
+  console.log("Handling OPTIONS preflight request");
+  res.header('Access-Control-Allow-Origin', 'https://babyresell-62jr6.ondigitalocean.app');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.status(200).end();
+});
+
 // Adding a simple route for the root path
 app.get('/', (req, res) => {
   res.json({ message: 'BabyResell API is running' });
@@ -91,22 +132,6 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-app.use((req, res, next) => {
-  // Set specific CORS headers regardless of origin
-  res.header('Access-Control-Allow-Origin', 'https://babyresell-62jr6.ondigitalocean.app');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  // Handle OPTIONS method
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
-  console.log(`[CORS] Request from: ${req.headers.origin} to ${req.method} ${req.originalUrl}`);
-  next();
-});
-
 // Define API routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
@@ -116,9 +141,6 @@ app.use('/api/baby-items', require('./routes/babyItems'));
 app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/themes', require('./routes/themes'));
 app.use('/api/messages', require('./routes/messages'));
-
-// Apply CORS - NOW app EXISTS
-app.use(cors(corsOptions));
 
 // Error handler middleware
 app.use(errorHandler);
