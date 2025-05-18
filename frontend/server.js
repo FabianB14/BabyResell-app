@@ -1,44 +1,41 @@
-// server.js - Improved for serving React static files
 const express = require('express');
+const axios = require('axios');
 const path = require('path');
-const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Serve static files with explicit content types
-app.use(express.static(path.join(__dirname, 'build'), {
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript');
-    } else if (filePath.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css');
-    } else if (filePath.endsWith('.json')) {
-      res.setHeader('Content-Type', 'application/json');
-    }
-  }
-}));
+// Serve static files
+app.use(express.static(path.join(__dirname, 'build')));
 
-// Add API health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'healthy' });
+// Add body parsing middleware
+app.use(express.json());
+
+// Proxy API requests to the backend
+app.use('/api', async (req, res) => {
+  try {
+    const backendUrl = 'https://babyresell-app-backend-etytsdqqyq-sfo.a.run.app';
+    const response = await axios({
+      method: req.method,
+      url: `${backendUrl}/api${req.url}`,
+      data: req.body,
+      headers: {
+        'Content-Type': 'application/json',
+        // Forward auth header if present
+        ...(req.headers.authorization && { 'Authorization': req.headers.authorization })
+      }
+    });
+    
+    res.status(response.status).json(response.data);
+  } catch (error) {
+    console.error('API proxy error:', error.message);
+    res.status(error.response?.status || 500).json(error.response?.data || { message: 'Internal Server Error' });
+  }
 });
 
-// All other routes - serve index.html (SPA)
+// Serve the React app for all other routes
 app.get('*', (req, res) => {
-  // Skip API routes (assuming your backend is separate)
-  if (req.url.startsWith('/api/')) {
-    return res.status(404).json({ error: 'API endpoint not found' });
-  }
-  
-  // Serve the React app
-  const indexPath = path.join(__dirname, 'build', 'index.html');
-  
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(500).send('Error: Build files not found. Please check your deployment.');
-  }
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
 app.listen(PORT, () => {
