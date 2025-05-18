@@ -114,8 +114,8 @@ const Register = () => {
     // Key change: Instead of using the app URL, target the API directly
     // This works around any routing issues at the platform level
     const baseURL = isProduction 
-      ? 'https://babyresell-app-backend-etytsdqqyq-sfo.a.run.app/api'  // Direct API URL
-      : 'http://localhost:5000/api';
+  ? '/api'  // Relative URL that will be handled by the same domain
+  : 'http://localhost:5000/api';
     
     console.log('Using direct API base URL:', baseURL);
     
