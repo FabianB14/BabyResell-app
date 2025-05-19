@@ -43,6 +43,21 @@ const CreateListing = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  // Cleanup object URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      // Clean up any remaining object URLs
+      images.forEach(image => {
+        if (image.fullSize && image.fullSize.startsWith('blob:')) {
+          URL.revokeObjectURL(image.fullSize);
+        }
+        if (image.thumbnail && image.thumbnail.startsWith('blob:')) {
+          URL.revokeObjectURL(image.thumbnail);
+        }
+      });
+    };
+  }, [images]);
+
   // Fetch categories and age groups
   useEffect(() => {
     const fetchFormOptions = async () => {
@@ -63,7 +78,10 @@ const CreateListing = () => {
             'Health & Safety',
             'Nursery',
             'Strollers & Car Seats',
-            'Toys & Games'
+            'Toys & Games',
+            'Activity & Entertainment',
+            'Books',
+            'Other'
           ]);
         }
         
@@ -87,7 +105,17 @@ const CreateListing = () => {
           'Health & Safety',
           'Nursery',
           'Strollers & Car Seats',
-          'Toys & Games'
+          'Toys & Games',
+          'Activity & Entertainment',
+          'Books',
+          'Other'
+        ]);
+        setAgeGroups([
+          'Newborn (0-3 months)',
+          'Infant (3-12 months)',
+          'Toddler (1-3 years)',
+          'Preschool (3-5 years)',
+          'All Ages'
         ]);
       }
     };
@@ -116,24 +144,35 @@ const CreateListing = () => {
     }
     
     setUploadingImages(true);
+    setError(null);
     
     try {
-      // In a real app, this would upload to your API
-      // Here we're just simulating it
-      setTimeout(() => {
-        const newImages = files.map(file => ({
-          fullSize: URL.createObjectURL(file),
-          thumbnail: URL.createObjectURL(file),
-          isPrimary: images.length === 0,
-          file // Keep the file reference for real upload later
-        }));
+      // Process each file and create preview URLs
+      const newImages = files.map(file => {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          throw new Error(`${file.name} is not a valid image file`);
+        }
         
-        setImages(prev => [...prev, ...newImages]);
-        setUploadingImages(false);
-      }, 1000);
+        // Validate file size (10MB max)
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error(`${file.name} is too large. Maximum size is 10MB`);
+        }
+        
+        return {
+          file: file, // Keep the actual file for upload
+          fullSize: URL.createObjectURL(file), // Create preview URL
+          thumbnail: URL.createObjectURL(file), // Same for thumbnail preview
+          isPrimary: images.length === 0, // First image is primary
+          name: file.name
+        };
+      });
+      
+      setImages(prev => [...prev, ...newImages]);
+      setUploadingImages(false);
     } catch (err) {
-      console.error('Image upload failed:', err);
-      setError('Failed to upload images. Please try again.');
+      console.error('Image processing failed:', err);
+      setError(err.message);
       setUploadingImages(false);
     }
   };
@@ -141,10 +180,20 @@ const CreateListing = () => {
   // Remove uploaded image
   const removeImage = (index) => {
     setImages(prev => {
+      const imageToRemove = prev[index];
+      
+      // Clean up object URLs to prevent memory leaks
+      if (imageToRemove.fullSize.startsWith('blob:')) {
+        URL.revokeObjectURL(imageToRemove.fullSize);
+      }
+      if (imageToRemove.thumbnail.startsWith('blob:')) {
+        URL.revokeObjectURL(imageToRemove.thumbnail);
+      }
+      
       const newImages = prev.filter((_, i) => i !== index);
       
       // If we removed the primary image, set the first image as primary
-      if (prev[index].isPrimary && newImages.length > 0) {
+      if (imageToRemove.isPrimary && newImages.length > 0) {
         newImages[0].isPrimary = true;
       }
       
@@ -197,16 +246,103 @@ const CreateListing = () => {
     setError(null);
     
     try {
-      // In a real app, this would call your API to create a new item
-      // Here we're just simulating success
-      setTimeout(() => {
-        navigate('/');
-        // You could also redirect to the new item's detail page
-        // navigate(`/item/new-item-id`);
-      }, 1500);
+      // First, upload all images
+      const uploadedImages = [];
+      
+      for (const image of images) {
+        if (image.file) {
+          // Create FormData for image upload
+          const formData = new FormData();
+          formData.append('image', image.file);
+          
+          try {
+            const uploadRes = await uploadAPI.uploadImage(formData);
+            if (uploadRes.data.success) {
+              uploadedImages.push({
+                fullSize: uploadRes.data.data.fullSize,
+                thumbnail: uploadRes.data.data.thumbnail,
+                isPrimary: image.isPrimary
+              });
+            }
+          } catch (uploadError) {
+            console.error('Image upload failed:', uploadError);
+            throw new Error(`Failed to upload image: ${uploadError.message}`);
+          }
+        }
+      }
+      
+      if (uploadedImages.length === 0) {
+        throw new Error('No images were uploaded successfully');
+      }
+      
+      // Prepare the item data according to your BabyItem model
+      const itemData = {
+        title: formData.title,
+        description: formData.description,
+        price: formData.isForSale ? parseFloat(formData.price) : 0,
+        category: formData.category,
+        ageGroup: formData.ageGroup,
+        condition: formData.condition,
+        brand: formData.brand || undefined,
+        color: formData.color || undefined,
+        location: formData.location || undefined,
+        tags: formData.tags,
+        images: uploadedImages,
+        safetyNotes: undefined, // You can add this field to your form if needed
+        gender: 'Unisex', // You can add this field to your form if needed
+        size: undefined, // You can add this field to your form if needed
+        shippingOptions: {
+          localPickup: true,
+          shipping: false,
+          shippingCost: 0
+        }
+      };
+      
+      console.log('Creating item with data:', itemData);
+      
+      // Create the item using your API
+      const createRes = await itemsAPI.createItem(itemData);
+      
+      if (createRes.data.success) {
+        console.log('Item created successfully:', createRes.data.data);
+        
+        // Show success message
+        setError(null);
+        
+        // Clean up object URLs
+        images.forEach(image => {
+          if (image.fullSize && image.fullSize.startsWith('blob:')) {
+            URL.revokeObjectURL(image.fullSize);
+          }
+          if (image.thumbnail && image.thumbnail.startsWith('blob:')) {
+            URL.revokeObjectURL(image.thumbnail);
+          }
+        });
+        
+        // Show success state briefly before redirecting
+        setLoading(false);
+        
+        // Redirect to the home page or the new item's detail page
+        setTimeout(() => {
+          navigate('/');
+          // Alternatively, navigate to the item detail page:
+          // navigate(`/item/${createRes.data.data._id}`);
+        }, 500);
+      } else {
+        throw new Error(createRes.data.message || 'Failed to create item');
+      }
     } catch (err) {
       console.error('Failed to create listing:', err);
-      setError('Failed to create listing. Please try again.');
+      
+      // Show specific error messages
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else if (err.message.includes('upload')) {
+        setError(err.message);
+      } else {
+        setError('Failed to create listing. Please check all fields and try again.');
+      }
+      
       setLoading(false);
     }
   };
@@ -325,6 +461,15 @@ const CreateListing = () => {
     marginBottom: '16px'
   };
 
+  const successStyle = {
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    color: '#22c55e',
+    padding: '12px',
+    borderRadius: '8px',
+    marginBottom: '16px',
+    textAlign: 'center'
+  };
+
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
@@ -347,6 +492,12 @@ const CreateListing = () => {
         {error && (
           <div style={errorStyle}>
             {error}
+          </div>
+        )}
+
+        {loading && (
+          <div style={successStyle}>
+            Creating your listing... Please wait.
           </div>
         )}
         
