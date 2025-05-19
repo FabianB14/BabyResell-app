@@ -519,7 +519,6 @@ const CreateListing = () => {
             cursor: 'pointer'
           }}
         >
-          <UploadDebugger />
           Cancel
         </button>
       </div>
