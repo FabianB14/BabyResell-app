@@ -17,7 +17,7 @@ router.post('/register', async (req, res, next) => {
       passwordLength: req.body.password ? req.body.password.length : 0
     });
 
-    const { username, email, password } = req.body;
+    const { username, email, password, role, isAdmin } = req.body;
 
     // Validate required fields
     if (!username || !email || !password) {
@@ -50,7 +50,9 @@ router.post('/register', async (req, res, next) => {
     const user = await User.create({
       username,
       email,
-      password
+      password,
+      role: role || 'user',
+      isAdmin: isAdmin || false
     });
 
     // Remove password from response
