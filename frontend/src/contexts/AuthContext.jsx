@@ -157,7 +157,9 @@ export const AuthProvider = ({ children }) => {
 
   // Helper function to check if current user is admin
   const isAdmin = () => {
-    return user && (user.isAdmin === true || user.role === 'admin');
+    const adminStatus = user && (user.isAdmin === true || user.role === 'admin');
+    console.log('Admin check:', { user, adminStatus, userIsAdmin: user?.isAdmin, userRole: user?.role });
+    return adminStatus;
   };
 
   return (

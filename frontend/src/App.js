@@ -12,6 +12,9 @@ import Home from './pages/Home';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ContactSupport from './pages/ContactSupport';
+import About from './pages/About';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 import ItemDetail from './pages/ItemDetail';
 import CreateListing from './pages/CreateListing';
 import Profile from './pages/Profile';
@@ -81,6 +84,9 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/contact" element={<ContactSupport />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
                 <Route path="/item/:id" element={<ItemDetail />} />
                 
                 {/* Protected Routes */}
