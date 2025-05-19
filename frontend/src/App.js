@@ -34,9 +34,7 @@ const PrivateRoute = ({ children }) => {
 
 // Admin Guard Component
 const AdminRoute = ({ children }) => {
-  // This is a simplified implementation, in a real app you should also check if the user has admin role
   const token = localStorage.getItem('token');
-  // In a real app, you would decode the token or check the user role from state
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
   
   if (!token) {
@@ -44,6 +42,7 @@ const AdminRoute = ({ children }) => {
   }
   
   if (!isAdmin) {
+    // Redirect non-admin users to home page
     return <Navigate to="/" />;
   }
   
@@ -97,7 +96,12 @@ function App() {
                 } />
                 <Route path="/profile/:id" element={<Profile />} />
                 
-                {/* Admin Routes */}
+                {/* Admin Routes - Protected for admin users only */}
+                <Route path="/admin" element={
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
+                } />
                 <Route path="/admin/*" element={
                   <AdminRoute>
                     <AdminDashboard />

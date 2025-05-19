@@ -22,10 +22,11 @@ export const AuthProvider = ({ children }) => {
           const res = await authAPI.getProfile();
           
           if (res.data.success) {
-            setUser(res.data.data);
+            const userData = res.data.data;
+            setUser(userData);
             setIsAuthenticated(true);
             // Set admin status from user data
-            localStorage.setItem('isAdmin', res.data.data.isAdmin);
+            localStorage.setItem('isAdmin', userData.isAdmin || userData.role === 'admin');
           } else {
             // Token might be invalid or expired
             localStorage.removeItem('token');
@@ -53,10 +54,14 @@ export const AuthProvider = ({ children }) => {
       const res = await authAPI.login({ email, password });
       
       if (res.data.success) {
+        const userData = res.data.data;
+        
         // Save token and user data
         localStorage.setItem('token', res.data.token);
-        localStorage.setItem('isAdmin', res.data.data.isAdmin || false);
-        setUser(res.data.data);
+        localStorage.setItem('isAdmin', userData.isAdmin || userData.role === 'admin');
+        
+        // Set user state
+        setUser(userData);
         setIsAuthenticated(true);
         setLoading(false);
         return true;
@@ -82,10 +87,14 @@ export const AuthProvider = ({ children }) => {
       const res = await authAPI.register(userData);
       
       if (res.data.success) {
+        const newUserData = res.data.data;
+        
         // Save token and user data
         localStorage.setItem('token', res.data.token);
-        localStorage.setItem('isAdmin', res.data.data.isAdmin || false);
-        setUser(res.data.data);
+        localStorage.setItem('isAdmin', newUserData.isAdmin || newUserData.role === 'admin');
+        
+        // Set user state
+        setUser(newUserData);
         setIsAuthenticated(true);
         setLoading(false);
         return true;
@@ -127,7 +136,10 @@ export const AuthProvider = ({ children }) => {
       const res = await authAPI.updateProfile(profileData);
       
       if (res.data.success) {
-        setUser(res.data.data);
+        const updatedUser = res.data.data;
+        setUser(updatedUser);
+        // Update admin status if it changed
+        localStorage.setItem('isAdmin', updatedUser.isAdmin || updatedUser.role === 'admin');
         setLoading(false);
         return true;
       } else {
@@ -143,6 +155,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Helper function to check if current user is admin
+  const isAdmin = () => {
+    return user && (user.isAdmin === true || user.role === 'admin');
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -153,7 +170,8 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
-        updateProfile
+        updateProfile,
+        isAdmin
       }}
     >
       {children}

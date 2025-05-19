@@ -1,287 +1,381 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, ShoppingBag, CreditCard, Settings, Database, BarChart2, Shield } from 'lucide-react';
+import { Mail, MessageSquare, Phone, HelpCircle } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
-import { useAuth } from '../contexts/AuthContext';
-import ApiConnectionTest from '../components/ApiConnectionTest';
 
-const AdminDashboard = () => {
+const ContactSupport = () => {
   const navigate = useNavigate();
   const { themeColors } = useTheme();
-  const { user, isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [showApiTest, setShowApiTest] = useState(false);
   
-  // Sample stats data - in a real app, fetch from API
-  const [statsData] = useState({
-    users: {
-      total: 2150,
-      newToday: 48,
-      growth: 8
-    },
-    items: {
-      total: 6532,
-      active: 4890,
-      sold: 1642,
-      newToday: 124,
-      growth: 5
-    },
-    transactions: {
-      total: 3215,
-      pending: 56,
-      completed: 3159,
-      today: 42,
-      growth: 12
-    },
-    revenue: {
-      total: 62250,
-      today: 1105,
-      growth: 14
-    }
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
 
-  // Check if user is admin
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login', { state: { from: '/admin' } });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+      setError('All fields are required');
       return;
     }
     
-    // Check if user is admin
-    if (user && !user.isAdmin) {
-      navigate('/');
+    setLoading(true);
+    setError('');
+    
+    try {
+      // In a real app, this would send the message to your backend
+      // For now, we'll just simulate success
+      setTimeout(() => {
+        setLoading(false);
+        setSuccess(true);
+        setFormData({ name: '', email: '', subject: '', message: '' });
+        
+        // Hide success message after 5 seconds
+        setTimeout(() => {
+          setSuccess(false);
+        }, 5000);
+      }, 1500);
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setError('Failed to send message. Please try again.');
+      setLoading(false);
     }
-  }, [isAuthenticated, user, navigate]);
+  };
 
-  // Style objects for dark theme
+  // Style objects
   const containerStyle = {
+    minHeight: 'calc(100vh - 120px)',
     backgroundColor: themeColors.background,
-    minHeight: '100vh',
-    padding: '20px'
+    padding: '40px 20px'
+  };
+
+  const contentStyle = {
+    maxWidth: '800px',
+    margin: '0 auto'
+  };
+
+  const headerStyle = {
+    textAlign: 'center',
+    marginBottom: '40px'
+  };
+
+  const titleStyle = {
+    color: themeColors.text,
+    fontSize: '32px',
+    fontWeight: 'bold',
+    marginBottom: '16px'
+  };
+
+  const subtitleStyle = {
+    color: themeColors.textSecondary,
+    fontSize: '18px',
+    lineHeight: '1.6'
+  };
+
+  const gridStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '32px',
+    marginBottom: '40px'
   };
 
   const cardStyle = {
     backgroundColor: themeColors.cardBackground,
-    borderRadius: '8px',
-    padding: '20px',
-    marginBottom: '20px',
-    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+    borderRadius: '16px',
+    padding: '24px',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
   };
 
-  const statCardStyle = {
-    backgroundColor: themeColors.cardBackground,
-    borderRadius: '8px',
-    padding: '16px',
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%'
+  const formGroupStyle = {
+    marginBottom: '24px'
   };
 
-  const tabStyle = {
-    backgroundColor: themeColors.cardBackground,
-    padding: '15px',
-    borderRadius: '8px',
-    marginBottom: '20px',
-    display: 'flex',
-    overflowX: 'auto',
-    whiteSpace: 'nowrap'
+  const labelStyle = {
+    display: 'block',
+    marginBottom: '8px',
+    color: themeColors.text,
+    fontWeight: '500',
+    fontSize: '14px'
   };
 
-  const tabButtonStyle = (isActive) => ({
-    padding: '10px 16px',
-    borderRadius: '6px',
-    marginRight: '10px',
-    cursor: 'pointer',
-    backgroundColor: isActive ? themeColors.primary : 'transparent',
-    color: isActive ? 'white' : themeColors.text,
+  const inputStyle = {
+    width: '100%',
+    padding: '12px 16px',
+    backgroundColor: themeColors.secondary,
     border: 'none',
-    fontSize: '14px',
-    fontWeight: '600',
-    display: 'flex',
-    alignItems: 'center'
-  });
-
-  const iconContainerStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '40px',
-    height: '40px',
     borderRadius: '8px',
-    marginBottom: '10px'
+    color: themeColors.text,
+    fontSize: '16px'
+  };
+
+  const textareaStyle = {
+    ...inputStyle,
+    minHeight: '120px',
+    resize: 'vertical'
   };
 
   const buttonStyle = {
     backgroundColor: themeColors.primary,
     color: 'white',
     border: 'none',
-    padding: '8px 16px',
-    borderRadius: '6px',
-    cursor: 'pointer',
+    borderRadius: '8px',
+    padding: '12px 24px',
+    fontSize: '16px',
     fontWeight: '600',
-    marginRight: '10px'
+    cursor: 'pointer',
+    width: '100%',
+    transition: 'opacity 0.2s'
+  };
+
+  const contactOptionStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '16px',
+    backgroundColor: themeColors.secondary,
+    borderRadius: '8px',
+    marginBottom: '16px',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s'
+  };
+
+  const iconContainerStyle = {
+    width: '48px',
+    height: '48px',
+    borderRadius: '50%',
+    backgroundColor: themeColors.primary,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: '16px'
+  };
+
+  const successStyle = {
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    color: '#22c55e',
+    padding: '16px',
+    borderRadius: '8px',
+    marginBottom: '24px',
+    textAlign: 'center',
+    fontWeight: '600'
+  };
+
+  const errorStyle = {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    color: '#ef4444',
+    padding: '16px',
+    borderRadius: '8px',
+    marginBottom: '24px',
+    textAlign: 'center'
   };
 
   return (
     <div style={containerStyle}>
-      <h1 style={{ color: themeColors.text, marginBottom: '20px' }}>Admin Dashboard</h1>
-      
-      {/* Navigation Tabs */}
-      <div style={tabStyle}>
-        <button 
-          style={tabButtonStyle(activeTab === 'dashboard')}
-          onClick={() => setActiveTab('dashboard')}
-        >
-          <BarChart2 size={18} style={{ marginRight: '8px' }} />
-          Dashboard
-        </button>
-        <button 
-          style={tabButtonStyle(activeTab === 'users')}
-          onClick={() => setActiveTab('users')}
-        >
-          <Users size={18} style={{ marginRight: '8px' }} />
-          Users
-        </button>
-        <button 
-          style={tabButtonStyle(activeTab === 'items')}
-          onClick={() => setActiveTab('items')}
-        >
-          <ShoppingBag size={18} style={{ marginRight: '8px' }} />
-          Items
-        </button>
-        <button 
-          style={tabButtonStyle(activeTab === 'transactions')}
-          onClick={() => setActiveTab('transactions')}
-        >
-          <CreditCard size={18} style={{ marginRight: '8px' }} />
-          Transactions
-        </button>
-        <button 
-          style={tabButtonStyle(activeTab === 'settings')}
-          onClick={() => setActiveTab('settings')}
-        >
-          <Settings size={18} style={{ marginRight: '8px' }} />
-          Settings
-        </button>
-        <button 
-          style={tabButtonStyle(activeTab === 'api')}
-          onClick={() => setActiveTab('api')}
-        >
-          <Database size={18} style={{ marginRight: '8px' }} />
-          API Tools
-        </button>
-      </div>
-      
-      {/* Dashboard Tab */}
-      {activeTab === 'dashboard' && (
-        <div>
-          {/* Stats Overview */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '20px' }}>
-            {/* Users Stat */}
-            <div style={statCardStyle}>
-              <div style={{ ...iconContainerStyle, backgroundColor: 'rgba(59, 130, 246, 0.2)' }}>
-                <Users size={24} color="#3b82f6" />
+      <div style={contentStyle}>
+        {/* Header */}
+        <div style={headerStyle}>
+          <h1 style={titleStyle}>Contact Support</h1>
+          <p style={subtitleStyle}>
+            We're here to help! Get in touch with our support team and we'll get back to you as soon as possible.
+          </p>
+        </div>
+
+        <div style={gridStyle}>
+          {/* Contact Options */}
+          <div style={cardStyle}>
+            <h2 style={{ color: themeColors.text, marginBottom: '24px' }}>Get in Touch</h2>
+            
+            <div 
+              style={contactOptionStyle}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#404040'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = themeColors.secondary}
+            >
+              <div style={iconContainerStyle}>
+                <Mail size={24} color="white" />
               </div>
-              <h3 style={{ color: themeColors.text, margin: '0 0 8px 0' }}>Active Users</h3>
-              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                <span style={{ fontSize: '24px', fontWeight: 'bold', color: themeColors.text }}>{statsData.users.total.toLocaleString()}</span>
-                <span style={{ marginLeft: '8px', fontSize: '14px', color: 'rgb(34, 197, 94)' }}>+{statsData.users.newToday} today</span>
+              <div>
+                <h3 style={{ color: themeColors.text, margin: '0 0 4px 0' }}>Email Support</h3>
+                <p style={{ color: themeColors.textSecondary, margin: 0, fontSize: '14px' }}>
+                  support@babyresell.com
+                </p>
               </div>
             </div>
-            
-            {/* Items Stat */}
-            <div style={statCardStyle}>
-              <div style={{ ...iconContainerStyle, backgroundColor: 'rgba(34, 197, 94, 0.2)' }}>
-                <ShoppingBag size={24} color="#22c55e" />
+
+            <div 
+              style={contactOptionStyle}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#404040'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = themeColors.secondary}
+            >
+              <div style={iconContainerStyle}>
+                <MessageSquare size={24} color="white" />
               </div>
-              <h3 style={{ color: themeColors.text, margin: '0 0 8px 0' }}>Listed Items</h3>
-              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                <span style={{ fontSize: '24px', fontWeight: 'bold', color: themeColors.text }}>{statsData.items.total.toLocaleString()}</span>
-                <span style={{ marginLeft: '8px', fontSize: '14px', color: 'rgb(34, 197, 94)' }}>+{statsData.items.newToday} today</span>
-              </div>
-            </div>
-            
-            {/* Transactions Stat */}
-            <div style={statCardStyle}>
-              <div style={{ ...iconContainerStyle, backgroundColor: 'rgba(249, 115, 22, 0.2)' }}>
-                <CreditCard size={24} color="#f97316" />
-              </div>
-              <h3 style={{ color: themeColors.text, margin: '0 0 8px 0' }}>Transactions</h3>
-              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                <span style={{ fontSize: '24px', fontWeight: 'bold', color: themeColors.text }}>{statsData.transactions.total.toLocaleString()}</span>
-                <span style={{ marginLeft: '8px', fontSize: '14px', color: 'rgb(34, 197, 94)' }}>+{statsData.transactions.today} today</span>
+              <div>
+                <h3 style={{ color: themeColors.text, margin: '0 0 4px 0' }}>Live Chat</h3>
+                <p style={{ color: themeColors.textSecondary, margin: 0, fontSize: '14px' }}>
+                  Available Mon-Fri, 9am-5pm PST
+                </p>
               </div>
             </div>
-            
-            {/* Revenue Stat */}
-            <div style={statCardStyle}>
-              <div style={{ ...iconContainerStyle, backgroundColor: 'rgba(168, 85, 247, 0.2)' }}>
-                <Shield size={24} color="#a855f7" />
+
+            <div 
+              style={contactOptionStyle}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#404040'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = themeColors.secondary}
+            >
+              <div style={iconContainerStyle}>
+                <HelpCircle size={24} color="white" />
               </div>
-              <h3 style={{ color: themeColors.text, margin: '0 0 8px 0' }}>Revenue</h3>
-              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                <span style={{ fontSize: '24px', fontWeight: 'bold', color: themeColors.text }}>${statsData.revenue.total.toLocaleString()}</span>
-                <span style={{ marginLeft: '8px', fontSize: '14px', color: 'rgb(34, 197, 94)' }}>+${statsData.revenue.today} today</span>
+              <div>
+                <h3 style={{ color: themeColors.text, margin: '0 0 4px 0' }}>Help Center</h3>
+                <p style={{ color: themeColors.textSecondary, margin: 0, fontSize: '14px' }}>
+                  Browse our FAQ and guides
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Recent Activity */}
+          {/* Contact Form */}
           <div style={cardStyle}>
-            <h2 style={{ color: themeColors.text, marginBottom: '16px' }}>Recent Activity</h2>
-            <p style={{ color: themeColors.textSecondary }}>Recent user actions and system events will appear here.</p>
+            <h2 style={{ color: themeColors.text, marginBottom: '24px' }}>Send us a Message</h2>
+            
+            {success && (
+              <div style={successStyle}>
+                Your message has been sent successfully! We'll get back to you within 24 hours.
+              </div>
+            )}
+            
+            {error && (
+              <div style={errorStyle}>
+                {error}
+              </div>
+            )}
+            
+            <form onSubmit={handleSubmit}>
+              <div style={formGroupStyle}>
+                <label style={labelStyle} htmlFor="name">Full Name</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  style={inputStyle}
+                  placeholder="Your full name"
+                  required
+                />
+              </div>
+              
+              <div style={formGroupStyle}>
+                <label style={labelStyle} htmlFor="email">Email Address</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  style={inputStyle}
+                  placeholder="your.email@example.com"
+                  required
+                />
+              </div>
+              
+              <div style={formGroupStyle}>
+                <label style={labelStyle} htmlFor="subject">Subject</label>
+                <input
+                  type="text"
+                  id="subject"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleChange}
+                  style={inputStyle}
+                  placeholder="Brief description of your inquiry"
+                  required
+                />
+              </div>
+              
+              <div style={formGroupStyle}>
+                <label style={labelStyle} htmlFor="message">Message</label>
+                <textarea
+                  id="message"
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
+                  style={textareaStyle}
+                  placeholder="Please provide details about your question or issue..."
+                  required
+                />
+              </div>
+              
+              <button
+                type="submit"
+                style={{
+                  ...buttonStyle,
+                  opacity: loading ? 0.7 : 1
+                }}
+                disabled={loading}
+              >
+                {loading ? 'Sending...' : 'Send Message'}
+              </button>
+            </form>
           </div>
         </div>
-      )}
-      
-      {/* Users Tab */}
-      {activeTab === 'users' && (
+
+        {/* FAQ Section */}
         <div style={cardStyle}>
-          <h2 style={{ color: themeColors.text, marginBottom: '16px' }}>User Management</h2>
-          <p style={{ color: themeColors.textSecondary }}>User management features to be implemented.</p>
-        </div>
-      )}
-      
-      {/* Items Tab */}
-      {activeTab === 'items' && (
-        <div style={cardStyle}>
-          <h2 style={{ color: themeColors.text, marginBottom: '16px' }}>Item Management</h2>
-          <p style={{ color: themeColors.textSecondary }}>Item management features to be implemented.</p>
-        </div>
-      )}
-      
-      {/* Transactions Tab */}
-      {activeTab === 'transactions' && (
-        <div style={cardStyle}>
-          <h2 style={{ color: themeColors.text, marginBottom: '16px' }}>Transaction Management</h2>
-          <p style={{ color: themeColors.textSecondary }}>Transaction management features to be implemented.</p>
-        </div>
-      )}
-      
-      {/* Settings Tab */}
-      {activeTab === 'settings' && (
-        <div style={cardStyle}>
-          <h2 style={{ color: themeColors.text, marginBottom: '16px' }}>Admin Settings</h2>
-          <p style={{ color: themeColors.textSecondary }}>Admin settings to be implemented.</p>
-        </div>
-      )}
-      
-      {/* API Tools Tab */}
-      {activeTab === 'api' && (
-        <div style={cardStyle}>
-          <h2 style={{ color: themeColors.text, marginBottom: '16px' }}>API Testing Tools</h2>
-          <button 
-            style={buttonStyle}
-            onClick={() => setShowApiTest(!showApiTest)}
-          >
-            {showApiTest ? 'Hide API Tester' : 'Show API Tester'}
-          </button>
+          <h2 style={{ color: themeColors.text, marginBottom: '24px' }}>Frequently Asked Questions</h2>
           
-          {showApiTest && <ApiConnectionTest />}
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ color: themeColors.text, fontSize: '16px', marginBottom: '8px' }}>
+              How do I list an item for sale?
+            </h3>
+            <p style={{ color: themeColors.textSecondary, lineHeight: '1.6' }}>
+              Click the "Create Pin" button in the header, then fill out the item details form with photos, description, and pricing information.
+            </p>
+          </div>
+          
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ color: themeColors.text, fontSize: '16px', marginBottom: '8px' }}>
+              Is it safe to buy and sell on BabyResell?
+            </h3>
+            <p style={{ color: themeColors.textSecondary, lineHeight: '1.6' }}>
+              Yes! We provide secure payment processing and buyer protection. We also encourage users to meet in safe, public locations for item exchanges.
+            </p>
+          </div>
+          
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ color: themeColors.text, fontSize: '16px', marginBottom: '8px' }}>
+              What fees does BabyResell charge?
+            </h3>
+            <p style={{ color: themeColors.textSecondary, lineHeight: '1.6' }}>
+              We charge a small transaction fee of 5% on completed sales to help maintain the platform and provide customer support.
+            </p>
+          </div>
+          
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ color: themeColors.text, fontSize: '16px', marginBottom: '8px' }}>
+              How do I contact a seller about an item?
+            </h3>
+            <p style={{ color: themeColors.textSecondary, lineHeight: '1.6' }}>
+              Click on any item to view its details, then use the "Contact" button to send a message directly to the seller through our messaging system.
+            </p>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
-export default AdminDashboard;
+export default ContactSupport;
