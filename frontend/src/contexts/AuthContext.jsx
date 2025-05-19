@@ -24,13 +24,17 @@ export const AuthProvider = ({ children }) => {
           if (res.data.success) {
             setUser(res.data.data);
             setIsAuthenticated(true);
+            // Set admin status from user data
+            localStorage.setItem('isAdmin', res.data.data.isAdmin);
           } else {
             // Token might be invalid or expired
             localStorage.removeItem('token');
+            localStorage.removeItem('isAdmin');
           }
         } catch (err) {
           console.error('Auth check failed:', err);
           localStorage.removeItem('token');
+          localStorage.removeItem('isAdmin');
         }
       }
       
@@ -51,6 +55,7 @@ export const AuthProvider = ({ children }) => {
       if (res.data.success) {
         // Save token and user data
         localStorage.setItem('token', res.data.token);
+        localStorage.setItem('isAdmin', res.data.data.isAdmin || false);
         setUser(res.data.data);
         setIsAuthenticated(true);
         setLoading(false);
@@ -79,6 +84,7 @@ export const AuthProvider = ({ children }) => {
       if (res.data.success) {
         // Save token and user data
         localStorage.setItem('token', res.data.token);
+        localStorage.setItem('isAdmin', res.data.data.isAdmin || false);
         setUser(res.data.data);
         setIsAuthenticated(true);
         setLoading(false);
@@ -106,6 +112,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       // Remove token and reset state
       localStorage.removeItem('token');
+      localStorage.removeItem('isAdmin');
       setUser(null);
       setIsAuthenticated(false);
     }
