@@ -4,6 +4,7 @@ import { Plus, X, Image } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { itemsAPI, uploadAPI } from '../services/api';
+import UploadDebugger from '../components/UploadDebugger';
 
 const CreateListing = () => {
   const navigate = useNavigate();
@@ -518,6 +519,7 @@ const CreateListing = () => {
             cursor: 'pointer'
           }}
         >
+          <UploadDebugger />
           Cancel
         </button>
       </div>
