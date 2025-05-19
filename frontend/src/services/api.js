@@ -95,11 +95,14 @@ export const itemsAPI = {
 
 // Upload endpoints (keeping your existing structure)
 export const uploadAPI = {
-  uploadImage: (formData) => api.post('/upload/image', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  }),
+  uploadImage: (formData) => {
+    console.log('Uploading to:', `${baseURL}/upload/image`);
+    return api.post('/upload/image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
   uploadMultiple: (formData) => api.post('/upload/multiple', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',

@@ -249,24 +249,57 @@ const CreateListing = () => {
       // First, upload all images
       const uploadedImages = [];
       
-      for (const image of images) {
+      console.log(`Starting upload of ${images.length} images...`);
+      
+      for (let i = 0; i < images.length; i++) {
+        const image = images[i];
         if (image.file) {
+          console.log(`Uploading image ${i + 1}/${images.length}: ${image.name}`);
+          
           // Create FormData for image upload
           const formData = new FormData();
           formData.append('image', image.file);
           
+          // Log the file details
+          console.log('File details:', {
+            name: image.file.name,
+            size: image.file.size,
+            type: image.file.type
+          });
+          
           try {
             const uploadRes = await uploadAPI.uploadImage(formData);
+            console.log('Upload response:', uploadRes.data);
+            
             if (uploadRes.data.success) {
               uploadedImages.push({
                 fullSize: uploadRes.data.data.fullSize,
                 thumbnail: uploadRes.data.data.thumbnail,
                 isPrimary: image.isPrimary
               });
+              console.log(`Image ${i + 1} uploaded successfully`);
+            } else {
+              throw new Error(uploadRes.data.message || 'Upload failed');
             }
           } catch (uploadError) {
-            console.error('Image upload failed:', uploadError);
-            throw new Error(`Failed to upload image: ${uploadError.message}`);
+            console.error('Detailed upload error:', {
+              error: uploadError,
+              response: uploadError.response?.data,
+              status: uploadError.response?.status,
+              statusText: uploadError.response?.statusText
+            });
+            
+            // More detailed error message
+            let errorMessage = 'Unknown upload error';
+            if (uploadError.response?.data?.message) {
+              errorMessage = uploadError.response.data.message;
+            } else if (uploadError.response?.data?.error) {
+              errorMessage = uploadError.response.data.error;
+            } else if (uploadError.message) {
+              errorMessage = uploadError.message;
+            }
+            
+            throw new Error(`Failed to upload ${image.name}: ${errorMessage}`);
           }
         }
       }
@@ -274,6 +307,8 @@ const CreateListing = () => {
       if (uploadedImages.length === 0) {
         throw new Error('No images were uploaded successfully');
       }
+      
+      console.log(`All images uploaded successfully. Creating item...`);
       
       // Prepare the item data according to your BabyItem model
       const itemData = {
@@ -288,9 +323,6 @@ const CreateListing = () => {
         location: formData.location || undefined,
         tags: formData.tags,
         images: uploadedImages,
-        safetyNotes: undefined, // You can add this field to your form if needed
-        gender: 'Unisex', // You can add this field to your form if needed
-        size: undefined, // You can add this field to your form if needed
         shippingOptions: {
           localPickup: true,
           shipping: false,
@@ -302,12 +334,10 @@ const CreateListing = () => {
       
       // Create the item using your API
       const createRes = await itemsAPI.createItem(itemData);
+      console.log('Create item response:', createRes.data);
       
       if (createRes.data.success) {
         console.log('Item created successfully:', createRes.data.data);
-        
-        // Show success message
-        setError(null);
         
         // Clean up object URLs
         images.forEach(image => {
@@ -319,14 +349,14 @@ const CreateListing = () => {
           }
         });
         
-        // Show success state briefly before redirecting
         setLoading(false);
         
-        // Redirect to the home page or the new item's detail page
+        // Show success message briefly
+        setError(null);
+        
+        // Redirect to the home page
         setTimeout(() => {
           navigate('/');
-          // Alternatively, navigate to the item detail page:
-          // navigate(`/item/${createRes.data.data._id}`);
         }, 500);
       } else {
         throw new Error(createRes.data.message || 'Failed to create item');
@@ -336,11 +366,15 @@ const CreateListing = () => {
       
       // Show specific error messages
       if (err.response?.data?.message) {
-        setError(err.response.data.message);
+        setError(`Server error: ${err.response.data.message}`);
+      } else if (err.response?.data?.error) {
+        setError(`Server error: ${err.response.data.error}`);
       } else if (err.message.includes('upload')) {
         setError(err.message);
+      } else if (err.message) {
+        setError(err.message);
       } else {
-        setError('Failed to create listing. Please check all fields and try again.');
+        setError('Failed to create listing. Please try again.');
       }
       
       setLoading(false);
