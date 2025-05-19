@@ -14,270 +14,111 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({
+    category: '',
+    minPrice: '',
+    maxPrice: '',
+    condition: '',
+    sort: '-createdAt'
+  });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    pages: 0
+  });
 
-  // Fetch baby items
-  useEffect(() => {
-    const fetchItems = async () => {
-      try {
-        setLoading(true);
+  // Fetch baby items from the backend
+  const fetchItems = async (resetItems = false) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Build query parameters
+      const params = {
+        page: resetItems ? 1 : pagination.page,
+        limit: pagination.limit,
+        sort: filters.sort,
+        ...(searchQuery && { search: searchQuery }),
+        ...(filters.category && { category: filters.category }),
+        ...(filters.condition && { condition: filters.condition }),
+        ...(filters.minPrice && { minPrice: parseFloat(filters.minPrice) }),
+        ...(filters.maxPrice && { maxPrice: parseFloat(filters.maxPrice) }),
+      };
+
+      console.log('Fetching items with params:', params);
+      
+      const response = await itemsAPI.getAllItems(params);
+      
+      if (response.data.success) {
+        const newItems = response.data.data || [];
+        const paginationData = response.data.pagination || {};
         
-        // Real API call
-        const res = await itemsAPI.getAllItems({ 
-          limit: 12,
-          sort: '-createdAt'
+        // If resetting (new search/filter), replace items; otherwise append for pagination
+        setItems(resetItems ? newItems : [...items, ...newItems]);
+        setPagination({
+          page: paginationData.page || 1,
+          limit: paginationData.limit || 20,
+          total: paginationData.total || 0,
+          pages: paginationData.pages || 0
         });
         
-        if (res.data.success) {
-          setItems(res.data.data);
-        } else {
-          // Fall back to sample data if API request was successful but returned no data
-          setItems(generateSampleItems());
-        }
-      } catch (err) {
-        console.error('Failed to fetch items:', err);
-        // Fall back to sample data if API request failed
-        setItems(generateSampleItems());
-      } finally {
-        setLoading(false);
+        console.log('Items fetched successfully:', { 
+          count: newItems.length, 
+          total: paginationData.total 
+        });
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch items');
       }
-    };
-    
-    fetchItems();
+    } catch (err) {
+      console.error('Error fetching items:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to load items');
+      
+      // If it's the first load and the API fails, don't show any items
+      if (resetItems) {
+        setItems([]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    fetchItems(true);
   }, []);
 
-  // Generate sample items if API is not available
-  const generateSampleItems = () => {
-    return [
-      {
-        id: 1,
-        title: 'Baby Carrier - Like New',
-        price: 45.00,
-        image: 'https://via.placeholder.com/300x400?text=Baby+Carrier',
-        height: 400,
-        description: 'High-quality baby carrier in excellent condition. Used only a few times.',
-        condition: 'Like New',
-        category: 'Carriers & Wraps',
-        ageGroup: 'Infant (3-12 months)',
-        brand: 'BabyBjörn',
-        color: 'Grey',
-        tags: ['carrier', 'baby', 'bjorn'],
-        user: {
-          username: 'parent123',
-          profileImage: 'https://via.placeholder.com/40?text=User',
-          location: 'Seattle, WA'
-        }
-      },
-      {
-        id: 2,
-        title: 'Toddler Clothing Bundle',
-        price: 25.00,
-        image: 'https://via.placeholder.com/300x250?text=Clothing+Bundle',
-        height: 250,
-        description: 'Collection of gently used toddler clothes. Multiple sizes and styles included.',
-        condition: 'Good',
-        category: 'Clothes & Shoes',
-        ageGroup: 'Toddler (1-3 years)',
-        brand: 'Various',
-        color: 'Multi',
-        tags: ['clothes', 'toddler', 'bundle'],
-        user: {
-          username: 'parent456',
-          profileImage: 'https://via.placeholder.com/40?text=User',
-          location: 'Portland, OR'
-        }
-      },
-      {
-        id: 3,
-        title: 'Wooden Crib - Excellent Condition',
-        price: 150.00,
-        image: 'https://via.placeholder.com/300x350?text=Wooden+Crib',
-        height: 350,
-        description: 'Beautiful wooden crib with mattress included. Adjustable height settings.',
-        condition: 'Excellent',
-        category: 'Nursery',
-        ageGroup: 'Newborn (0-3 months)',
-        brand: 'Pottery Barn Kids',
-        color: 'Natural Wood',
-        tags: ['crib', 'bed', 'nursery', 'wood'],
-        user: {
-          username: 'parent789',
-          profileImage: 'https://via.placeholder.com/40?text=User',
-          location: 'Bellevue, WA'
-        }
-      },
-      // More sample items...
-      {
-        id: 4,
-        title: 'Baby Toys Set',
-        price: 20.00,
-        image: 'https://via.placeholder.com/300x280?text=Baby+Toys',
-        height: 280,
-        description: 'Collection of 10 educational toys for babies 6-12 months. All in great condition.',
-        condition: 'Good',
-        category: 'Toys & Games',
-        ageGroup: 'Infant (3-12 months)',
-        brand: 'Various',
-        color: 'Multi',
-        tags: ['toys', 'educational', 'bundle'],
-        user: {
-          username: 'toystore',
-          profileImage: 'https://via.placeholder.com/40?text=User',
-          location: 'Tacoma, WA'
-        }
-      },
-      {
-        id: 5,
-        title: 'Stroller - High Quality',
-        price: 85.00,
-        image: 'https://via.placeholder.com/300x320?text=Stroller',
-        height: 320,
-        description: 'Compact, lightweight stroller that folds easily for travel. Good condition with minor wear.',
-        condition: 'Good',
-        category: 'Strollers & Car Seats',
-        ageGroup: 'All Ages',
-        brand: 'Chicco',
-        color: 'Black',
-        tags: ['stroller', 'travel', 'portable'],
-        user: {
-          username: 'strollerseller',
-          profileImage: 'https://via.placeholder.com/40?text=User',
-          location: 'Seattle, WA'
-        }
-      },
-      {
-        id: 6,
-        title: 'Baby Monitor',
-        price: 35.00,
-        image: 'https://via.placeholder.com/300x260?text=Baby+Monitor',
-        height: 260,
-        description: 'Digital baby monitor with night vision and temperature monitoring. Like new condition.',
-        condition: 'Like New',
-        category: 'Health & Safety',
-        ageGroup: 'Newborn (0-3 months)',
-        brand: 'Infant Optics',
-        color: 'White',
-        tags: ['monitor', 'safety', 'digital'],
-        user: {
-          username: 'techparent',
-          profileImage: 'https://via.placeholder.com/40?text=User',
-          location: 'Redmond, WA'
-        }
-      },
-      {
-        id: 7,
-        title: 'Nursing Pillow',
-        price: 15.00,
-        image: 'https://via.placeholder.com/300x220?text=Nursing+Pillow',
-        height: 220,
-        description: 'Comfortable nursing pillow with removable, washable cover. Barely used.',
-        condition: 'Like New',
-        category: 'Feeding',
-        ageGroup: 'Newborn (0-3 months)',
-        brand: 'Boppy',
-        color: 'Grey',
-        tags: ['nursing', 'feeding', 'pillow'],
-        user: {
-          username: 'newmom',
-          profileImage: 'https://via.placeholder.com/40?text=User',
-          location: 'Kirkland, WA'
-        }
-      },
-      {
-        id: 8,
-        title: 'Diaper Bag',
-        price: 30.00,
-        image: 'https://via.placeholder.com/300x300?text=Diaper+Bag',
-        height: 300,
-        description: 'Stylish diaper bag with multiple compartments. Looks like a regular handbag!',
-        condition: 'Good',
-        category: 'Diapering',
-        ageGroup: 'All Ages',
-        brand: 'Skip Hop',
-        color: 'Black',
-        tags: ['diaper', 'bag', 'storage'],
-        user: {
-          username: 'stylishmom',
-          profileImage: 'https://via.placeholder.com/40?text=User',
-          location: 'Seattle, WA'
-        }
-      },
-      {
-        id: 9,
-        title: 'Baby Bath Set',
-        price: 18.00,
-        image: 'https://via.placeholder.com/300x270?text=Bath+Set',
-        height: 270,
-        description: 'Complete bath set including infant tub, rinser, and bath toys.',
-        condition: 'Good',
-        category: 'Bathing & Skincare',
-        ageGroup: 'Newborn (0-3 months)',
-        brand: 'The First Years',
-        color: 'Blue',
-        tags: ['bath', 'tub', 'skincare'],
-        user: {
-          username: 'cleanbaby',
-          profileImage: 'https://via.placeholder.com/40?text=User',
-          location: 'Everett, WA'
-        }
-      },
-      {
-        id: 10,
-        title: 'Highchair',
-        price: 55.00,
-        image: 'https://via.placeholder.com/300x340?text=Highchair',
-        height: 340,
-        description: 'Adjustable highchair with removable tray and machine-washable seat pad.',
-        condition: 'Good',
-        category: 'Feeding',
-        ageGroup: 'Infant (3-12 months)',
-        brand: 'Graco',
-        color: 'Grey',
-        tags: ['highchair', 'feeding', 'chair'],
-        user: {
-          username: 'mealtime',
-          profileImage: 'https://via.placeholder.com/40?text=User',
-          location: 'Tacoma, WA'
-        }
-      },
-      {
-        id: 11,
-        title: 'Baby Books Collection',
-        price: 12.00,
-        image: 'https://via.placeholder.com/300x230?text=Baby+Books',
-        height: 230,
-        description: 'Collection of 10 board books for babies and toddlers. Great condition.',
-        condition: 'Good',
-        category: 'Toys & Games',
-        ageGroup: 'All Ages',
-        brand: 'Various',
-        color: 'Multi',
-        tags: ['books', 'reading', 'educational'],
-        user: {
-          username: 'bookworm',
-          profileImage: 'https://via.placeholder.com/40?text=User',
-          location: 'Seattle, WA'
-        }
-      },
-      {
-        id: 12,
-        title: 'Bottle Warmer',
-        price: 22.00,
-        image: 'https://via.placeholder.com/300x290?text=Bottle+Warmer',
-        height: 290,
-        description: 'Quick and even bottle warmer. Works with all bottle types and sizes.',
-        condition: 'Like New',
-        category: 'Feeding',
-        ageGroup: 'Newborn (0-3 months)',
-        brand: 'Philips AVENT',
-        color: 'White',
-        tags: ['bottle', 'warmer', 'feeding'],
-        user: {
-          username: 'feedingpro',
-          profileImage: 'https://via.placeholder.com/40?text=User',
-          location: 'Renton, WA'
-        }
-      }
-    ];
+  // Refetch when search or filters change
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchItems(true);
+    }, 500); // Debounce search queries
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, filters]);
+
+  // Handle search
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (filterName, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterName]: value
+    }));
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  // Load more items (pagination)
+  const loadMore = () => {
+    if (loading || pagination.page >= pagination.pages) return;
+    
+    setPagination(prev => ({ ...prev, page: prev.page + 1 }));
+    fetchItems(false);
   };
 
   // Dynamic columns based on window width
@@ -311,9 +152,8 @@ const Home = () => {
       return;
     }
     
-    // In a real app, navigate to checkout or transaction page
-    console.log('Processing purchase for item:', item);
-    alert(`Purchase initiated for: ${item.title}`);
+    // Navigate to item detail page or show purchase flow
+    navigate(`/item/${item._id || item.id}`);
   };
 
   // CSS for Pinterest-style layout
@@ -321,6 +161,25 @@ const Home = () => {
     maxWidth: '1500px',
     margin: '0 auto',
     padding: '20px'
+  };
+
+  const filtersStyle = {
+    backgroundColor: themeColors.cardBackground,
+    padding: '20px',
+    borderRadius: '12px',
+    marginBottom: '24px',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '16px'
+  };
+
+  const filterInputStyle = {
+    padding: '8px 12px',
+    borderRadius: '8px',
+    border: 'none',
+    backgroundColor: themeColors.secondary,
+    color: themeColors.text,
+    fontSize: '14px'
   };
 
   const masonryStyle = {
@@ -341,7 +200,7 @@ const Home = () => {
     cursor: 'pointer'
   });
 
-  const imageStyle = (height) => ({
+  const imageStyle = (height = 300) => ({
     width: '100%',
     height: `${height}px`,
     objectFit: 'cover'
@@ -362,6 +221,31 @@ const Home = () => {
     borderRadius: '16px',
     fontWeight: 'bold',
     fontSize: '14px'
+  };
+
+  const conditionTagStyle = {
+    position: 'absolute',
+    bottom: '12px',
+    left: '12px',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    color: 'white',
+    padding: '4px 8px',
+    borderRadius: '12px',
+    fontSize: '12px'
+  };
+
+  const loadMoreButtonStyle = {
+    backgroundColor: themeColors.primary,
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '12px 24px',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    display: 'block',
+    margin: '24px auto',
+    transition: 'transform 0.2s'
   };
 
   const hoverEffect = (e) => {
@@ -391,50 +275,237 @@ const Home = () => {
   return (
     <div style={{ backgroundColor: themeColors.background, minHeight: '100vh' }}>
       <div style={containerStyle}>
-        {loading ? (
+        {/* Search and Filters */}
+        <div style={filtersStyle}>
+          <input
+            type="text"
+            placeholder="Search items..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            style={filterInputStyle}
+          />
+          
+          <select
+            value={filters.category}
+            onChange={(e) => handleFilterChange('category', e.target.value)}
+            style={filterInputStyle}
+          >
+            <option value="">All Categories</option>
+            <option value="Clothes & Shoes">Clothes & Shoes</option>
+            <option value="Toys & Games">Toys & Games</option>
+            <option value="Feeding">Feeding</option>
+            <option value="Diapering">Diapering</option>
+            <option value="Bathing & Skincare">Bathing & Skincare</option>
+            <option value="Health & Safety">Health & Safety</option>
+            <option value="Nursery">Nursery</option>
+            <option value="Strollers & Car Seats">Strollers & Car Seats</option>
+            <option value="Carriers & Wraps">Carriers & Wraps</option>
+            <option value="Activity & Entertainment">Activity & Entertainment</option>
+            <option value="Books">Books</option>
+            <option value="Other">Other</option>
+          </select>
+          
+          <select
+            value={filters.condition}
+            onChange={(e) => handleFilterChange('condition', e.target.value)}
+            style={filterInputStyle}
+          >
+            <option value="">All Conditions</option>
+            <option value="New">New</option>
+            <option value="Like New">Like New</option>
+            <option value="Good">Good</option>
+            <option value="Fair">Fair</option>
+            <option value="Poor">Poor</option>
+          </select>
+          
+          <input
+            type="number"
+            placeholder="Min Price"
+            value={filters.minPrice}
+            onChange={(e) => handleFilterChange('minPrice', e.target.value)}
+            style={filterInputStyle}
+            min="0"
+            step="0.01"
+          />
+          
+          <input
+            type="number"
+            placeholder="Max Price"
+            value={filters.maxPrice}
+            onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
+            style={filterInputStyle}
+            min="0"
+            step="0.01"
+          />
+          
+          <select
+            value={filters.sort}
+            onChange={(e) => handleFilterChange('sort', e.target.value)}
+            style={filterInputStyle}
+          >
+            <option value="-createdAt">Newest First</option>
+            <option value="createdAt">Oldest First</option>
+            <option value="price">Price: Low to High</option>
+            <option value="-price">Price: High to Low</option>
+            <option value="title">Name: A to Z</option>
+            <option value="-title">Name: Z to A</option>
+          </select>
+        </div>
+
+        {/* Results Count */}
+        {!loading && (
+          <div style={{ 
+            color: themeColors.textSecondary, 
+            marginBottom: '20px',
+            textAlign: 'center'
+          }}>
+            {pagination.total > 0 
+              ? `Showing ${items.length} of ${pagination.total} items`
+              : 'No items found'
+            }
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading && items.length === 0 && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
             <div className="loader"></div>
           </div>
-        ) : error ? (
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
           <div style={{ 
             padding: '20px', 
-            backgroundColor: themeColors.cardBackground, 
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
             borderRadius: '8px',
-            color: themeColors.text
+            color: '#ef4444',
+            textAlign: 'center',
+            marginBottom: '20px'
           }}>
             <h3>Error: {error}</h3>
-            <p>Could not load items. Please try again later.</p>
+            <p>Please try again or check your connection.</p>
+            <button 
+              style={loadMoreButtonStyle}
+              onClick={() => fetchItems(true)}
+            >
+              Retry
+            </button>
           </div>
-        ) : (
+        )}
+
+        {/* Items Grid */}
+        {!loading && items.length > 0 && (
           <div style={masonryStyle}>
             {columnsOfItems.map((column, columnIndex) => (
               <div key={columnIndex}>
-                {column.map(item => (
-                  <div 
-                    key={item.id || item._id} 
-                    style={itemStyle(item)}
-                    onClick={() => handleItemClick(item)}
-                    onMouseEnter={hoverEffect}
-                    onMouseLeave={removeHoverEffect}
-                  >
-                    <div style={priceTagStyle}>${item.price.toFixed(2)}</div>
-                    <img 
-                      src={item.image || item.thumbnail || item.images?.[0]?.thumbnail || `https://via.placeholder.com/300x${item.height || 300}?text=${encodeURIComponent(item.title)}`} 
-                      alt={item.title} 
-                      style={imageStyle(item.height || 300)} 
-                    />
-                    <div style={cardContentStyle}>
-                      <h3 style={{ fontSize: '16px', marginBottom: '4px' }}>{item.title}</h3>
-                      {item.user && (
-                        <div style={{ fontSize: '12px', color: themeColors.textSecondary }}>
-                          by {item.user.username}
+                {column.map(item => {
+                  // Get the best image URL
+                  const imageUrl = item.images && item.images.length > 0
+                    ? (item.images.find(img => img.isPrimary)?.thumbnail || item.images[0].thumbnail)
+                    : item.thumbnail || item.image || `https://via.placeholder.com/300x300?text=${encodeURIComponent(item.title || 'No Image')}`;
+                  
+                  // Calculate dynamic height based on image aspect ratio or random
+                  const height = item.height || (250 + Math.floor(Math.random() * 150));
+                  
+                  return (
+                    <div 
+                      key={item._id || item.id} 
+                      style={itemStyle(item)}
+                      onClick={() => handleItemClick(item)}
+                      onMouseEnter={hoverEffect}
+                      onMouseLeave={removeHoverEffect}
+                    >
+                      {/* Price Tag */}
+                      {item.price && (
+                        <div style={priceTagStyle}>
+                          ${typeof item.price === 'number' ? item.price.toFixed(2) : item.price}
                         </div>
                       )}
+                      
+                      {/* Item Image */}
+                      <img 
+                        src={imageUrl}
+                        alt={item.title || 'Baby item'} 
+                        style={imageStyle(height)}
+                        onError={(e) => {
+                          e.target.src = `https://via.placeholder.com/300x${height}?text=${encodeURIComponent(item.title || 'Image Error')}`;
+                        }}
+                      />
+                      
+                      {/* Condition Tag */}
+                      {item.condition && (
+                        <div style={conditionTagStyle}>
+                          {item.condition}
+                        </div>
+                      )}
+                      
+                      {/* Item Details */}
+                      <div style={cardContentStyle}>
+                        <h3 style={{ fontSize: '16px', marginBottom: '4px', fontWeight: '600' }}>
+                          {item.title || 'Untitled Item'}
+                        </h3>
+                        {item.user && (
+                          <div style={{ fontSize: '12px', color: themeColors.textSecondary }}>
+                            by {item.user.username || 'Anonymous'}
+                          </div>
+                        )}
+                        {item.location && (
+                          <div style={{ fontSize: '12px', color: themeColors.textSecondary }}>
+                            📍 {item.location}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Load More Button */}
+        {!loading && items.length > 0 && pagination.page < pagination.pages && (
+          <button 
+            style={loadMoreButtonStyle}
+            onClick={loadMore}
+            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+          >
+            Load More Items ({pagination.total - items.length} remaining)
+          </button>
+        )}
+
+        {/* Empty State */}
+        {!loading && items.length === 0 && !error && (
+          <div style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            color: themeColors.textSecondary
+          }}>
+            <div style={{
+              fontSize: '48px',
+              marginBottom: '20px'
+            }}>
+              🍼
+            </div>
+            <h3 style={{ color: themeColors.text, marginBottom: '12px' }}>
+              No items found
+            </h3>
+            <p style={{ marginBottom: '24px' }}>
+              {searchQuery || Object.values(filters).some(f => f) 
+                ? 'Try adjusting your search or filters'
+                : 'Be the first to list an item!'
+              }
+            </p>
+            {isAuthenticated && (
+              <button 
+                style={loadMoreButtonStyle}
+                onClick={() => navigate('/create-listing')}
+              >
+                Create Your First Listing
+              </button>
+            )}
           </div>
         )}
       </div>
