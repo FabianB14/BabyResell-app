@@ -73,9 +73,14 @@ const Home = () => {
             imageUrl = item.image;
           }
           
+          // Use a working placeholder service
+          const placeholderUrl = `https://placehold.co/300x400/e0e0e0/666666?text=${encodeURIComponent(item.title || 'Baby Item')}`;
+          
+          console.log(`Item "${item.title}": imageUrl = ${imageUrl}`);
+          
           return {
             ...item,
-            displayImage: imageUrl || `https://via.placeholder.com/300x400?text=${encodeURIComponent(item.title || 'No Image')}`
+            displayImage: imageUrl || placeholderUrl
           };
         });
         
@@ -508,10 +513,15 @@ const Home = () => {
                         <img 
                           src={item.displayImage}
                           alt={item.title || 'Baby item'} 
-                          style={imageStyle}
+                          style={{
+                            ...imageStyle,
+                            display: 'block'
+                          }}
+                          loading="lazy"
                           onError={(e) => {
                             // Fallback to placeholder if image fails to load
-                            e.target.src = `https://via.placeholder.com/300x${height}?text=${encodeURIComponent(item.title || 'Image Error')}`;
+                            e.target.src = `https://placehold.co/300x${height}/e0e0e0/666666?text=${encodeURIComponent(item.title || 'No Image')}`;
+                            e.target.onerror = null; // Prevent infinite loop
                           }}
                         />
                       </div>
