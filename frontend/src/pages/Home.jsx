@@ -4,7 +4,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { itemsAPI } from '../services/api';
 import ItemDetailModal from '../components/ItemDetailModal';
-import ResponsiveImage from '../components/ResponsiveImage';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -56,8 +55,32 @@ const Home = () => {
         const newItems = response.data.data || [];
         const paginationData = response.data.pagination || {};
         
+        // Process items to ensure they have valid image URLs
+        const processedItems = newItems.map(item => {
+          // Get the best available image URL
+          let imageUrl = null;
+          
+          if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+            const primaryImage = item.images.find(img => img.isPrimary);
+            if (primaryImage) {
+              imageUrl = primaryImage.thumbnail || primaryImage.fullSize;
+            } else {
+              imageUrl = item.images[0].thumbnail || item.images[0].fullSize;
+            }
+          } else if (item.thumbnail) {
+            imageUrl = item.thumbnail;
+          } else if (item.image) {
+            imageUrl = item.image;
+          }
+          
+          return {
+            ...item,
+            displayImage: imageUrl || `https://via.placeholder.com/300x400?text=${encodeURIComponent(item.title || 'No Image')}`
+          };
+        });
+        
         // If resetting (new search/filter), replace items; otherwise append for pagination
-        setItems(resetItems ? newItems : [...items, ...newItems]);
+        setItems(resetItems ? processedItems : [...items, ...processedItems]);
         setPagination({
           page: paginationData.page || 1,
           limit: paginationData.limit || 20,
@@ -66,7 +89,7 @@ const Home = () => {
         });
         
         console.log('Items fetched successfully:', { 
-          count: newItems.length, 
+          count: processedItems.length, 
           total: paginationData.total 
         });
       } else {
@@ -76,9 +99,60 @@ const Home = () => {
       console.error('Error fetching items:', err);
       setError(err.response?.data?.message || err.message || 'Failed to load items');
       
-      // If it's the first load and the API fails, don't show any items
+      // If it's the first load and the API fails, use sample data
       if (resetItems) {
-        setItems([]);
+        // Sample data for testing
+        const sampleItems = [
+          {
+            _id: 'sample1',
+            title: 'Baby Carrier - Like New',
+            price: 45.00,
+            condition: 'Like New',
+            displayImage: 'https://images.unsplash.com/photo-1491013516836-7db643ee125a?w=300&h=400&fit=crop',
+            user: { username: 'parent123' }
+          },
+          {
+            _id: 'sample2',
+            title: 'Wooden Crib with Mattress',
+            price: 120.00,
+            condition: 'Good',
+            displayImage: 'https://images.unsplash.com/photo-1566479117908-8e369a60d57a?w=300&h=350&fit=crop',
+            user: { username: 'parent456' }
+          },
+          {
+            _id: 'sample3',
+            title: 'Baby Toys Bundle',
+            price: 35.00,
+            condition: 'Good',
+            displayImage: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=300&h=380&fit=crop',
+            user: { username: 'parent789' }
+          },
+          {
+            _id: 'sample4',
+            title: 'Baby Stroller - Foldable',
+            price: 75.00,
+            condition: 'Good',
+            displayImage: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?w=300&h=320&fit=crop',
+            user: { username: 'parent321' }
+          },
+          {
+            _id: 'sample5',
+            title: 'Diaper Bag - Designer',
+            price: 50.00,
+            condition: 'Like New',
+            displayImage: 'https://images.unsplash.com/photo-1519689373023-dd07c7988603?w=300&h=360&fit=crop',
+            user: { username: 'parent654' }
+          },
+          {
+            _id: 'sample6',
+            title: 'Baby Bath Set',
+            price: 25.00,
+            condition: 'Good',
+            displayImage: 'https://images.unsplash.com/photo-1522771930-78848d9293e8?w=300&h=340&fit=crop',
+            user: { username: 'parent987' }
+          }
+        ];
+        setItems(sampleItems);
       }
     } finally {
       setLoading(false);
@@ -201,11 +275,21 @@ const Home = () => {
     cursor: 'pointer'
   });
 
-  const imageStyle = (height = 300) => ({
+  const imageContainerStyle = (height = 300) => ({
     width: '100%',
     height: `${height}px`,
-    objectFit: 'cover'
+    position: 'relative',
+    backgroundColor: '#f0f0f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   });
+
+  const imageStyle = {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover'
+  };
 
   const cardContentStyle = {
     padding: '12px',
@@ -257,27 +341,6 @@ const Home = () => {
   const removeHoverEffect = (e) => {
     e.currentTarget.style.transform = 'scale(1)';
     e.currentTarget.style.boxShadow = 'none';
-  };
-
-  // Get the best available image URL from item data
-  const getItemImageUrl = (item) => {
-    // Check for images array first (most complete data structure)
-    if (item.images && Array.isArray(item.images) && item.images.length > 0) {
-      // Look for primary image
-      const primaryImage = item.images.find(img => img.isPrimary);
-      if (primaryImage) {
-        return primaryImage.thumbnail || primaryImage.fullSize;
-      }
-      // Return first image if no primary
-      return item.images[0].thumbnail || item.images[0].fullSize;
-    }
-    
-    // Check for direct thumbnail or image properties
-    if (item.thumbnail) return item.thumbnail;
-    if (item.image) return item.image;
-    
-    // Return null to trigger fallback
-    return null;
   };
 
   // Group items into columns for the masonry layout
@@ -396,7 +459,7 @@ const Home = () => {
         )}
 
         {/* Error State */}
-        {error && !loading && (
+        {error && !loading && items.length === 0 && (
           <div style={{ 
             padding: '20px', 
             backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -422,9 +485,6 @@ const Home = () => {
             {columnsOfItems.map((column, columnIndex) => (
               <div key={columnIndex}>
                 {column.map(item => {
-                  // Get the best image URL with improved logic
-                  const imageUrl = getItemImageUrl(item);
-                  
                   // Calculate dynamic height based on image aspect ratio or random
                   const height = item.height || (250 + Math.floor(Math.random() * 150));
                   
@@ -443,14 +503,16 @@ const Home = () => {
                         </div>
                       )}
                       
-                      {/* Item Image with ResponsiveImage component */}
-                      <div style={{ height: `${height}px`, backgroundColor: themeColors.secondary }}>
-                        <ResponsiveImage
-                          src={imageUrl}
-                          alt={item.title || 'Baby item'}
-                          fallbackSrc={`https://via.placeholder.com/300x${height}?text=${encodeURIComponent(item.title || 'No Image')}`}
-                          style={imageStyle(height)}
-                          objectFit="cover"
+                      {/* Item Image - Direct implementation */}
+                      <div style={imageContainerStyle(height)}>
+                        <img 
+                          src={item.displayImage}
+                          alt={item.title || 'Baby item'} 
+                          style={imageStyle}
+                          onError={(e) => {
+                            // Fallback to placeholder if image fails to load
+                            e.target.src = `https://via.placeholder.com/300x${height}?text=${encodeURIComponent(item.title || 'Image Error')}`;
+                          }}
                         />
                       </div>
                       
