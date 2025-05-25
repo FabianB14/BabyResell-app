@@ -4,6 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { itemsAPI } from '../services/api';
 import ItemDetailModal from '../components/ItemDetailModal';
+import ResponsiveImage from '../components/ResponsiveImage';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -258,6 +259,27 @@ const Home = () => {
     e.currentTarget.style.boxShadow = 'none';
   };
 
+  // Get the best available image URL from item data
+  const getItemImageUrl = (item) => {
+    // Check for images array first (most complete data structure)
+    if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+      // Look for primary image
+      const primaryImage = item.images.find(img => img.isPrimary);
+      if (primaryImage) {
+        return primaryImage.thumbnail || primaryImage.fullSize;
+      }
+      // Return first image if no primary
+      return item.images[0].thumbnail || item.images[0].fullSize;
+    }
+    
+    // Check for direct thumbnail or image properties
+    if (item.thumbnail) return item.thumbnail;
+    if (item.image) return item.image;
+    
+    // Return null to trigger fallback
+    return null;
+  };
+
   // Group items into columns for the masonry layout
   const getItemsInColumns = () => {
     const itemsInColumns = Array.from({ length: columns }, () => []);
@@ -400,10 +422,8 @@ const Home = () => {
             {columnsOfItems.map((column, columnIndex) => (
               <div key={columnIndex}>
                 {column.map(item => {
-                  // Get the best image URL
-                  const imageUrl = item.images && item.images.length > 0
-                    ? (item.images.find(img => img.isPrimary)?.thumbnail || item.images[0].thumbnail)
-                    : item.thumbnail || item.image || `https://via.placeholder.com/300x300?text=${encodeURIComponent(item.title || 'No Image')}`;
+                  // Get the best image URL with improved logic
+                  const imageUrl = getItemImageUrl(item);
                   
                   // Calculate dynamic height based on image aspect ratio or random
                   const height = item.height || (250 + Math.floor(Math.random() * 150));
@@ -423,15 +443,16 @@ const Home = () => {
                         </div>
                       )}
                       
-                      {/* Item Image */}
-                      <img 
-                        src={imageUrl}
-                        alt={item.title || 'Baby item'} 
-                        style={imageStyle(height)}
-                        onError={(e) => {
-                          e.target.src = `https://via.placeholder.com/300x${height}?text=${encodeURIComponent(item.title || 'Image Error')}`;
-                        }}
-                      />
+                      {/* Item Image with ResponsiveImage component */}
+                      <div style={{ height: `${height}px`, backgroundColor: themeColors.secondary }}>
+                        <ResponsiveImage
+                          src={imageUrl}
+                          alt={item.title || 'Baby item'}
+                          fallbackSrc={`https://via.placeholder.com/300x${height}?text=${encodeURIComponent(item.title || 'No Image')}`}
+                          style={imageStyle(height)}
+                          objectFit="cover"
+                        />
+                      </div>
                       
                       {/* Condition Tag */}
                       {item.condition && (
