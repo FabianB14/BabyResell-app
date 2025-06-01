@@ -26,6 +26,8 @@ app.use(express.json());
 // Trust proxy (required for DigitalOcean App Platform)
 app.set('trust proxy', true);
 
+app.use('/api/payments', require('./routes/payments'));
+
 // CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
