@@ -20,7 +20,7 @@ import CreateListing from './pages/CreateListing';
 import Profile from './pages/Profile';
 import CheckoutPage from './pages/CheckoutPage';
 import PaymentSuccess from './pages/PaymentSuccess';
-import MyOrders from './pages/MyOrders';
+
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -130,11 +130,7 @@ function App() {
                   <PaymentSuccess />
                 </PrivateRoute>
               } />
-              <Route path="/my-orders" element={
-                <PrivateRoute>
-                  <MyOrders />
-                </PrivateRoute>
-              } />
+              
             </main>
             <Footer />
           </div>
