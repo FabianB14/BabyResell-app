@@ -18,6 +18,9 @@ import Terms from './pages/Terms';
 import ItemDetail from './pages/ItemDetail';
 import CreateListing from './pages/CreateListing';
 import Profile from './pages/Profile';
+import CheckoutPage from './pages/CheckoutPage';
+import PaymentSuccess from './pages/PaymentSuccess';
+import MyOrders from './pages/MyOrders';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -117,6 +120,21 @@ function App() {
                 {/* Fallback Route */}
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
+              <Route path="/checkout" element={
+                <PrivateRoute>
+                  <CheckoutPage />
+                </PrivateRoute>
+              } />
+              <Route path="/payment-success" element={
+                <PrivateRoute>
+                  <PaymentSuccess />
+                </PrivateRoute>
+              } />
+              <Route path="/my-orders" element={
+                <PrivateRoute>
+                  <MyOrders />
+                </PrivateRoute>
+              } />
             </main>
             <Footer />
           </div>

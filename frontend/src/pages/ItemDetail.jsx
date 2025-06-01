@@ -232,6 +232,10 @@ const ItemDetail = () => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: `/item/${id}` } });
       return;
+    navigate('/checkout', { 
+    state: { item } 
+  });
+};
     }
     
     // In a real app, navigate to checkout

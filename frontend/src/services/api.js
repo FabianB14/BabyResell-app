@@ -61,7 +61,7 @@ api.interceptors.response.use(
   }
 );
 
-// Auth endpoints (keeping your existing structure)
+// Auth endpoints
 export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
   login: (credentials) => api.post('/auth/login', credentials),
@@ -74,7 +74,7 @@ export const authAPI = {
   testConnection: () => api.get('/health'),
 };
 
-// Pins/Items endpoints (keeping your existing structure)
+// Pins/Items endpoints
 export const itemsAPI = {
   // Baby Items
   getAllItems: (params) => api.get('/baby-items', { params }),
@@ -93,7 +93,7 @@ export const itemsAPI = {
   searchItems: (query) => api.get('/baby-items', { params: { search: query } }),
 };
 
-// Upload endpoints (keeping your existing structure)
+// Upload endpoints
 export const uploadAPI = {
   uploadImage: (formData) => {
     console.log('Uploading to:', `${baseURL}/upload/image`);
@@ -111,7 +111,7 @@ export const uploadAPI = {
   deleteImage: (imageUrl) => api.delete('/upload/image', { data: { imageUrl } }),
 };
 
-// Theme endpoints (keeping your existing structure)
+// Theme endpoints
 export const themeAPI = {
   getCurrentTheme: () => api.get('/themes/current'),
   getAllThemes: () => api.get('/themes'),
@@ -126,19 +126,54 @@ export const themeAPI = {
   activateSeasonalTheme: () => api.post('/themes/activate-seasonal'),
 };
 
-// Transaction endpoints (keeping your existing structure)
+// Transaction API
 export const transactionAPI = {
-  createTransaction: (data) => api.post('/transactions', data),
-  getUserTransactions: (params) => api.get('/transactions', { params }),
-  getTransaction: (id) => api.get(`/transactions/${id}`),
-  updateTransaction: (id, data) => api.put(`/transactions/${id}`, data),
+  // Create payment intent
+  createPaymentIntent: (data) => 
+    api.post('/payments/create-intent', data),
   
-  // Adding admin transaction management (new functionality)
-  getAllTransactions: (params) => api.get('/transactions', { params }),
-  getTransactionStats: () => api.get('/transactions/stats/summary'),
+  // Create transaction after payment
+  createTransaction: (data) => 
+    api.post('/payments/create-transaction', data),
+  
+  // Get user's transactions
+  getMyTransactions: (role = 'all') => 
+    api.get(`/transactions?role=${role}`),
+  
+  // Get transaction by ID
+  getTransaction: (id) => 
+    api.get(`/transactions/${id}`),
+  
+  // Mark item as shipped (seller)
+  markAsShipped: (transactionId, data) => 
+    api.post(`/payments/mark-shipped/${transactionId}`, data),
+  
+  // Confirm delivery (buyer)
+  confirmDelivery: (transactionId) => 
+    api.post(`/payments/confirm-delivery/${transactionId}`),
+  
+  // Create dispute
+  createDispute: (transactionId, data) => 
+    api.post(`/payments/dispute/${transactionId}`, data),
+  
+  // Submit rating
+  submitRating: (transactionId, data) => 
+    api.post(`/transactions/${transactionId}/rate`, data),
+  
+  // Get payment methods
+  getPaymentMethods: () => 
+    api.get('/payments/methods'),
+  
+  // NEW: Calculate fees preview
+  calculateFees: (itemId) => 
+    api.get(`/payments/calculate-fees/${itemId}`),
+  
+  // NEW: Get revenue summary (admin only)
+  getRevenueSummary: () => 
+    api.get('/payments/revenue-summary')
 };
 
-// Messages endpoints (keeping your existing structure)
+// Messages endpoints
 export const messageAPI = {
   sendMessage: (data) => api.post('/messages', data),
   getConversations: () => api.get('/messages'),
@@ -151,7 +186,7 @@ export const messageAPI = {
   markAsRead: (conversationId) => api.put(`/messages/conversations/${conversationId}/read`),
 };
 
-// User endpoints (keeping your existing structure)
+// User endpoints
 export const userAPI = {
   getUser: (id) => api.get(`/users/${id}`),
   followUser: (id) => api.post(`/users/${id}/follow`),
@@ -368,5 +403,6 @@ export const adminAPI = {
   refundTransaction: (transactionId) => api.put(`/admin/transactions/${transactionId}/refund`),
 };
 
-// Export the main api instance (keeping your existing default export)
+// Export the main api instance
 export default api;
+
