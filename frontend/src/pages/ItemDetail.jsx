@@ -228,19 +228,15 @@ const ItemDetail = () => {
   };
 
   // Handle buy now
-  const handleBuyNow = () => {
-    if (!isAuthenticated) {
-      navigate('/login', { state: { from: `/item/${id}` } });
-      return;
-    navigate('/checkout', { 
-    state: { item } 
-  });
+const handleBuyNow = () => {
+  if (!isAuthenticated) {
+    navigate('/login', { state: { from: `/item/${id}` } });
+    return;
+  }
+  // In a real app, navigate to checkout
+  // navigate('/checkout', { state: { item } });
+  alert(`Purchase initiated for: ${item.title}`);
 };
-    }
-    
-    // In a real app, navigate to checkout
-    alert(`Purchase initiated for: ${item.title}`);
-  };
 
   // Handle share
   const handleShare = () => {
