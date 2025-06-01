@@ -23,6 +23,9 @@ const app = express();
 // Body parser
 app.use(express.json());
 
+// Trust proxy (required for DigitalOcean App Platform)
+app.set('trust proxy', true);
+
 // CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {

@@ -1,12 +1,13 @@
-// This script migrates image URLs in the BabyItem and Pin models from localhost to DigitalOcean Spaces URLs
-// It assumes that the images were previously uploaded to a local server and now need to be updated to point to the new CDN URLs.
+// Save this as backend/scripts/fixImageUrls.js
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const path = require('path');
+
+// Load env vars - fix the path
+dotenv.config({ path: path.join(__dirname, '../config/config.env') });
+
 const BabyItem = require('../models/BabyItem');
 const Pin = require('../models/Pin');
-
-// Load env vars
-dotenv.config({ path: '../config/config.env' });
 
 // Connect to database
 mongoose.connect(process.env.MONGO_URI, {
