@@ -45,7 +45,6 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
   // Handle save/unsave
   const handleSave = async () => {
     if (!isAuthenticated) {
-      // To be handled later - show login prompt
       return;
     }
     
@@ -68,7 +67,6 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
     e.preventDefault();
     
     if (!isAuthenticated) {
-      // To be handled later - show login prompt
       return;
     }
     
@@ -88,7 +86,6 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
       setMessage('');
       setMessageSent(true);
       setSendingMessage(false);
-      // Hide contact form after a delay
       setTimeout(() => {
         setShowContactForm(false);
         setMessageSent(false);
@@ -103,7 +100,6 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
   // Handle buy now
   const handleBuyNow = () => {
     if (!isAuthenticated) {
-      // To be handled later - show login prompt
       return;
     }
     
@@ -123,439 +119,294 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
         url: window.location.href
       }).catch(err => console.error('Error sharing:', err));
     } else {
-      // Fallback - copy to clipboard
       navigator.clipboard.writeText(window.location.href);
       alert('Link copied to clipboard!');
     }
   };
   
+  // CSS styles as objects
+  const styles = {
+    overlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 9999,
+      padding: '20px'
+    },
+    modal: {
+      backgroundColor: '#ffffff',
+      borderRadius: '12px',
+      width: '90%',
+      maxWidth: '1000px',
+      height: '90vh',
+      maxHeight: '600px',
+      display: 'flex',
+      position: 'relative',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+      overflow: 'hidden'
+    },
+    closeButton: {
+      position: 'absolute',
+      top: '12px',
+      right: '12px',
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      color: '#ffffff',
+      border: 'none',
+      borderRadius: '50%',
+      width: '36px',
+      height: '36px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      zIndex: 10
+    },
+    content: {
+      display: 'flex',
+      width: '100%',
+      height: '100%'
+    },
+    imageSection: {
+      width: '50%',
+      backgroundColor: '#f5f5f5',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+      padding: '20px'
+    },
+    image: {
+      maxWidth: '100%',
+      maxHeight: '100%',
+      objectFit: 'contain'
+    },
+    detailsSection: {
+      width: '50%',
+      padding: '30px',
+      overflowY: 'auto',
+      backgroundColor: '#ffffff'
+    },
+    navButton: {
+      position: 'absolute',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      border: 'none',
+      borderRadius: '50%',
+      width: '40px',
+      height: '40px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+    },
+    title: {
+      fontSize: '24px',
+      fontWeight: 'bold',
+      marginBottom: '12px',
+      color: '#333333'
+    },
+    price: {
+      fontSize: '28px',
+      fontWeight: 'bold',
+      color: '#e60023',
+      marginBottom: '20px'
+    },
+    section: {
+      marginBottom: '24px'
+    },
+    sectionTitle: {
+      fontSize: '16px',
+      fontWeight: '600',
+      marginBottom: '8px',
+      color: '#333333'
+    },
+    sectionContent: {
+      color: '#666666',
+      lineHeight: '1.6'
+    },
+    detailsGrid: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: '12px',
+      color: '#666666'
+    },
+    tag: {
+      display: 'inline-block',
+      backgroundColor: '#f0f0f0',
+      color: '#666666',
+      padding: '4px 12px',
+      borderRadius: '20px',
+      fontSize: '14px',
+      marginRight: '8px',
+      marginBottom: '8px'
+    },
+    sellerInfo: {
+      display: 'flex',
+      alignItems: 'center',
+      marginBottom: '24px'
+    },
+    sellerImage: {
+      width: '48px',
+      height: '48px',
+      borderRadius: '50%',
+      marginRight: '12px',
+      objectFit: 'cover'
+    },
+    buttonContainer: {
+      display: 'flex',
+      gap: '12px',
+      marginTop: 'auto',
+      paddingTop: '20px'
+    },
+    primaryButton: {
+      flex: 2,
+      backgroundColor: '#e60023',
+      color: '#ffffff',
+      border: 'none',
+      borderRadius: '8px',
+      padding: '12px 20px',
+      fontSize: '16px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    secondaryButton: {
+      flex: 1,
+      backgroundColor: '#ffffff',
+      color: '#333333',
+      border: '1px solid #dddddd',
+      borderRadius: '8px',
+      padding: '12px 20px',
+      fontSize: '16px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    iconButton: {
+      width: '48px',
+      height: '48px',
+      backgroundColor: '#ffffff',
+      color: '#333333',
+      border: '1px solid #dddddd',
+      borderRadius: '8px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer'
+    }
+  };
+  
   return (
-    <div 
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        backdropFilter: 'blur(5px)',
-        padding: '20px'
-      }}
-      onClick={onClose}
-    >
-      <div 
-        style={{
-          backgroundColor: themeColors.cardBackground,
-          borderRadius: '16px',
-          maxWidth: '1000px',
-          width: '100%',
-          maxHeight: '90vh',
-          display: 'flex',
-          position: 'relative',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          overflow: 'hidden'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div style={styles.overlay} onClick={onClose}>
+      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         {/* Close Button */}
-        <button 
-          style={{
-            position: 'absolute',
-            top: '16px',
-            right: '16px',
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '50%',
-            width: '40px',
-            height: '40px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            zIndex: 10
-          }}
-          onClick={onClose}
-          aria-label="Close modal"
-        >
-          <X size={24} />
+        <button style={styles.closeButton} onClick={onClose} aria-label="Close modal">
+          <X size={20} />
         </button>
         
-        {/* Modal Content - Flex Container */}
-        <div style={{ display: 'flex', width: '100%', height: '100%' }}>
+        <div style={styles.content}>
           {/* Left: Image Gallery */}
-          <div style={{
-            flex: '0 0 50%',
-            backgroundColor: '#000',
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
+          <div style={styles.imageSection}>
             <img 
               src={itemImages[currentImageIndex].fullSize} 
               alt={item.title} 
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain'
-              }}
+              style={styles.image}
             />
             
             {/* Navigation arrows */}
             {itemImages.length > 1 && (
               <>
                 <button 
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '16px',
-                    transform: 'translateY(-50%)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                    color: '#000',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '40px',
-                    height: '40px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    zIndex: 5
-                  }}
+                  style={{ ...styles.navButton, left: '20px' }}
                   onClick={handlePrevImage}
-                  aria-label="Previous image"
                 >
                   <ChevronLeft size={24} />
                 </button>
                 <button 
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    right: '16px',
-                    transform: 'translateY(-50%)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                    color: '#000',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '40px',
-                    height: '40px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    zIndex: 5
-                  }}
+                  style={{ ...styles.navButton, right: '20px' }}
                   onClick={handleNextImage}
-                  aria-label="Next image"
                 >
                   <ChevronRight size={24} />
                 </button>
-                
-                {/* Image counter */}
-                <div 
-                  style={{
-                    position: 'absolute',
-                    bottom: '16px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                    color: '#fff',
-                    padding: '4px 10px',
-                    borderRadius: '12px',
-                    fontSize: '12px'
-                  }}
-                >
-                  {currentImageIndex + 1} / {itemImages.length}
-                </div>
               </>
             )}
           </div>
           
           {/* Right: Item Details */}
-          <div style={{
-            flex: '0 0 50%',
-            padding: '24px',
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            <div style={{ marginBottom: 'auto' }}>
-              <h2 style={{ color: themeColors.text, fontSize: '24px', marginBottom: '8px' }}>
-                {item.title}
-              </h2>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <div style={{ color: themeColors.textSecondary, fontSize: '14px' }}>
-                  Posted {formatDate(item.createdAt)}
-                </div>
-                <div style={{ color: themeColors.primary, fontSize: '24px', fontWeight: 'bold' }}>
-                  ${item.price?.toFixed(2)}
-                </div>
-              </div>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ color: themeColors.text, fontSize: '16px', marginBottom: '8px' }}>Description</h3>
-                <p style={{ color: themeColors.textSecondary, lineHeight: '1.6' }}>
-                  {item.description}
-                </p>
-              </div>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ color: themeColors.text, fontSize: '16px', marginBottom: '8px' }}>Details</h3>
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(2, 1fr)', 
-                  gap: '10px',
-                  color: themeColors.textSecondary 
-                }}>
-                  <div>
-                    <strong>Condition:</strong> {item.condition || 'Not specified'}
-                  </div>
-                  {item.brand && (
-                    <div>
-                      <strong>Brand:</strong> {item.brand}
-                    </div>
-                  )}
-                  {item.category && (
-                    <div>
-                      <strong>Category:</strong> {item.category}
-                    </div>
-                  )}
-                  {item.ageGroup && (
-                    <div>
-                      <strong>Age Group:</strong> {item.ageGroup}
-                    </div>
-                  )}
-                  {item.color && (
-                    <div>
-                      <strong>Color:</strong> {item.color}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {item.tags && item.tags.length > 0 && (
-                <div style={{ marginBottom: '20px' }}>
-                  <h3 style={{ color: themeColors.text, fontSize: '16px', marginBottom: '8px' }}>Tags</h3>
-                  <div>
-                    {item.tags.map((tag, index) => (
-                      <span 
-                        key={index} 
-                        style={{
-                          backgroundColor: themeColors.secondary,
-                          color: themeColors.textSecondary,
-                          padding: '4px 10px',
-                          borderRadius: '16px',
-                          fontSize: '12px',
-                          marginRight: '8px',
-                          marginBottom: '8px',
-                          display: 'inline-block'
-                        }}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Seller info */}
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ color: themeColors.text, fontSize: '16px', marginBottom: '8px' }}>Seller</h3>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <img 
-                    src={item.user?.profileImage || 'https://via.placeholder.com/40?text=User'} 
-                    alt={item.user?.username} 
-                    style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '50%',
-                      objectFit: 'cover',
-                      marginRight: '12px'
-                    }}
-                  />
-                  <div>
-                    <div style={{ color: themeColors.text, fontWeight: '600' }}>
-                      {item.user?.username || 'Anonymous'}
-                    </div>
-                    {item.user?.location && (
-                      <div style={{ color: themeColors.textSecondary, fontSize: '14px' }}>
-                        {item.user.location}
-                      </div>
-                    )}
-                  </div>
-                </div>
+          <div style={styles.detailsSection}>
+            <h2 style={styles.title}>{item.title}</h2>
+            <div style={styles.price}>${item.price?.toFixed(2)}</div>
+            
+            <div style={styles.section}>
+              <h3 style={styles.sectionTitle}>Description</h3>
+              <p style={styles.sectionContent}>{item.description}</p>
+            </div>
+            
+            <div style={styles.section}>
+              <h3 style={styles.sectionTitle}>Details</h3>
+              <div style={styles.detailsGrid}>
+                <div><strong>Condition:</strong> {item.condition || 'Not specified'}</div>
+                {item.category && <div><strong>Category:</strong> {item.category}</div>}
+                {item.brand && <div><strong>Brand:</strong> {item.brand}</div>}
+                {item.ageGroup && <div><strong>Age:</strong> {item.ageGroup}</div>}
               </div>
             </div>
             
-            {/* Contact form */}
-            {showContactForm && (
-              <div style={{ 
-                marginTop: '16px',
-                padding: '16px',
-                backgroundColor: themeColors.secondary,
-                borderRadius: '8px'
-              }}>
-                {messageSent ? (
-                  <div style={{ color: '#22c55e', fontWeight: '600', textAlign: 'center' }}>
-                    Message sent successfully!
-                  </div>
-                ) : (
-                  <form onSubmit={handleSendMessage}>
-                    <h3 style={{ color: themeColors.text, fontSize: '16px', marginBottom: '8px' }}>
-                      Contact Seller
-                    </h3>
-                    {errorMessage && (
-                      <div style={{ color: '#ef4444', marginBottom: '8px', fontSize: '14px' }}>
-                        {errorMessage}
-                      </div>
-                    )}
-                    <textarea
-                      placeholder="What would you like to know about this item?"
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        borderRadius: '8px',
-                        backgroundColor: themeColors.cardBackground,
-                        color: themeColors.text,
-                        border: 'none',
-                        resize: 'vertical',
-                        minHeight: '100px',
-                        marginBottom: '10px'
-                      }}
-                      required
-                    />
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <button 
-                        type="button" 
-                        onClick={() => setShowContactForm(false)}
-                        style={{
-                          backgroundColor: 'transparent',
-                          color: themeColors.textSecondary,
-                          border: 'none',
-                          padding: '8px 16px',
-                          marginRight: '8px',
-                          borderRadius: '8px',
-                          cursor: 'pointer'
-                        }}
-                        disabled={sendingMessage}
-                      >
-                        Cancel
-                      </button>
-                      <button 
-                        type="submit"
-                        style={{
-                          backgroundColor: themeColors.primary,
-                          color: '#fff',
-                          border: 'none',
-                          padding: '8px 16px',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          fontWeight: '600'
-                        }}
-                        disabled={sendingMessage}
-                      >
-                        {sendingMessage ? 'Sending...' : 'Send Message'}
-                      </button>
-                    </div>
-                  </form>
-                )}
+            {item.tags && item.tags.length > 0 && (
+              <div style={styles.section}>
+                <h3 style={styles.sectionTitle}>Tags</h3>
+                <div>
+                  {item.tags.map((tag, index) => (
+                    <span key={index} style={styles.tag}>{tag}</span>
+                  ))}
+                </div>
               </div>
             )}
             
-            {/* Action buttons */}
-            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-              <button 
-                style={{
-                  backgroundColor: themeColors.primary,
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '12px 16px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flex: 2
-                }}
-                onClick={handleBuyNow}
-              >
+            <div style={styles.sellerInfo}>
+              <img 
+                src={item.user?.profileImage || 'https://via.placeholder.com/48'} 
+                alt={item.user?.username} 
+                style={styles.sellerImage}
+              />
+              <div>
+                <div style={{ fontWeight: '600', color: '#333333' }}>
+                  {item.user?.username || 'Anonymous'}
+                </div>
+                {item.user?.location && (
+                  <div style={{ fontSize: '14px', color: '#666666' }}>
+                    {item.user.location}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div style={styles.buttonContainer}>
+              <button style={styles.primaryButton} onClick={handleBuyNow}>
                 <DollarSign size={20} style={{ marginRight: '8px' }} />
-                Buy Now - ${item.price?.toFixed(2)}
+                Buy Now
               </button>
-              
-              <button 
-                style={{
-                  backgroundColor: 'transparent',
-                  color: themeColors.text,
-                  border: `1px solid ${themeColors.text}`,
-                  borderRadius: '8px',
-                  padding: '12px 16px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flex: 1
-                }}
-                onClick={() => setShowContactForm(!showContactForm)}
-              >
+              <button style={styles.secondaryButton} onClick={() => setShowContactForm(!showContactForm)}>
                 <MessageCircle size={20} style={{ marginRight: '8px' }} />
                 Contact
               </button>
-              
-              <button 
-                style={{
-                  backgroundColor: 'transparent',
-                  color: themeColors.text,
-                  border: `1px solid ${themeColors.text}`,
-                  borderRadius: '8px',
-                  width: '50px',
-                  height: '50px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  padding: '0'
-                }}
-                onClick={handleSave}
-                aria-label={saved ? 'Unsave item' : 'Save item'}
-              >
-                <Heart 
-                  size={20} 
-                  fill={saved ? themeColors.primary : 'none'} 
-                  color={saved ? themeColors.primary : themeColors.text} 
-                />
+              <button style={styles.iconButton} onClick={handleSave}>
+                <Heart size={20} fill={saved ? '#e60023' : 'none'} color={saved ? '#e60023' : '#333333'} />
               </button>
-              
-              <button 
-                style={{
-                  backgroundColor: 'transparent',
-                  color: themeColors.text,
-                  border: `1px solid ${themeColors.text}`,
-                  borderRadius: '8px',
-                  width: '50px',
-                  height: '50px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  padding: '0'
-                }}
-                onClick={handleShare}
-                aria-label="Share item"
-              >
-                <Share2 size={20} color={themeColors.text} />
+              <button style={styles.iconButton} onClick={handleShare}>
+                <Share2 size={20} />
               </button>
             </div>
           </div>
