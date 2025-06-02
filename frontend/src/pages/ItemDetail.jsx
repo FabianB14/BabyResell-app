@@ -124,295 +124,511 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
     }
   };
   
-  // CSS styles as objects
-  const styles = {
-    overlay: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 9999,
-      padding: '20px'
-    },
-    modal: {
-      backgroundColor: '#ffffff',
-      borderRadius: '12px',
-      width: '90%',
-      maxWidth: '1000px',
-      height: '90vh',
-      maxHeight: '600px',
-      display: 'flex',
-      position: 'relative',
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
-      overflow: 'hidden'
-    },
-    closeButton: {
-      position: 'absolute',
-      top: '12px',
-      right: '12px',
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-      color: '#ffffff',
-      border: 'none',
-      borderRadius: '50%',
-      width: '36px',
-      height: '36px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-      zIndex: 10
-    },
-    content: {
-      display: 'flex',
-      width: '100%',
-      height: '100%'
-    },
-    imageSection: {
-      width: '50%',
-      backgroundColor: '#f5f5f5',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      position: 'relative',
-      padding: '20px'
-    },
-    image: {
-      maxWidth: '100%',
-      maxHeight: '100%',
-      objectFit: 'contain'
-    },
-    detailsSection: {
-      width: '50%',
-      padding: '30px',
-      overflowY: 'auto',
-      backgroundColor: '#ffffff'
-    },
-    navButton: {
-      position: 'absolute',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-      border: 'none',
-      borderRadius: '50%',
-      width: '40px',
-      height: '40px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
-    },
-    title: {
-      fontSize: '24px',
-      fontWeight: 'bold',
-      marginBottom: '12px',
-      color: '#333333'
-    },
-    price: {
-      fontSize: '28px',
-      fontWeight: 'bold',
-      color: '#e60023',
-      marginBottom: '20px'
-    },
-    section: {
-      marginBottom: '24px'
-    },
-    sectionTitle: {
-      fontSize: '16px',
-      fontWeight: '600',
-      marginBottom: '8px',
-      color: '#333333'
-    },
-    sectionContent: {
-      color: '#666666',
-      lineHeight: '1.6'
-    },
-    detailsGrid: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '12px',
-      color: '#666666'
-    },
-    tag: {
-      display: 'inline-block',
-      backgroundColor: '#f0f0f0',
-      color: '#666666',
-      padding: '4px 12px',
-      borderRadius: '20px',
-      fontSize: '14px',
-      marginRight: '8px',
-      marginBottom: '8px'
-    },
-    sellerInfo: {
-      display: 'flex',
-      alignItems: 'center',
-      marginBottom: '24px'
-    },
-    sellerImage: {
-      width: '48px',
-      height: '48px',
-      borderRadius: '50%',
-      marginRight: '12px',
-      objectFit: 'cover'
-    },
-    buttonContainer: {
-      display: 'flex',
-      gap: '12px',
-      marginTop: 'auto',
-      paddingTop: '20px'
-    },
-    primaryButton: {
-      flex: 2,
-      backgroundColor: '#e60023',
-      color: '#ffffff',
-      border: 'none',
-      borderRadius: '8px',
-      padding: '12px 20px',
-      fontSize: '16px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    },
-    secondaryButton: {
-      flex: 1,
-      backgroundColor: '#ffffff',
-      color: '#333333',
-      border: '1px solid #dddddd',
-      borderRadius: '8px',
-      padding: '12px 20px',
-      fontSize: '16px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    },
-    iconButton: {
-      width: '48px',
-      height: '48px',
-      backgroundColor: '#ffffff',
-      color: '#333333',
-      border: '1px solid #dddddd',
-      borderRadius: '8px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer'
-    }
-  };
-  
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+    <>
+      {/* Overlay */}
+      <div 
+        onClick={onClose}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          zIndex: 9998,
+        }}
+      />
+      
+      {/* Modal */}
+      <div style={{
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '90%',
+        maxWidth: '1100px',
+        height: '85vh',
+        backgroundColor: themeColors.cardBackground || '#1e1e1e',
+        borderRadius: '16px',
+        zIndex: 9999,
+        display: 'flex',
+        flexDirection: 'row',
+        overflow: 'hidden',
+        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)'
+      }}>
+        
         {/* Close Button */}
-        <button style={styles.closeButton} onClick={onClose} aria-label="Close modal">
-          <X size={20} />
+        <button 
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            border: 'none',
+            color: 'white',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10
+          }}
+        >
+          <X size={24} />
         </button>
         
-        <div style={styles.content}>
-          {/* Left: Image Gallery */}
-          <div style={styles.imageSection}>
-            <img 
-              src={itemImages[currentImageIndex].fullSize} 
-              alt={item.title} 
-              style={styles.image}
-            />
-            
-            {/* Navigation arrows */}
-            {itemImages.length > 1 && (
-              <>
-                <button 
-                  style={{ ...styles.navButton, left: '20px' }}
-                  onClick={handlePrevImage}
-                >
-                  <ChevronLeft size={24} />
-                </button>
-                <button 
-                  style={{ ...styles.navButton, right: '20px' }}
-                  onClick={handleNextImage}
-                >
-                  <ChevronRight size={24} />
-                </button>
-              </>
-            )}
+        {/* Left Side - Image */}
+        <div style={{
+          width: '55%',
+          backgroundColor: '#000',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          flexShrink: 0
+        }}>
+          <img 
+            src={itemImages[currentImageIndex].fullSize} 
+            alt={item.title}
+            style={{
+              maxWidth: '100%',
+              maxHeight: '100%',
+              objectFit: 'contain'
+            }}
+          />
+          
+          {/* Image Navigation */}
+          {itemImages.length > 1 && (
+            <>
+              <button
+                onClick={handlePrevImage}
+                style={{
+                  position: 'absolute',
+                  left: '20px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <ChevronLeft size={24} color="#000" />
+              </button>
+              
+              <button
+                onClick={handleNextImage}
+                style={{
+                  position: 'absolute',
+                  right: '20px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <ChevronRight size={24} color="#000" />
+              </button>
+              
+              <div style={{
+                position: 'absolute',
+                bottom: '20px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                color: 'white',
+                padding: '4px 12px',
+                borderRadius: '20px',
+                fontSize: '14px'
+              }}>
+                {currentImageIndex + 1} / {itemImages.length}
+              </div>
+            </>
+          )}
+        </div>
+        
+        {/* Right Side - Details */}
+        <div style={{
+          width: '45%',
+          padding: '32px',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          {/* Title and Price */}
+          <h1 style={{
+            fontSize: '28px',
+            fontWeight: 'bold',
+            color: themeColors.text || '#ffffff',
+            marginBottom: '8px'
+          }}>
+            {item.title}
+          </h1>
+          
+          <div style={{
+            fontSize: '32px',
+            fontWeight: 'bold',
+            color: themeColors.primary || '#e60023',
+            marginBottom: '16px'
+          }}>
+            ${item.price?.toFixed(2)}
           </div>
           
-          {/* Right: Item Details */}
-          <div style={styles.detailsSection}>
-            <h2 style={styles.title}>{item.title}</h2>
-            <div style={styles.price}>${item.price?.toFixed(2)}</div>
-            
-            <div style={styles.section}>
-              <h3 style={styles.sectionTitle}>Description</h3>
-              <p style={styles.sectionContent}>{item.description}</p>
-            </div>
-            
-            <div style={styles.section}>
-              <h3 style={styles.sectionTitle}>Details</h3>
-              <div style={styles.detailsGrid}>
-                <div><strong>Condition:</strong> {item.condition || 'Not specified'}</div>
-                {item.category && <div><strong>Category:</strong> {item.category}</div>}
-                {item.brand && <div><strong>Brand:</strong> {item.brand}</div>}
-                {item.ageGroup && <div><strong>Age:</strong> {item.ageGroup}</div>}
+          <div style={{
+            fontSize: '14px',
+            color: themeColors.textSecondary || '#999',
+            marginBottom: '24px'
+          }}>
+            Posted {formatDate(item.createdAt)}
+          </div>
+          
+          {/* Description */}
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: themeColors.text || '#ffffff',
+              marginBottom: '12px'
+            }}>
+              Description
+            </h3>
+            <p style={{
+              color: themeColors.textSecondary || '#ccc',
+              lineHeight: '1.6'
+            }}>
+              {item.description}
+            </p>
+          </div>
+          
+          {/* Details Grid */}
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: themeColors.text || '#ffffff',
+              marginBottom: '12px'
+            }}>
+              Details
+            </h3>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '12px',
+              color: themeColors.textSecondary || '#ccc'
+            }}>
+              <div>
+                <strong>Condition:</strong> {item.condition || 'Not specified'}
               </div>
-            </div>
-            
-            {item.tags && item.tags.length > 0 && (
-              <div style={styles.section}>
-                <h3 style={styles.sectionTitle}>Tags</h3>
+              {item.category && (
                 <div>
-                  {item.tags.map((tag, index) => (
-                    <span key={index} style={styles.tag}>{tag}</span>
-                  ))}
+                  <strong>Category:</strong> {item.category}
                 </div>
+              )}
+              {item.brand && (
+                <div>
+                  <strong>Brand:</strong> {item.brand}
+                </div>
+              )}
+              {item.ageGroup && (
+                <div>
+                  <strong>Age Group:</strong> {item.ageGroup}
+                </div>
+              )}
+              {item.color && (
+                <div>
+                  <strong>Color:</strong> {item.color}
+                </div>
+              )}
+              {item.location && (
+                <div>
+                  <strong>Location:</strong> {item.location}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Tags */}
+          {item.tags && item.tags.length > 0 && (
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: themeColors.text || '#ffffff',
+                marginBottom: '12px'
+              }}>
+                Tags
+              </h3>
+              <div>
+                {item.tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    style={{
+                      display: 'inline-block',
+                      backgroundColor: themeColors.secondary || '#333',
+                      color: themeColors.textSecondary || '#ccc',
+                      padding: '6px 14px',
+                      borderRadius: '20px',
+                      fontSize: '14px',
+                      marginRight: '8px',
+                      marginBottom: '8px'
+                    }}
+                  >
+                    {tag}
+                  </span>
+                ))}
               </div>
-            )}
-            
-            <div style={styles.sellerInfo}>
-              <img 
-                src={item.user?.profileImage || 'https://via.placeholder.com/48'} 
-                alt={item.user?.username} 
-                style={styles.sellerImage}
+            </div>
+          )}
+          
+          {/* Seller Info */}
+          <div style={{
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+            paddingTop: '24px',
+            marginTop: 'auto'
+          }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: themeColors.text || '#ffffff',
+              marginBottom: '12px'
+            }}>
+              Seller
+            </h3>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '24px'
+            }}>
+              <img
+                src={item.user?.profileImage || 'https://via.placeholder.com/48'}
+                alt={item.user?.username}
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  marginRight: '12px',
+                  objectFit: 'cover'
+                }}
               />
               <div>
-                <div style={{ fontWeight: '600', color: '#333333' }}>
+                <div style={{
+                  fontWeight: '600',
+                  color: themeColors.text || '#ffffff'
+                }}>
                   {item.user?.username || 'Anonymous'}
                 </div>
                 {item.user?.location && (
-                  <div style={{ fontSize: '14px', color: '#666666' }}>
+                  <div style={{
+                    fontSize: '14px',
+                    color: themeColors.textSecondary || '#999'
+                  }}>
                     {item.user.location}
                   </div>
                 )}
               </div>
             </div>
             
-            <div style={styles.buttonContainer}>
-              <button style={styles.primaryButton} onClick={handleBuyNow}>
+            {/* Action Buttons */}
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              flexWrap: 'wrap'
+            }}>
+              <button
+                onClick={handleBuyNow}
+                style={{
+                  flex: '1 1 60%',
+                  minWidth: '150px',
+                  padding: '14px 20px',
+                  backgroundColor: themeColors.primary || '#e60023',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
                 <DollarSign size={20} style={{ marginRight: '8px' }} />
                 Buy Now
               </button>
-              <button style={styles.secondaryButton} onClick={() => setShowContactForm(!showContactForm)}>
+              
+              <button
+                onClick={() => setShowContactForm(!showContactForm)}
+                style={{
+                  flex: '1 1 30%',
+                  minWidth: '100px',
+                  padding: '14px 20px',
+                  backgroundColor: 'transparent',
+                  color: themeColors.text || '#ffffff',
+                  border: `1px solid ${themeColors.text || '#ffffff'}`,
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
                 <MessageCircle size={20} style={{ marginRight: '8px' }} />
                 Contact
               </button>
-              <button style={styles.iconButton} onClick={handleSave}>
-                <Heart size={20} fill={saved ? '#e60023' : 'none'} color={saved ? '#e60023' : '#333333'} />
+              
+              <button
+                onClick={handleSave}
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  backgroundColor: 'transparent',
+                  color: saved ? (themeColors.primary || '#e60023') : (themeColors.text || '#ffffff'),
+                  border: `1px solid ${themeColors.text || '#ffffff'}`,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <Heart
+                  size={20}
+                  fill={saved ? (themeColors.primary || '#e60023') : 'none'}
+                />
               </button>
-              <button style={styles.iconButton} onClick={handleShare}>
+              
+              <button
+                onClick={handleShare}
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  backgroundColor: 'transparent',
+                  color: themeColors.text || '#ffffff',
+                  border: `1px solid ${themeColors.text || '#ffffff'}`,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
                 <Share2 size={20} />
               </button>
             </div>
           </div>
+          
+          {/* Contact Form */}
+          {showContactForm && (
+            <div style={{
+              marginTop: '16px',
+              padding: '16px',
+              backgroundColor: themeColors.secondary || '#333',
+              borderRadius: '8px'
+            }}>
+              {messageSent ? (
+                <div style={{
+                  color: '#22c55e',
+                  fontWeight: '600',
+                  textAlign: 'center'
+                }}>
+                  Message sent successfully!
+                </div>
+              ) : (
+                <form onSubmit={handleSendMessage}>
+                  <h3 style={{
+                    color: themeColors.text || '#ffffff',
+                    fontSize: '16px',
+                    marginBottom: '8px'
+                  }}>
+                    Contact Seller
+                  </h3>
+                  {errorMessage && (
+                    <div style={{
+                      color: '#ef4444',
+                      marginBottom: '8px',
+                      fontSize: '14px'
+                    }}>
+                      {errorMessage}
+                    </div>
+                  )}
+                  <textarea
+                    placeholder="What would you like to know about this item?"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      backgroundColor: themeColors.cardBackground || '#1e1e1e',
+                      color: themeColors.text || '#ffffff',
+                      border: 'none',
+                      resize: 'vertical',
+                      minHeight: '100px',
+                      marginBottom: '10px'
+                    }}
+                    required
+                  />
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: '8px'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowContactForm(false)}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: 'transparent',
+                        color: themeColors.textSecondary || '#999',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer'
+                      }}
+                      disabled={sendingMessage}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: themeColors.primary || '#e60023',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: '600'
+                      }}
+                      disabled={sendingMessage}
+                    >
+                      {sendingMessage ? 'Sending...' : 'Send Message'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
