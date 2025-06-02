@@ -1,516 +1,585 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../contexts/ThemeContext';
-import { useAuth } from '../contexts/AuthContext';
-import { itemsAPI } from '../services/api';
-import ItemDetailModal from '../components/ItemDetailModal';
+import { Search, Filter, X, ChevronLeft, ChevronRight, Heart, MessageCircle, Share2, DollarSign } from 'lucide-react';
 
-const Home = () => {
-  const navigate = useNavigate();
-  const { themeColors } = useTheme();
-  const { isAuthenticated } = useAuth();
+// Mock theme colors (dark theme)
+const themeColors = {
+  primary: '#e60023',
+  secondary: '#2e2e2e',
+  accent: '#e2336b',
+  background: '#121212',
+  cardBackground: '#1e1e1e',
+  text: '#ffffff',
+  textSecondary: '#b0b0b0'
+};
+
+// Item Detail Modal Component
+const ItemDetailModal = ({ item, onClose, onPurchase }) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [saved, setSaved] = useState(false);
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [message, setMessage] = useState('');
   
+  if (!item) return null;
+  
+  const itemImages = item.images && item.images.length > 0 
+    ? item.images 
+    : [{ fullSize: item.image || item.thumbnail || 'https://via.placeholder.com/600x400?text=No+Image', isPrimary: true }];
+  
+  const handlePrevImage = () => {
+    if (itemImages.length <= 1) return;
+    setCurrentImageIndex((prev) => (prev === 0 ? itemImages.length - 1 : prev - 1));
+  };
+  
+  const handleNextImage = () => {
+    if (itemImages.length <= 1) return;
+    setCurrentImageIndex((prev) => (prev === itemImages.length - 1 ? 0 : prev + 1));
+  };
+  
+  const modalOverlayStyle = {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+    padding: '20px'
+  };
+  
+  const modalContentStyle = {
+    backgroundColor: themeColors.cardBackground,
+    borderRadius: '16px',
+    maxWidth: '1000px',
+    width: '100%',
+    maxHeight: '90vh',
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: window.innerWidth < 768 ? 'column' : 'row',
+    position: 'relative',
+    zIndex: 10000
+  };
+  
+  return (
+    <div style={modalOverlayStyle} onClick={onClose}>
+      <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
+        <button 
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '50%',
+            width: '40px',
+            height: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 10
+          }}
+          onClick={onClose}
+        >
+          <X size={24} />
+        </button>
+        
+        {/* Image Section */}
+        <div style={{
+          flex: '1',
+          backgroundColor: '#000',
+          position: 'relative',
+          minHeight: '300px'
+        }}>
+          <img 
+            src={itemImages[currentImageIndex].fullSize} 
+            alt={item.title} 
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain'
+            }}
+          />
+          
+          {itemImages.length > 1 && (
+            <>
+              <button 
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '16px',
+                  transform: 'translateY(-50%)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  color: '#000',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+                onClick={handlePrevImage}
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <button 
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  right: '16px',
+                  transform: 'translateY(-50%)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  color: '#000',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+                onClick={handleNextImage}
+              >
+                <ChevronRight size={24} />
+              </button>
+            </>
+          )}
+        </div>
+        
+        {/* Details Section */}
+        <div style={{
+          flex: '1',
+          padding: '24px',
+          overflowY: 'auto',
+          maxHeight: '100%'
+        }}>
+          <h2 style={{ color: themeColors.text, fontSize: '24px', marginBottom: '8px' }}>
+            {item.title}
+          </h2>
+          
+          <div style={{ color: themeColors.primary, fontSize: '24px', fontWeight: 'bold', marginBottom: '16px' }}>
+            ${item.price?.toFixed(2)}
+          </div>
+          
+          <p style={{ color: themeColors.textSecondary, marginBottom: '20px', lineHeight: '1.6' }}>
+            {item.description || 'No description available'}
+          </p>
+          
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ color: themeColors.text, marginBottom: '8px' }}>
+              <strong>Condition:</strong> {item.condition || 'Not specified'}
+            </div>
+            {item.category && (
+              <div style={{ color: themeColors.text, marginBottom: '8px' }}>
+                <strong>Category:</strong> {item.category}
+              </div>
+            )}
+            {item.brand && (
+              <div style={{ color: themeColors.text, marginBottom: '8px' }}>
+                <strong>Brand:</strong> {item.brand}
+              </div>
+            )}
+          </div>
+          
+          {/* Seller info */}
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ color: themeColors.text, fontSize: '16px', marginBottom: '8px' }}>Seller</h3>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <img 
+                src={item.user?.profileImage || 'https://via.placeholder.com/40?text=User'} 
+                alt={item.user?.username} 
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  marginRight: '12px'
+                }}
+              />
+              <div>
+                <div style={{ color: themeColors.text }}>
+                  {item.user?.username || 'Anonymous'}
+                </div>
+                {item.user?.location && (
+                  <div style={{ color: themeColors.textSecondary, fontSize: '14px' }}>
+                    {item.user.location}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {showContactForm && (
+            <div style={{ 
+              marginTop: '16px',
+              padding: '16px',
+              backgroundColor: themeColors.secondary,
+              borderRadius: '8px',
+              marginBottom: '16px'
+            }}>
+              <textarea
+                placeholder="What would you like to know about this item?"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: themeColors.cardBackground,
+                  color: themeColors.text,
+                  border: 'none',
+                  resize: 'vertical',
+                  minHeight: '100px'
+                }}
+              />
+              <button 
+                style={{
+                  marginTop: '8px',
+                  backgroundColor: themeColors.primary,
+                  color: '#fff',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
+                onClick={() => {
+                  alert('Message sent!');
+                  setShowContactForm(false);
+                  setMessage('');
+                }}
+              >
+                Send Message
+              </button>
+            </div>
+          )}
+          
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button 
+              style={{
+                backgroundColor: themeColors.primary,
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                flex: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onClick={() => {
+                alert(`Purchase initiated for: ${item.title}`);
+                onPurchase && onPurchase(item);
+              }}
+            >
+              <DollarSign size={20} style={{ marginRight: '8px' }} />
+              Buy Now
+            </button>
+            
+            <button 
+              style={{
+                backgroundColor: 'transparent',
+                color: themeColors.text,
+                border: `1px solid ${themeColors.text}`,
+                borderRadius: '8px',
+                padding: '12px 16px',
+                cursor: 'pointer',
+                flex: 1
+              }}
+              onClick={() => setShowContactForm(!showContactForm)}
+            >
+              <MessageCircle size={20} style={{ display: 'inline', marginRight: '8px' }} />
+              Contact
+            </button>
+            
+            <button 
+              style={{
+                backgroundColor: 'transparent',
+                color: saved ? themeColors.primary : themeColors.text,
+                border: `1px solid ${saved ? themeColors.primary : themeColors.text}`,
+                borderRadius: '8px',
+                width: '50px',
+                cursor: 'pointer'
+              }}
+              onClick={() => setSaved(!saved)}
+            >
+              <Heart size={20} fill={saved ? themeColors.primary : 'none'} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main Home Component
+const Home = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     category: '',
-    minPrice: '',
-    maxPrice: '',
     condition: '',
-    sort: '-createdAt'
-  });
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    pages: 0
+    minPrice: '',
+    maxPrice: ''
   });
 
-  // Fetch baby items from the backend
-  const fetchItems = async (resetItems = false) => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Generate sample items
+  useEffect(() => {
+    const generateSampleItems = () => {
+      const sampleItems = [];
+      const categories = ['Clothes & Shoes', 'Toys & Games', 'Feeding', 'Nursery', 'Strollers & Car Seats'];
+      const conditions = ['New', 'Like New', 'Good', 'Fair'];
       
-      // Build query parameters
-      const params = {
-        page: resetItems ? 1 : pagination.page,
-        limit: pagination.limit,
-        sort: filters.sort,
-        ...(searchQuery && { search: searchQuery }),
-        ...(filters.category && { category: filters.category }),
-        ...(filters.condition && { condition: filters.condition }),
-        ...(filters.minPrice && { minPrice: parseFloat(filters.minPrice) }),
-        ...(filters.maxPrice && { maxPrice: parseFloat(filters.maxPrice) }),
-      };
-
-      console.log('Fetching items with params:', params);
-      
-      const response = await itemsAPI.getAllItems(params);
-      
-      if (response.data.success) {
-        const newItems = response.data.data || [];
-        const paginationData = response.data.pagination || {};
-        
-        // If resetting (new search/filter), replace items; otherwise append for pagination
-        setItems(resetItems ? newItems : [...items, ...newItems]);
-        setPagination({
-          page: paginationData.page || 1,
-          limit: paginationData.limit || 20,
-          total: paginationData.total || 0,
-          pages: paginationData.pages || 0
+      for (let i = 1; i <= 20; i++) {
+        sampleItems.push({
+          _id: `item-${i}`,
+          title: `Baby Item ${i}`,
+          price: Math.floor(Math.random() * 100) + 10,
+          description: `This is a great baby item in excellent condition. Perfect for your little one!`,
+          condition: conditions[Math.floor(Math.random() * conditions.length)],
+          category: categories[Math.floor(Math.random() * categories.length)],
+          brand: ['Fisher-Price', 'Graco', 'Chicco', 'BabyBjörn'][Math.floor(Math.random() * 4)],
+          thumbnail: `https://picsum.photos/300/${250 + Math.floor(Math.random() * 150)}?random=${i}`,
+          image: `https://picsum.photos/600/400?random=${i}`,
+          images: [
+            { 
+              fullSize: `https://picsum.photos/800/600?random=${i}`, 
+              thumbnail: `https://picsum.photos/300/300?random=${i}`,
+              isPrimary: true 
+            },
+            { 
+              fullSize: `https://picsum.photos/800/600?random=${i+100}`, 
+              thumbnail: `https://picsum.photos/300/300?random=${i+100}`,
+              isPrimary: false 
+            }
+          ],
+          user: {
+            _id: `user-${i}`,
+            username: `parent${i}`,
+            profileImage: `https://i.pravatar.cc/40?img=${i}`,
+            location: 'Seattle, WA'
+          },
+          height: 250 + Math.floor(Math.random() * 150)
         });
-        
-        console.log('Items fetched successfully:', { 
-          count: newItems.length, 
-          total: paginationData.total 
-        });
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch items');
       }
-    } catch (err) {
-      console.error('Error fetching items:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to load items');
-      
-      // If it's the first load and the API fails, don't show any items
-      if (resetItems) {
-        setItems([]);
-      }
-    } finally {
+      setItems(sampleItems);
       setLoading(false);
-    }
-  };
-
-  // Initial load
-  useEffect(() => {
-    fetchItems(true);
-  }, []);
-
-  // Refetch when search or filters change
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      fetchItems(true);
-    }, 500); // Debounce search queries
-
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, filters]);
-
-  // Handle search
-  const handleSearch = (query) => {
-    setSearchQuery(query);
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
-  // Handle filter changes
-  const handleFilterChange = (filterName, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterName]: value
-    }));
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
-  // Load more items (pagination)
-  const loadMore = () => {
-    if (loading || pagination.page >= pagination.pages) return;
-    
-    setPagination(prev => ({ ...prev, page: prev.page + 1 }));
-    fetchItems(false);
-  };
-
-  // Dynamic columns based on window width
-  const [columns, setColumns] = useState(getColumnCount());
-
-  function getColumnCount() {
-    if (window.innerWidth < 640) return 2;
-    if (window.innerWidth < 1024) return 3;
-    return 4;
-  }
-
-  // Update columns when window is resized
-  useEffect(() => {
-    const handleResize = () => {
-      setColumns(getColumnCount());
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    setTimeout(generateSampleItems, 1000);
   }, []);
 
-  // Open item detail modal
   const handleItemClick = (item) => {
-    console.log('Item clicked:', item); // Debug log
+    console.log('Item clicked:', item);
     setSelectedItem(item);
   };
 
-  // Handle purchase from modal
-  const handlePurchase = (item) => {
-    if (!isAuthenticated) {
-      navigate('/login', { state: { from: `/item/${item.id || item._id}` } });
-      return;
-    }
-    
-    // Navigate to checkout
-    navigate('/checkout', { state: { item } });
-  };
-
-  // CSS for Pinterest-style layout
-  const containerStyle = {
-    maxWidth: '1500px',
-    margin: '0 auto',
-    padding: '20px'
-  };
-
-  const filtersStyle = {
-    backgroundColor: themeColors.cardBackground,
-    padding: '20px',
-    borderRadius: '12px',
-    marginBottom: '24px',
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '16px'
-  };
-
-  const filterInputStyle = {
-    padding: '8px 12px',
-    borderRadius: '8px',
-    border: 'none',
-    backgroundColor: themeColors.secondary,
-    color: themeColors.text,
-    fontSize: '14px'
-  };
-
-  const masonryStyle = {
-    display: 'grid',
-    gridTemplateColumns: `repeat(${columns}, 1fr)`,
-    gridGap: '16px',
-    margin: '0 auto'
-  };
-
-  const itemStyle = (item) => ({
-    marginBottom: '16px',
-    breakInside: 'avoid',
-    backgroundColor: themeColors.cardBackground,
-    borderRadius: '16px',
-    overflow: 'hidden',
-    position: 'relative',
-    transition: 'transform 0.2s, box-shadow 0.2s',
-    cursor: 'pointer'
+  const filteredItems = items.filter(item => {
+    if (searchQuery && !item.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (filters.category && item.category !== filters.category) return false;
+    if (filters.condition && item.condition !== filters.condition) return false;
+    if (filters.minPrice && item.price < parseFloat(filters.minPrice)) return false;
+    if (filters.maxPrice && item.price > parseFloat(filters.maxPrice)) return false;
+    return true;
   });
 
-  const imageStyle = (height = 300) => ({
-    width: '100%',
-    height: `${height}px`,
-    objectFit: 'cover',
-    pointerEvents: 'none' // This ensures clicks pass through to the parent div
+  // Group items into columns
+  const columns = window.innerWidth < 640 ? 2 : window.innerWidth < 1024 ? 3 : 4;
+  const itemsInColumns = Array.from({ length: columns }, () => []);
+  filteredItems.forEach((item, index) => {
+    itemsInColumns[index % columns].push(item);
   });
-
-  const cardContentStyle = {
-    padding: '12px',
-    color: themeColors.text,
-    pointerEvents: 'none' // Ensure clicks pass through to parent
-  };
-
-  const priceTagStyle = {
-    position: 'absolute',
-    top: '12px',
-    right: '12px',
-    backgroundColor: themeColors.primary,
-    color: 'white',
-    padding: '4px 10px',
-    borderRadius: '16px',
-    fontWeight: 'bold',
-    fontSize: '14px',
-    pointerEvents: 'none' // This ensures clicks pass through
-  };
-
-  const conditionTagStyle = {
-    position: 'absolute',
-    bottom: '12px',
-    left: '12px',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    color: 'white',
-    padding: '4px 8px',
-    borderRadius: '12px',
-    fontSize: '12px',
-    pointerEvents: 'none' // This ensures clicks pass through
-  };
-
-  const loadMoreButtonStyle = {
-    backgroundColor: themeColors.primary,
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    padding: '12px 24px',
-    fontSize: '16px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    display: 'block',
-    margin: '24px auto',
-    transition: 'transform 0.2s'
-  };
-
-  const hoverEffect = (e) => {
-    e.currentTarget.style.transform = 'scale(1.02)';
-    e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.2)';
-  };
-
-  const removeHoverEffect = (e) => {
-    e.currentTarget.style.transform = 'scale(1)';
-    e.currentTarget.style.boxShadow = 'none';
-  };
-
-  // Group items into columns for the masonry layout
-  const getItemsInColumns = () => {
-    const itemsInColumns = Array.from({ length: columns }, () => []);
-    
-    items.forEach((item, index) => {
-      const columnIndex = index % columns;
-      itemsInColumns[columnIndex].push(item);
-    });
-    
-    return itemsInColumns;
-  };
-
-  const columnsOfItems = getItemsInColumns();
 
   return (
     <div style={{ backgroundColor: themeColors.background, minHeight: '100vh' }}>
-      <div style={containerStyle}>
-        {/* Search and Filters */}
-        <div style={filtersStyle}>
+      <div style={{ maxWidth: '1500px', margin: '0 auto', padding: '20px' }}>
+        {/* Filters */}
+        <div style={{
+          backgroundColor: themeColors.cardBackground,
+          padding: '20px',
+          borderRadius: '12px',
+          marginBottom: '24px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '16px'
+        }}>
           <input
             type="text"
             placeholder="Search items..."
             value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            style={filterInputStyle}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: themeColors.secondary,
+              color: themeColors.text
+            }}
           />
           
           <select
             value={filters.category}
-            onChange={(e) => handleFilterChange('category', e.target.value)}
-            style={filterInputStyle}
+            onChange={(e) => setFilters({...filters, category: e.target.value})}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: themeColors.secondary,
+              color: themeColors.text
+            }}
           >
             <option value="">All Categories</option>
             <option value="Clothes & Shoes">Clothes & Shoes</option>
             <option value="Toys & Games">Toys & Games</option>
             <option value="Feeding">Feeding</option>
-            <option value="Diapering">Diapering</option>
-            <option value="Bathing & Skincare">Bathing & Skincare</option>
-            <option value="Health & Safety">Health & Safety</option>
             <option value="Nursery">Nursery</option>
             <option value="Strollers & Car Seats">Strollers & Car Seats</option>
-            <option value="Carriers & Wraps">Carriers & Wraps</option>
-            <option value="Activity & Entertainment">Activity & Entertainment</option>
-            <option value="Books">Books</option>
-            <option value="Other">Other</option>
           </select>
           
           <select
             value={filters.condition}
-            onChange={(e) => handleFilterChange('condition', e.target.value)}
-            style={filterInputStyle}
+            onChange={(e) => setFilters({...filters, condition: e.target.value})}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: themeColors.secondary,
+              color: themeColors.text
+            }}
           >
             <option value="">All Conditions</option>
             <option value="New">New</option>
             <option value="Like New">Like New</option>
             <option value="Good">Good</option>
             <option value="Fair">Fair</option>
-            <option value="Poor">Poor</option>
-          </select>
-          
-          <input
-            type="number"
-            placeholder="Min Price"
-            value={filters.minPrice}
-            onChange={(e) => handleFilterChange('minPrice', e.target.value)}
-            style={filterInputStyle}
-            min="0"
-            step="0.01"
-          />
-          
-          <input
-            type="number"
-            placeholder="Max Price"
-            value={filters.maxPrice}
-            onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-            style={filterInputStyle}
-            min="0"
-            step="0.01"
-          />
-          
-          <select
-            value={filters.sort}
-            onChange={(e) => handleFilterChange('sort', e.target.value)}
-            style={filterInputStyle}
-          >
-            <option value="-createdAt">Newest First</option>
-            <option value="createdAt">Oldest First</option>
-            <option value="price">Price: Low to High</option>
-            <option value="-price">Price: High to Low</option>
-            <option value="title">Name: A to Z</option>
-            <option value="-title">Name: Z to A</option>
           </select>
         </div>
 
-        {/* Results Count */}
-        {!loading && (
-          <div style={{ 
-            color: themeColors.textSecondary, 
-            marginBottom: '20px',
-            textAlign: 'center'
-          }}>
-            {pagination.total > 0 
-              ? `Showing ${items.length} of ${pagination.total} items`
-              : 'No items found'
-            }
-          </div>
-        )}
-
         {/* Loading State */}
-        {loading && items.length === 0 && (
+        {loading && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
-            <div className="loader"></div>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && !loading && (
-          <div style={{ 
-            padding: '20px', 
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-            borderRadius: '8px',
-            color: '#ef4444',
-            textAlign: 'center',
-            marginBottom: '20px'
-          }}>
-            <h3>Error: {error}</h3>
-            <p>Please try again or check your connection.</p>
-            <button 
-              style={loadMoreButtonStyle}
-              onClick={() => fetchItems(true)}
-            >
-              Retry
-            </button>
+            <div className="loader">Loading...</div>
           </div>
         )}
 
         {/* Items Grid */}
-        {!loading && items.length > 0 && (
-          <div style={masonryStyle}>
-            {columnsOfItems.map((column, columnIndex) => (
+        {!loading && filteredItems.length > 0 && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${columns}, 1fr)`,
+            gridGap: '16px'
+          }}>
+            {itemsInColumns.map((column, columnIndex) => (
               <div key={columnIndex}>
-                {column.map(item => {
-                  // Get the best image URL
-                  const imageUrl = item.images && item.images.length > 0
-                    ? (item.images.find(img => img.isPrimary)?.thumbnail || item.images[0].thumbnail)
-                    : item.thumbnail || item.image || `https://via.placeholder.com/300x300?text=${encodeURIComponent(item.title || 'No Image')}`;
-                  
-                  // Calculate dynamic height based on image aspect ratio or random
-                  const height = item.height || (250 + Math.floor(Math.random() * 150));
-                  
-                  return (
-                    <div 
-                      key={item._id || item.id} 
-                      style={itemStyle(item)}
-                      onClick={() => handleItemClick(item)}
-                      onMouseEnter={hoverEffect}
-                      onMouseLeave={removeHoverEffect}
-                    >
-                      {/* Price Tag */}
-                      {item.price && (
-                        <div style={priceTagStyle}>
-                          ${typeof item.price === 'number' ? item.price.toFixed(2) : item.price}
-                        </div>
-                      )}
-                      
-                      {/* Item Image */}
-                      <img 
-                        src={imageUrl}
-                        alt={item.title || 'Baby item'} 
-                        style={imageStyle(height)}
-                        onError={(e) => {
-                          e.target.src = `https://via.placeholder.com/300x${height}?text=${encodeURIComponent(item.title || 'Image Error')}`;
-                        }}
-                      />
-                      
-                      {/* Condition Tag */}
-                      {item.condition && (
-                        <div style={conditionTagStyle}>
-                          {item.condition}
-                        </div>
-                      )}
-                      
-                      {/* Item Details */}
-                      <div style={cardContentStyle}>
-                        <h3 style={{ fontSize: '16px', marginBottom: '4px', fontWeight: '600' }}>
-                          {item.title || 'Untitled Item'}
-                        </h3>
-                        {item.user && (
-                          <div style={{ fontSize: '12px', color: themeColors.textSecondary }}>
-                            by {item.user.username || 'Anonymous'}
-                          </div>
-                        )}
-                        {item.location && (
-                          <div style={{ fontSize: '12px', color: themeColors.textSecondary }}>
-                            📍 {item.location}
-                          </div>
-                        )}
+                {column.map(item => (
+                  <div 
+                    key={item._id}
+                    style={{
+                      marginBottom: '16px',
+                      backgroundColor: themeColors.cardBackground,
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      position: 'relative',
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s, box-shadow 0.2s'
+                    }}
+                    onClick={() => handleItemClick(item)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.02)';
+                      e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    {/* Price Tag */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '12px',
+                      right: '12px',
+                      backgroundColor: themeColors.primary,
+                      color: 'white',
+                      padding: '4px 10px',
+                      borderRadius: '16px',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      pointerEvents: 'none'
+                    }}>
+                      ${item.price.toFixed(2)}
+                    </div>
+                    
+                    {/* Image */}
+                    <img 
+                      src={item.thumbnail}
+                      alt={item.title} 
+                      style={{
+                        width: '100%',
+                        height: `${item.height}px`,
+                        objectFit: 'cover',
+                        pointerEvents: 'none'
+                      }}
+                    />
+                    
+                    {/* Condition Tag */}
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '60px',
+                      left: '12px',
+                      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                      color: 'white',
+                      padding: '4px 8px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      pointerEvents: 'none'
+                    }}>
+                      {item.condition}
+                    </div>
+                    
+                    {/* Item Details */}
+                    <div style={{
+                      padding: '12px',
+                      pointerEvents: 'none'
+                    }}>
+                      <h3 style={{ 
+                        fontSize: '16px', 
+                        marginBottom: '4px', 
+                        fontWeight: '600',
+                        color: themeColors.text
+                      }}>
+                        {item.title}
+                      </h3>
+                      <div style={{ fontSize: '12px', color: themeColors.textSecondary }}>
+                        by {item.user.username}
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             ))}
           </div>
         )}
 
-        {/* Load More Button */}
-        {!loading && items.length > 0 && pagination.page < pagination.pages && (
-          <button 
-            style={loadMoreButtonStyle}
-            onClick={loadMore}
-            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-          >
-            Load More Items ({pagination.total - items.length} remaining)
-          </button>
-        )}
-
         {/* Empty State */}
-        {!loading && items.length === 0 && !error && (
+        {!loading && filteredItems.length === 0 && (
           <div style={{
             textAlign: 'center',
             padding: '60px 20px',
             color: themeColors.textSecondary
           }}>
-            <div style={{
-              fontSize: '48px',
-              marginBottom: '20px'
-            }}>
-              🍼
-            </div>
-            <h3 style={{ color: themeColors.text, marginBottom: '12px' }}>
-              No items found
-            </h3>
-            <p style={{ marginBottom: '24px' }}>
-              {searchQuery || Object.values(filters).some(f => f) 
-                ? 'Try adjusting your search or filters'
-                : 'Be the first to list an item!'
-              }
-            </p>
-            {isAuthenticated && (
-              <button 
-                style={loadMoreButtonStyle}
-                onClick={() => navigate('/create-listing')}
-              >
-                Create Your First Listing
-              </button>
-            )}
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}>🍼</div>
+            <h3 style={{ color: themeColors.text, marginBottom: '12px' }}>No items found</h3>
+            <p>Try adjusting your search or filters</p>
           </div>
         )}
       </div>
@@ -520,7 +589,10 @@ const Home = () => {
         <ItemDetailModal 
           item={selectedItem}
           onClose={() => setSelectedItem(null)}
-          onPurchase={handlePurchase}
+          onPurchase={(item) => {
+            console.log('Purchase:', item);
+            setSelectedItem(null);
+          }}
         />
       )}
     </div>
