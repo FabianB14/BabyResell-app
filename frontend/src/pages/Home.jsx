@@ -55,37 +55,8 @@ const Home = () => {
         const newItems = response.data.data || [];
         const paginationData = response.data.pagination || {};
         
-        // Process items to ensure they have valid image URLs
-        const processedItems = newItems.map(item => {
-          // Get the best available image URL
-          let imageUrl = null;
-          
-          if (item.images && Array.isArray(item.images) && item.images.length > 0) {
-            const primaryImage = item.images.find(img => img.isPrimary);
-            if (primaryImage) {
-              imageUrl = primaryImage.thumbnail || primaryImage.fullSize;
-            } else {
-              imageUrl = item.images[0].thumbnail || item.images[0].fullSize;
-            }
-          } else if (item.thumbnail) {
-            imageUrl = item.thumbnail;
-          } else if (item.image) {
-            imageUrl = item.image;
-          }
-          
-          // Use a working placeholder service
-          const placeholderUrl = `https://placehold.co/300x400/e0e0e0/666666?text=${encodeURIComponent(item.title || 'Baby Item')}`;
-          
-          console.log(`Item "${item.title}": imageUrl = ${imageUrl}`);
-          
-          return {
-            ...item,
-            displayImage: imageUrl || placeholderUrl
-          };
-        });
-        
         // If resetting (new search/filter), replace items; otherwise append for pagination
-        setItems(resetItems ? processedItems : [...items, ...processedItems]);
+        setItems(resetItems ? newItems : [...items, ...newItems]);
         setPagination({
           page: paginationData.page || 1,
           limit: paginationData.limit || 20,
@@ -94,7 +65,7 @@ const Home = () => {
         });
         
         console.log('Items fetched successfully:', { 
-          count: processedItems.length, 
+          count: newItems.length, 
           total: paginationData.total 
         });
       } else {
@@ -104,60 +75,9 @@ const Home = () => {
       console.error('Error fetching items:', err);
       setError(err.response?.data?.message || err.message || 'Failed to load items');
       
-      // If it's the first load and the API fails, use sample data
+      // If it's the first load and the API fails, don't show any items
       if (resetItems) {
-        // Sample data for testing
-        const sampleItems = [
-          {
-            _id: 'sample1',
-            title: 'Baby Carrier - Like New',
-            price: 45.00,
-            condition: 'Like New',
-            displayImage: 'https://images.unsplash.com/photo-1491013516836-7db643ee125a?w=300&h=400&fit=crop',
-            user: { username: 'parent123' }
-          },
-          {
-            _id: 'sample2',
-            title: 'Wooden Crib with Mattress',
-            price: 120.00,
-            condition: 'Good',
-            displayImage: 'https://images.unsplash.com/photo-1566479117908-8e369a60d57a?w=300&h=350&fit=crop',
-            user: { username: 'parent456' }
-          },
-          {
-            _id: 'sample3',
-            title: 'Baby Toys Bundle',
-            price: 35.00,
-            condition: 'Good',
-            displayImage: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=300&h=380&fit=crop',
-            user: { username: 'parent789' }
-          },
-          {
-            _id: 'sample4',
-            title: 'Baby Stroller - Foldable',
-            price: 75.00,
-            condition: 'Good',
-            displayImage: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?w=300&h=320&fit=crop',
-            user: { username: 'parent321' }
-          },
-          {
-            _id: 'sample5',
-            title: 'Diaper Bag - Designer',
-            price: 50.00,
-            condition: 'Like New',
-            displayImage: 'https://images.unsplash.com/photo-1519689373023-dd07c7988603?w=300&h=360&fit=crop',
-            user: { username: 'parent654' }
-          },
-          {
-            _id: 'sample6',
-            title: 'Baby Bath Set',
-            price: 25.00,
-            condition: 'Good',
-            displayImage: 'https://images.unsplash.com/photo-1522771930-78848d9293e8?w=300&h=340&fit=crop',
-            user: { username: 'parent987' }
-          }
-        ];
-        setItems(sampleItems);
+        setItems([]);
       }
     } finally {
       setLoading(false);
@@ -222,6 +142,7 @@ const Home = () => {
 
   // Open item detail modal
   const handleItemClick = (item) => {
+    console.log('Item clicked:', item); // Debug log
     setSelectedItem(item);
   };
 
@@ -232,8 +153,8 @@ const Home = () => {
       return;
     }
     
-    // Navigate to item detail page or show purchase flow
-    navigate(`/item/${item._id || item.id}`);
+    // Navigate to checkout
+    navigate('/checkout', { state: { item } });
   };
 
   // CSS for Pinterest-style layout
@@ -280,25 +201,17 @@ const Home = () => {
     cursor: 'pointer'
   });
 
-  const imageContainerStyle = (height = 300) => ({
+  const imageStyle = (height = 300) => ({
     width: '100%',
     height: `${height}px`,
-    position: 'relative',
-    backgroundColor: '#f0f0f0',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
+    objectFit: 'cover',
+    pointerEvents: 'none' // This ensures clicks pass through to the parent div
   });
-
-  const imageStyle = {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover'
-  };
 
   const cardContentStyle = {
     padding: '12px',
-    color: themeColors.text
+    color: themeColors.text,
+    pointerEvents: 'none' // Ensure clicks pass through to parent
   };
 
   const priceTagStyle = {
@@ -310,7 +223,8 @@ const Home = () => {
     padding: '4px 10px',
     borderRadius: '16px',
     fontWeight: 'bold',
-    fontSize: '14px'
+    fontSize: '14px',
+    pointerEvents: 'none' // This ensures clicks pass through
   };
 
   const conditionTagStyle = {
@@ -321,7 +235,8 @@ const Home = () => {
     color: 'white',
     padding: '4px 8px',
     borderRadius: '12px',
-    fontSize: '12px'
+    fontSize: '12px',
+    pointerEvents: 'none' // This ensures clicks pass through
   };
 
   const loadMoreButtonStyle = {
@@ -464,7 +379,7 @@ const Home = () => {
         )}
 
         {/* Error State */}
-        {error && !loading && items.length === 0 && (
+        {error && !loading && (
           <div style={{ 
             padding: '20px', 
             backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -490,6 +405,11 @@ const Home = () => {
             {columnsOfItems.map((column, columnIndex) => (
               <div key={columnIndex}>
                 {column.map(item => {
+                  // Get the best image URL
+                  const imageUrl = item.images && item.images.length > 0
+                    ? (item.images.find(img => img.isPrimary)?.thumbnail || item.images[0].thumbnail)
+                    : item.thumbnail || item.image || `https://via.placeholder.com/300x300?text=${encodeURIComponent(item.title || 'No Image')}`;
+                  
                   // Calculate dynamic height based on image aspect ratio or random
                   const height = item.height || (250 + Math.floor(Math.random() * 150));
                   
@@ -508,23 +428,15 @@ const Home = () => {
                         </div>
                       )}
                       
-                      {/* Item Image - Direct implementation */}
-                      <div style={imageContainerStyle(height)}>
-                        <img 
-                          src={item.displayImage}
-                          alt={item.title || 'Baby item'} 
-                          style={{
-                            ...imageStyle,
-                            display: 'block'
-                          }}
-                          loading="lazy"
-                          onError={(e) => {
-                            // Fallback to placeholder if image fails to load
-                            e.target.src = `https://placehold.co/300x${height}/e0e0e0/666666?text=${encodeURIComponent(item.title || 'No Image')}`;
-                            e.target.onerror = null; // Prevent infinite loop
-                          }}
-                        />
-                      </div>
+                      {/* Item Image */}
+                      <img 
+                        src={imageUrl}
+                        alt={item.title || 'Baby item'} 
+                        style={imageStyle(height)}
+                        onError={(e) => {
+                          e.target.src = `https://via.placeholder.com/300x${height}?text=${encodeURIComponent(item.title || 'Image Error')}`;
+                        }}
+                      />
                       
                       {/* Condition Tag */}
                       {item.condition && (
