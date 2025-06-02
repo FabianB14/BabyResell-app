@@ -26,8 +26,6 @@ app.use(express.json());
 // Trust proxy (required for DigitalOcean App Platform)
 app.set('trust proxy', true);
 
-app.use('/api/payments', require('./routes/payments'));
-
 // CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
@@ -146,6 +144,10 @@ app.use('/api/baby-items', require('./routes/babyItems'));
 app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/themes', require('./routes/themes'));
 app.use('/api/messages', require('./routes/messages'));
+
+// Note: The payments route has a typo in the filename (paymenets.js)
+// If you want to use it, either rename the file to payments.js or use:
+// app.use('/api/payments', require('./routes/paymenets'));
 
 // Error handler middleware
 app.use(errorHandler);
