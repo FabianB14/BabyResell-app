@@ -9,15 +9,20 @@ import Footer from './components/layout/Footer';
 
 // Public Pages
 import Home from './pages/Home';
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import ContactSupport from './pages/ContactSupport';
 import About from './pages/About';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import ContactSupport from './pages/ContactSupport';
 import ItemDetail from './pages/ItemDetail';
-import CreateListing from './pages/CreateListing';
+
+// Auth Pages
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
+
+// Protected Pages
 import Profile from './pages/Profile';
+import CreateListing from './pages/CreateListing';
 import CheckoutPage from './pages/CheckoutPage';
 import PaymentSuccess from './pages/PaymentSuccess';
 import MyOrders from './pages/MyOrders';
@@ -56,7 +61,7 @@ const AdminRoute = ({ children }) => {
 };
 
 function App() {
-  // State for item detail modal
+  // State for item detail modal (if needed)
   const [selectedItem, setSelectedItem] = useState(null);
   
   // Function to open item detail modal
@@ -84,26 +89,51 @@ function App() {
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Home onItemClick={openItemDetail} />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/contact" element={<ContactSupport />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/contact" element={<ContactSupport />} />
                 <Route path="/item/:id" element={<ItemDetail />} />
                 
+                {/* Auth Routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                
+                {/* Public Profile View */}
+                <Route path="/profile/:id" element={<Profile />} />
+                
                 {/* Protected Routes */}
-                <Route path="/create-listing" element={
-                  <PrivateRoute>
-                    <CreateListing />
-                  </PrivateRoute>
-                } />
                 <Route path="/profile" element={
                   <PrivateRoute>
                     <Profile />
                   </PrivateRoute>
                 } />
-                <Route path="/profile/:id" element={<Profile />} />
+                <Route path="/create-listing" element={
+                  <PrivateRoute>
+                    <CreateListing />
+                  </PrivateRoute>
+                } />
+                <Route path="/checkout" element={
+                  <PrivateRoute>
+                    <CheckoutPage />
+                  </PrivateRoute>
+                } />
+                <Route path="/payment-success" element={
+                  <PrivateRoute>
+                    <PaymentSuccess />
+                  </PrivateRoute>
+                } />
+                <Route path="/my-orders" element={
+                  <PrivateRoute>
+                    <MyOrders />
+                  </PrivateRoute>
+                } />
+                <Route path="/orders" element={
+                  <PrivateRoute>
+                    <MyOrders />
+                  </PrivateRoute>
+                } />
                 
                 {/* Admin Routes - Protected for admin users only */}
                 <Route path="/admin" element={
@@ -120,21 +150,6 @@ function App() {
                 {/* Fallback Route */}
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
-              <Route path="/checkout" element={
-              <PrivateRoute>
-                <CheckoutPage />
-              </PrivateRoute>
-            } />
-            <Route path="/payment-success" element={
-              <PrivateRoute>
-                <PaymentSuccess />
-              </PrivateRoute>
-            } />
-            <Route path="/my-orders" element={
-              <PrivateRoute>
-                <MyOrders />
-              </PrivateRoute>
-            } />
             </main>
             <Footer />
           </div>
