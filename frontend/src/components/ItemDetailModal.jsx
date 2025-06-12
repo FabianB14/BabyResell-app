@@ -129,6 +129,8 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
     }
   };
   
+// Update the style objects section with these new styles:
+
   // Style objects
   const modalOverlayStyle = {
     position: 'fixed',
@@ -136,26 +138,28 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
-    backdropFilter: 'blur(5px)',
-    padding: '20px'
+    padding: '40px 0',
+    overflowY: 'auto'
   };
   
   const modalContentStyle = {
-    backgroundColor: themeColors.cardBackground,
-    borderRadius: '16px',
-    maxWidth: '1000px',
-    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: '32px',
+    maxWidth: '1100px',
+    width: '95%',
     maxHeight: '90vh',
+    height: 'auto',
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
     position: 'relative',
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+    boxShadow: '0 4px 30px rgba(0, 0, 0, 0.15)',
+    margin: 'auto'
   };
   
   const modalBodyStyle = {
@@ -170,40 +174,40 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
     flex: '1',
     backgroundColor: '#000',
     position: 'relative',
-    height: window.innerWidth >= 768 ? '100%' : '300px'
-  };
-  
-  const imageStyle = {
-    width: '100%',
-    height: '100%',
-    objectFit: 'contain'
+    height: window.innerWidth >= 768 ? '90vh' : '400px',
+    borderRadius: window.innerWidth >= 768 ? '32px 0 0 32px' : '32px 32px 0 0',
+    overflow: 'hidden'
   };
   
   const detailsContainerStyle = {
     flex: '1',
-    padding: '24px',
+    padding: '32px',
     overflowY: 'auto',
-    maxHeight: '100%',
+    maxHeight: '90vh',
     display: 'flex',
     flexDirection: 'column',
-    minWidth: window.innerWidth >= 768 ? '400px' : '100%'
+    backgroundColor: '#fff',
+    minWidth: window.innerWidth >= 768 ? '420px' : '100%',
+    borderRadius: window.innerWidth >= 768 ? '0 32px 32px 0' : '0 0 32px 32px'
   };
   
   const closeButtonStyle = {
     position: 'absolute',
-    top: '16px',
-    right: '16px',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    color: '#fff',
+    top: '20px',
+    right: '20px',
+    backgroundColor: '#fff',
+    color: '#111',
     border: 'none',
     borderRadius: '50%',
-    width: '40px',
-    height: '40px',
+    width: '48px',
+    height: '48px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    zIndex: 10
+    zIndex: 10,
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+    transition: 'transform 0.2s'
   };
   
   const navigationButtonStyle = (direction) => ({
