@@ -4,22 +4,6 @@ const BabyItem = require('../models/BabyItem');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
   
-  // @route   GET /api/baby-items/age-groups
-  // @desc    Get all unique age groups
-  // @access  Public
-  router.get('/age-groups', async (req, res, next) => {
-    try {
-      const ageGroups = await BabyItem.distinct('ageGroup');
-      
-      res.status(200).json({
-        success: true,
-        count: ageGroups.length,
-        data: ageGroups
-      });
-    } catch (error) {
-      next(error);
-    }
-  });
 
 // @route   POST /api/baby-items
 // @desc    Create a new baby item listing
