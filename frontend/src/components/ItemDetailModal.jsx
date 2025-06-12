@@ -228,30 +228,33 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
     zIndex: 5
   });
   
+  // Update these style objects
   const buttonStyle = (primary = true) => ({
-    backgroundColor: primary ? themeColors.primary : 'transparent',
-    color: primary ? '#fff' : themeColors.text,
-    border: primary ? 'none' : `1px solid ${themeColors.text}`,
-    borderRadius: '8px',
-    padding: '12px 16px',
+    backgroundColor: primary ? '#e60023' : '#efefef',
+    color: primary ? '#fff' : '#111',
+    border: 'none',
+    borderRadius: '24px',
+    padding: '12px 24px',
     fontSize: '16px',
     fontWeight: '600',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: '8px'
+    transition: 'all 0.2s',
+    height: '48px'
   });
   
   const tagStyle = {
-    backgroundColor: themeColors.secondary,
-    color: themeColors.textSecondary,
-    padding: '4px 10px',
+    backgroundColor: '#efefef',
+    color: '#111',
+    padding: '8px 16px',
     borderRadius: '16px',
-    fontSize: '12px',
+    fontSize: '14px',
     marginRight: '8px',
     marginBottom: '8px',
-    display: 'inline-block'
+    display: 'inline-block',
+    fontWeight: '500'
   };
   
   // Thumbnail selector
@@ -292,23 +295,17 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
         </button>
         
         <div style={modalBodyStyle}>
-          {/* Left: Image Gallery */}
-          <div style={{ 
-            flex: '1',
-            display: 'flex',
-            flexDirection: 'column',
-            backgroundColor: '#000',
-            position: 'relative',
-            height: window.innerWidth >= 768 ? '100%' : '400px'
-          }}>
+{/* Left: Image Gallery */}
+          <div style={imageContainerStyle}>
             {/* Main Image Container */}
             <div style={{
-              flex: 1,
+              width: '100%',
+              height: '100%',
               position: 'relative',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              overflow: 'hidden'
+              backgroundColor: '#000'
             }}>
               <img 
                 src={itemImages[currentImageIndex].fullSize} 
@@ -316,184 +313,289 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
                 style={{
                   maxWidth: '100%',
                   maxHeight: '100%',
+                  width: 'auto',
+                  height: 'auto',
                   objectFit: 'contain'
                 }}
               />
-            </div>
-            
-            {/* Navigation Controls - Outside the image */}
-            {itemImages.length > 1 && (
-              <div style={{
-                position: 'absolute',
-                bottom: '0',
-                left: '0',
-                right: '0',
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}>
-                {/* Previous Button */}
-                <button 
-                  style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '40px',
-                    height: '40px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onClick={handlePrevImage}
-                  aria-label="Previous image"
-                  onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
-                >
-                  <ChevronLeft size={24} />
-                </button>
-                
-                {/* Thumbnails or Counter */}
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center',
-                  gap: '8px',
-                  flex: 1,
-                  justifyContent: 'center',
-                  margin: '0 16px'
+              
+              {/* Navigation Arrows - Pinterest Style */}
+              {itemImages.length > 1 && (
+                <>
+                  <button 
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '16px',
+                      transform: 'translateY(-50%)',
+                      backgroundColor: '#fff',
+                      color: '#111',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '48px',
+                      height: '48px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                      transition: 'transform 0.2s',
+                      opacity: 0.9
+                    }}
+                    onClick={handlePrevImage}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(-50%) scale(1)'}
+                  >
+                    <ChevronLeft size={24} />
+                  </button>
+                  
+                  <button 
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      right: '16px',
+                      transform: 'translateY(-50%)',
+                      backgroundColor: '#fff',
+                      color: '#111',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '48px',
+                      height: '48px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                      transition: 'transform 0.2s',
+                      opacity: 0.9
+                    }}
+                    onClick={handleNextImage}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(-50%) scale(1)'}
+                  >
+                    <ChevronRight size={24} />
+                  </button>
+                </>
+              )}
+              
+              {/* Image dots indicator - Pinterest style */}
+              {itemImages.length > 1 && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '20px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  display: 'flex',
+                  gap: '6px'
                 }}>
-                  {itemImages.length <= 5 ? (
-                    // Show thumbnails for 5 or fewer images
-                    itemImages.map((img, index) => (
-                      <button
-                        key={index}
-                        style={{
-                          width: '50px',
-                          height: '50px',
-                          border: currentImageIndex === index ? `2px solid ${themeColors.primary}` : '2px solid transparent',
-                          borderRadius: '8px',
-                          padding: '0',
-                          overflow: 'hidden',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
-                        onClick={() => setCurrentImageIndex(index)}
-                        aria-label={`View image ${index + 1}`}
-                      >
-                        <img
-                          src={img.thumbnail}
-                          alt={`Thumbnail ${index + 1}`}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover'
-                          }}
-                        />
-                      </button>
-                    ))
-                  ) : (
-                    // Show counter for more than 5 images
-                    <div style={{
-                      color: '#fff',
-                      fontSize: '14px',
-                      fontWeight: '500'
-                    }}>
-                      {currentImageIndex + 1} / {itemImages.length}
-                    </div>
-                  )}
+                  {itemImages.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentImageIndex(index)}
+                      style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        border: 'none',
+                        backgroundColor: index === currentImageIndex ? '#fff' : 'rgba(255, 255, 255, 0.5)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        padding: 0
+                      }}
+                      aria-label={`Go to image ${index + 1}`}
+                    />
+                  ))}
                 </div>
-                
-                {/* Next Button */}
-                <button 
-                  style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '40px',
-                    height: '40px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onClick={handleNextImage}
-                  aria-label="Next image"
-                  onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
-                >
-                  <ChevronRight size={24} />
-                </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           
           {/* Right: Item Details */}
           <div style={detailsContainerStyle}>
             <div style={{ marginBottom: 'auto' }}>
-              <h2 style={{ color: themeColors.text, fontSize: '24px', marginBottom: '8px' }}>
-                {item.title}
-              </h2>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <div style={{ color: themeColors.textSecondary, fontSize: '14px' }}>
-                  Posted {formatDate(item.createdAt)}
-                </div>
-                <div style={{ color: themeColors.primary, fontSize: '24px', fontWeight: 'bold' }}>
+              {/* Price and Title Section */}
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ 
+                  color: '#e60023', 
+                  fontSize: '36px', 
+                  fontWeight: '700',
+                  marginBottom: '8px'
+                }}>
                   ${item.price?.toFixed(2)}
                 </div>
+                <h1 style={{ 
+                  color: '#111', 
+                  fontSize: '20px', 
+                  fontWeight: '600',
+                  lineHeight: '1.4'
+                }}>
+                  {item.title}
+                </h1>
               </div>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ color: themeColors.text, fontSize: '16px', marginBottom: '8px' }}>Description</h3>
-                <p style={{ color: themeColors.textSecondary, lineHeight: '1.6' }}>
+
+              {/* Action buttons */}
+              <div style={{ 
+                display: 'flex', 
+                gap: '8px', 
+                marginBottom: '24px',
+                paddingBottom: '24px',
+                borderBottom: '1px solid #efefef'
+              }}>
+                <button 
+                  style={{ ...buttonStyle(true), flex: 1 }}
+                  onClick={handleBuyNow}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#ad081b'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e60023'}
+                >
+                  Buy Now
+                </button>
+                
+                <button 
+                  style={{
+                    ...buttonStyle(false),
+                    width: '48px',
+                    padding: '0'
+                  }}
+                  onClick={handleSave}
+                  aria-label={saved ? 'Unsave item' : 'Save item'}
+                >
+                  <Heart 
+                    size={20} 
+                    fill={saved ? '#e60023' : 'none'} 
+                    color={saved ? '#e60023' : '#111'} 
+                  />
+                </button>
+                
+                <button 
+                  style={{
+                    ...buttonStyle(false),
+                    width: '48px',
+                    padding: '0'
+                  }}
+                  onClick={() => setShowContactForm(!showContactForm)}
+                >
+                  <MessageCircle size={20} color="#111" />
+                </button>
+                
+                <button 
+                  style={{
+                    ...buttonStyle(false),
+                    width: '48px',
+                    padding: '0'
+                  }}
+                  onClick={handleShare}
+                  aria-label="Share item"
+                >
+                  <Share2 size={20} color="#111" />
+                </button>
+              </div>
+
+              {/* Seller info - Pinterest style */}
+              <div style={{ 
+                marginBottom: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <img 
+                    src={item.user?.profileImage || 'https://via.placeholder.com/48?text=User'} 
+                    alt={item.user?.username} 
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      marginRight: '12px'
+                    }}
+                  />
+                  <div>
+                    <div style={{ color: '#111', fontWeight: '600', fontSize: '16px' }}>
+                      {item.user?.username || 'Anonymous'}
+                    </div>
+                    {item.user?.location && (
+                      <div style={{ color: '#767676', fontSize: '14px' }}>
+                        {item.user.location}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <button
+                  style={{
+                    backgroundColor: '#efefef',
+                    color: '#111',
+                    border: 'none',
+                    borderRadius: '24px',
+                    padding: '8px 16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => console.log('Follow user')}
+                >
+                  Follow
+                </button>
+              </div>
+
+              {/* Posted date */}
+              <div style={{ 
+                color: '#767676', 
+                fontSize: '14px',
+                marginBottom: '24px'
+              }}>
+                Posted {formatDate(item.createdAt)}
+              </div>
+
+              {/* Description */}
+              <div style={{ marginBottom: '24px' }}>
+                <p style={{ color: '#111', lineHeight: '1.6', fontSize: '16px' }}>
                   {item.description}
                 </p>
               </div>
               
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ color: themeColors.text, fontSize: '16px', marginBottom: '8px' }}>Details</h3>
+              {/* Details Grid */}
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ color: '#111', fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>
+                  Details
+                </h3>
                 <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', 
-                  gap: '10px',
-                  color: themeColors.textSecondary 
+                  backgroundColor: '#f8f8f8',
+                  borderRadius: '16px',
+                  padding: '16px',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '12px'
                 }}>
-                  <div>
-                    <strong>Condition:</strong> {item.condition || 'Not specified'}
+                  <div style={{ color: '#111', fontSize: '14px' }}>
+                    <span style={{ color: '#767676' }}>Condition:</span> {item.condition || 'Not specified'}
                   </div>
                   {item.brand && (
-                    <div>
-                      <strong>Brand:</strong> {item.brand}
+                    <div style={{ color: '#111', fontSize: '14px' }}>
+                      <span style={{ color: '#767676' }}>Brand:</span> {item.brand}
                     </div>
                   )}
                   {item.category && (
-                    <div>
-                      <strong>Category:</strong> {item.category}
+                    <div style={{ color: '#111', fontSize: '14px' }}>
+                      <span style={{ color: '#767676' }}>Category:</span> {item.category}
                     </div>
                   )}
                   {item.ageGroup && (
-                    <div>
-                      <strong>Age Group:</strong> {item.ageGroup}
+                    <div style={{ color: '#111', fontSize: '14px' }}>
+                      <span style={{ color: '#767676' }}>Age:</span> {item.ageGroup}
                     </div>
                   )}
                   {item.color && (
-                    <div>
-                      <strong>Color:</strong> {item.color}
+                    <div style={{ color: '#111', fontSize: '14px' }}>
+                      <span style={{ color: '#767676' }}>Color:</span> {item.color}
                     </div>
                   )}
                 </div>
               </div>
               
+              {/* Tags */}
               {item.tags && item.tags.length > 0 && (
-                <div style={{ marginBottom: '20px' }}>
-                  <h3 style={{ color: themeColors.text, fontSize: '16px', marginBottom: '8px' }}>Tags</h3>
-                  <div>
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     {item.tags.map((tag, index) => (
                       <span key={index} style={tagStyle}>
                         {tag}
@@ -502,87 +604,73 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
                   </div>
                 </div>
               )}
-              
-              {/* Seller info */}
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ color: themeColors.text, fontSize: '16px', marginBottom: '8px' }}>Seller</h3>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <img 
-                    src={item.user?.profileImage || 'https://via.placeholder.com/40?text=User'} 
-                    alt={item.user?.username} 
-                    style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '50%',
-                      objectFit: 'cover',
-                      marginRight: '12px'
-                    }}
-                  />
-                  <div>
-                    <div style={{ color: themeColors.text, fontWeight: '600' }}>
-                      {item.user?.username || 'Anonymous'}
-                    </div>
-                    {item.user?.location && (
-                      <div style={{ color: themeColors.textSecondary, fontSize: '14px' }}>
-                        {item.user.location}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
             </div>
             
-            {/* Contact form */}
+            {/* Contact form - Pinterest style */}
             {showContactForm && (
               <div style={{ 
                 marginTop: '16px',
-                padding: '16px',
-                backgroundColor: themeColors.secondary,
-                borderRadius: '8px'
+                padding: '20px',
+                backgroundColor: '#f8f8f8',
+                borderRadius: '16px'
               }}>
                 {messageSent ? (
-                  <div style={{ color: '#22c55e', fontWeight: '600', textAlign: 'center' }}>
-                    Message sent successfully!
+                  <div style={{ 
+                    color: '#0a7955', 
+                    fontWeight: '600', 
+                    textAlign: 'center',
+                    padding: '20px'
+                  }}>
+                    ✓ Message sent successfully!
                   </div>
                 ) : (
                   <form onSubmit={handleSendMessage}>
-                    <h3 style={{ color: themeColors.text, fontSize: '16px', marginBottom: '8px' }}>
-                      Contact Seller
+                    <h3 style={{ color: '#111', fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>
+                      Message Seller
                     </h3>
                     {errorMessage && (
-                      <div style={{ color: '#ef4444', marginBottom: '8px', fontSize: '14px' }}>
+                      <div style={{ 
+                        color: '#cc0000', 
+                        marginBottom: '12px', 
+                        fontSize: '14px',
+                        padding: '8px 12px',
+                        backgroundColor: '#fee',
+                        borderRadius: '8px'
+                      }}>
                         {errorMessage}
                       </div>
                     )}
                     <textarea
-                      placeholder="What would you like to know about this item?"
+                      placeholder="Hi! Is this item still available?"
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       style={{
                         width: '100%',
                         padding: '12px',
                         borderRadius: '8px',
-                        backgroundColor: themeColors.cardBackground,
-                        color: themeColors.text,
-                        border: 'none',
+                        backgroundColor: '#fff',
+                        color: '#111',
+                        border: '1px solid #ddd',
                         resize: 'vertical',
                         minHeight: '100px',
-                        marginBottom: '10px'
+                        marginBottom: '12px',
+                        fontSize: '14px'
                       }}
                       required
                     />
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                       <button 
                         type="button" 
                         onClick={() => setShowContactForm(false)}
                         style={{
-                          backgroundColor: 'transparent',
-                          color: themeColors.textSecondary,
+                          backgroundColor: '#efefef',
+                          color: '#111',
                           border: 'none',
-                          padding: '8px 16px',
-                          marginRight: '8px',
-                          borderRadius: '8px',
-                          cursor: 'pointer'
+                          padding: '12px 24px',
+                          borderRadius: '24px',
+                          cursor: 'pointer',
+                          fontWeight: '600',
+                          fontSize: '14px'
                         }}
                         disabled={sendingMessage}
                       >
@@ -591,72 +679,24 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
                       <button 
                         type="submit"
                         style={{
-                          backgroundColor: themeColors.primary,
+                          backgroundColor: '#e60023',
                           color: '#fff',
                           border: 'none',
-                          padding: '8px 16px',
-                          borderRadius: '8px',
+                          padding: '12px 24px',
+                          borderRadius: '24px',
                           cursor: 'pointer',
-                          fontWeight: '600'
+                          fontWeight: '600',
+                          fontSize: '14px'
                         }}
                         disabled={sendingMessage}
                       >
-                        {sendingMessage ? 'Sending...' : 'Send Message'}
+                        {sendingMessage ? 'Sending...' : 'Send'}
                       </button>
                     </div>
                   </form>
                 )}
               </div>
             )}
-            
-            {/* Action buttons */}
-            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-              <button 
-                style={{ ...buttonStyle(true), flex: 2 }}
-                onClick={handleBuyNow}
-              >
-                <DollarSign size={20} style={{ marginRight: '8px' }} />
-                Buy Now - ${item.price?.toFixed(2)}
-              </button>
-              
-              <button 
-                style={{ ...buttonStyle(false), flex: 1 }}
-                onClick={() => setShowContactForm(!showContactForm)}
-              >
-                <MessageCircle size={20} style={{ marginRight: '8px' }} />
-                Contact
-              </button>
-              
-              <button 
-                style={{
-                  ...buttonStyle(false),
-                  flex: 'none',
-                  width: '50px',
-                  padding: '0'
-                }}
-                onClick={handleSave}
-                aria-label={saved ? 'Unsave item' : 'Save item'}
-              >
-                <Heart 
-                  size={20} 
-                  fill={saved ? themeColors.primary : 'none'} 
-                  color={saved ? themeColors.primary : themeColors.text} 
-                />
-              </button>
-              
-              <button 
-                style={{
-                  ...buttonStyle(false),
-                  flex: 'none',
-                  width: '50px',
-                  padding: '0'
-                }}
-                onClick={handleShare}
-                aria-label="Share item"
-              >
-                <Share2 size={20} color={themeColors.text} />
-              </button>
-            </div>
           </div>
         </div>
       </div>
