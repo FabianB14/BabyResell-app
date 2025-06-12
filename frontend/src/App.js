@@ -6,6 +6,7 @@ import { AuthProvider } from './contexts/AuthContext';
 // Layout Components
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
+import MobileBottomNav from './components/layout/MobileBottomNav';
 
 // Public Pages
 import Home from './pages/Home';
@@ -14,6 +15,7 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import ContactSupport from './pages/ContactSupport';
 import ItemDetail from './pages/ItemDetail';
+import ResponsiveHomeGrid from '../components/items/ResponsiveHomeGrid';
 
 // Auth Pages
 import Login from './pages/auth/Login';
@@ -73,6 +75,8 @@ function App() {
   const closeItemDetail = () => {
     setSelectedItem(null);
   };
+
+  
   
   return (
     <AuthProvider>
@@ -84,8 +88,9 @@ function App() {
             minHeight: '100vh',
             backgroundColor: '#121212' 
           }}>
+            
             <Header />
-            <main style={{ flex: 1 }}>
+            <main className="main-content" style={{ flex: 1 }}>
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Home onItemClick={openItemDetail} />} />
@@ -152,6 +157,7 @@ function App() {
               </Routes>
             </main>
             <Footer />
+            
           </div>
         </Router>
       </ThemeProvider>
