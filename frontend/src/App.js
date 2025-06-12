@@ -15,7 +15,7 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import ContactSupport from './pages/ContactSupport';
 import ItemDetail from './pages/ItemDetail';
-import ResponsiveHomeGrid from '../components/items/ResponsiveHomeGrid';
+import ResponsiveHomeGrid from './components/items/ResponsiveHomeGrid';
 
 // Auth Pages
 import Login from './pages/auth/Login';
