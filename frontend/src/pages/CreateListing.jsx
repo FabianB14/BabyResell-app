@@ -59,7 +59,7 @@ const CreateListing = () => {
     };
   }, [images]);
 
-  // Fetch categories and age groups
+// Fetch categories and age groups
   useEffect(() => {
     const fetchFormOptions = async () => {
       try {
@@ -71,17 +71,18 @@ const CreateListing = () => {
         } else {
           // Fallback categories if API fails
           setCategories([
-            'Bathing & Skincare',
-            'Carriers & Wraps',
             'Clothes & Shoes',
+            'Toys & Games', 
+            'Feeding (Non-liquid)',
             'Diapering',
-            'Feeding',
-            'Health & Safety',
+            'Bathing & Skincare (Non-liquid)',
             'Nursery',
-            'Strollers & Car Seats',
-            'Toys & Games',
+            'Carriers & Wraps',
             'Activity & Entertainment',
             'Books',
+            'Blankets & Bedding',
+            'Baby Gear',
+            'Maternity',
             'Other'
           ]);
         }
@@ -98,17 +99,18 @@ const CreateListing = () => {
         console.error('Failed to fetch form options:', err);
         // Set fallback values
         setCategories([
-          'Bathing & Skincare',
-          'Carriers & Wraps',
           'Clothes & Shoes',
-          'Diapering',
-          'Feeding',
-          'Health & Safety',
-          'Nursery',
-          'Strollers & Car Seats',
           'Toys & Games',
+          'Feeding (Non-liquid)',
+          'Diapering', 
+          'Bathing & Skincare (Non-liquid)',
+          'Nursery',
+          'Carriers & Wraps',
           'Activity & Entertainment',
           'Books',
+          'Blankets & Bedding',
+          'Baby Gear',
+          'Maternity',
           'Other'
         ]);
         setAgeGroups([

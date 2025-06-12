@@ -160,23 +160,17 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
   
   const modalBodyStyle = {
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: window.innerWidth >= 768 ? 'row' : 'column',
     height: '100%',
     maxHeight: '90vh',
-    overflow: 'hidden',
-    '@media (min-width: 768px)': {
-      flexDirection: 'row'
-    }
+    overflow: 'hidden'
   };
   
   const imageContainerStyle = {
     flex: '1',
     backgroundColor: '#000',
     position: 'relative',
-    height: '300px', // Mobile height
-    '@media (min-width: 768px)': {
-      height: '100%'
-    }
+    height: window.innerWidth >= 768 ? '100%' : '300px'
   };
   
   const imageStyle = {
@@ -191,7 +185,8 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
     overflowY: 'auto',
     maxHeight: '100%',
     display: 'flex',
-    flexDirection: 'column'
+    flexDirection: 'column',
+    minWidth: window.innerWidth >= 768 ? '400px' : '100%'
   };
   
   const closeButtonStyle = {
