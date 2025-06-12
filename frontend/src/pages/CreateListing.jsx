@@ -59,67 +59,50 @@ const CreateListing = () => {
     };
   }, [images]);
 
-// Fetch categories and age groups
+ // Fetch categories and age groups
   useEffect(() => {
     const fetchFormOptions = async () => {
+      // Set default categories immediately
+      const defaultCategories = [
+        'Clothes & Shoes',
+        'Toys & Games', 
+        'Feeding (Non-liquid)',
+        'Diapering',
+        'Bathing & Skincare (Non-liquid)',
+        'Nursery',
+        'Carriers & Wraps',
+        'Activity & Entertainment',
+        'Books',
+        'Blankets & Bedding',
+        'Baby Gear',
+        'Maternity',
+        'Other'
+      ];
+      
+      const defaultAgeGroups = [
+        'Newborn (0-3 months)',
+        'Infant (3-12 months)',
+        'Toddler (1-3 years)',
+        'Preschool (3-5 years)',
+        'All Ages'
+      ];
+      
+      // Set defaults first
+      setCategories(defaultCategories);
+      setAgeGroups(defaultAgeGroups);
+      
       try {
-        // Get categories
+        // Try to get categories from API
         const categoriesRes = await itemsAPI.getCategories();
         
-        if (categoriesRes.data.success) {
+        // Only use API response if it's successful and has data
+        if (categoriesRes.data.success && categoriesRes.data.data && categoriesRes.data.data.length > 0) {
           setCategories(categoriesRes.data.data);
-        } else {
-          // Fallback categories if API fails
-          setCategories([
-            'Clothes & Shoes',
-            'Toys & Games', 
-            'Feeding (Non-liquid)',
-            'Diapering',
-            'Bathing & Skincare (Non-liquid)',
-            'Nursery',
-            'Carriers & Wraps',
-            'Activity & Entertainment',
-            'Books',
-            'Blankets & Bedding',
-            'Baby Gear',
-            'Maternity',
-            'Other'
-          ]);
         }
-        
-        // For age groups, we'll use predefined values since they're less likely to change
-        setAgeGroups([
-          'Newborn (0-3 months)',
-          'Infant (3-12 months)',
-          'Toddler (1-3 years)',
-          'Preschool (3-5 years)',
-          'All Ages'
-        ]);
+        // If API fails or returns empty, we already have defaults set
       } catch (err) {
-        console.error('Failed to fetch form options:', err);
-        // Set fallback values
-        setCategories([
-          'Clothes & Shoes',
-          'Toys & Games',
-          'Feeding (Non-liquid)',
-          'Diapering', 
-          'Bathing & Skincare (Non-liquid)',
-          'Nursery',
-          'Carriers & Wraps',
-          'Activity & Entertainment',
-          'Books',
-          'Blankets & Bedding',
-          'Baby Gear',
-          'Maternity',
-          'Other'
-        ]);
-        setAgeGroups([
-          'Newborn (0-3 months)',
-          'Infant (3-12 months)',
-          'Toddler (1-3 years)',
-          'Preschool (3-5 years)',
-          'All Ages'
-        ]);
+        console.error('Failed to fetch categories from API, using defaults:', err);
+        // Defaults are already set, so we don't need to do anything here
       }
     };
     

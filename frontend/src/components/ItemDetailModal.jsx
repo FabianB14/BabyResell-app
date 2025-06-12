@@ -289,67 +289,143 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
         
         <div style={modalBodyStyle}>
           {/* Left: Image Gallery */}
-          <div style={imageContainerStyle}>
-            <img 
-              src={itemImages[currentImageIndex].fullSize} 
-              alt={item.title} 
-              style={imageStyle}
-            />
+          <div style={{ 
+            flex: '1',
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: '#000',
+            position: 'relative',
+            height: window.innerWidth >= 768 ? '100%' : '400px'
+          }}>
+            {/* Main Image Container */}
+            <div style={{
+              flex: 1,
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden'
+            }}>
+              <img 
+                src={itemImages[currentImageIndex].fullSize} 
+                alt={item.title} 
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  objectFit: 'contain'
+                }}
+              />
+            </div>
             
-            {/* Navigation arrows */}
+            {/* Navigation Controls - Outside the image */}
             {itemImages.length > 1 && (
-              <>
+              <div style={{
+                position: 'absolute',
+                bottom: '0',
+                left: '0',
+                right: '0',
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                {/* Previous Button */}
                 <button 
-                  style={navigationButtonStyle('left')}
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '40px',
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
                   onClick={handlePrevImage}
                   aria-label="Previous image"
+                  onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
                 >
                   <ChevronLeft size={24} />
                 </button>
+                
+                {/* Thumbnails or Counter */}
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  gap: '8px',
+                  flex: 1,
+                  justifyContent: 'center',
+                  margin: '0 16px'
+                }}>
+                  {itemImages.length <= 5 ? (
+                    // Show thumbnails for 5 or fewer images
+                    itemImages.map((img, index) => (
+                      <button
+                        key={index}
+                        style={{
+                          width: '50px',
+                          height: '50px',
+                          border: currentImageIndex === index ? `2px solid ${themeColors.primary}` : '2px solid transparent',
+                          borderRadius: '8px',
+                          padding: '0',
+                          overflow: 'hidden',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                        onClick={() => setCurrentImageIndex(index)}
+                        aria-label={`View image ${index + 1}`}
+                      >
+                        <img
+                          src={img.thumbnail}
+                          alt={`Thumbnail ${index + 1}`}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }}
+                        />
+                      </button>
+                    ))
+                  ) : (
+                    // Show counter for more than 5 images
+                    <div style={{
+                      color: '#fff',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    }}>
+                      {currentImageIndex + 1} / {itemImages.length}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Next Button */}
                 <button 
-                  style={navigationButtonStyle('right')}
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '40px',
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
                   onClick={handleNextImage}
                   aria-label="Next image"
+                  onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
                 >
                   <ChevronRight size={24} />
                 </button>
-                
-                {/* Image counter */}
-                <div 
-                  style={{
-                    position: 'absolute',
-                    bottom: '16px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                    color: '#fff',
-                    padding: '4px 10px',
-                    borderRadius: '12px',
-                    fontSize: '12px'
-                  }}
-                >
-                  {currentImageIndex + 1} / {itemImages.length}
-                </div>
-                
-                {/* Image thumbnails */}
-                {itemImages.length > 2 && (
-                  <div style={thumbnailsContainerStyle}>
-                    {itemImages.map((img, index) => (
-                      <div 
-                        key={index} 
-                        style={thumbnailStyle(index === currentImageIndex)}
-                        onClick={() => setCurrentImageIndex(index)}
-                      >
-                        <img 
-                          src={img.thumbnail} 
-                          alt={`Thumbnail ${index + 1}`}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
+              </div>
             )}
           </div>
           
