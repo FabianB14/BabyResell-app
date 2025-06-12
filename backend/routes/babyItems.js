@@ -3,23 +3,6 @@ const router = express.Router();
 const BabyItem = require('../models/BabyItem');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
-
-// @route   GET /api/baby-items/categories
-// @desc    Get all unique categories
-// @access  Public
-router.get('/categories', async (req, res, next) => {
-    try {
-      const categories = await BabyItem.distinct('category');
-      
-      res.status(200).json({
-        success: true,
-        count: categories.length,
-        data: categories
-      });
-    } catch (error) {
-      next(error);
-    }
-  });
   
   // @route   GET /api/baby-items/age-groups
   // @desc    Get all unique age groups
