@@ -211,6 +211,19 @@ const ResponsiveHeader = () => {
                 >
                   Messages
                 </button>
+                {user?.isAdmin && (
+                  <button 
+                    onClick={() => navigate('/admin')}
+                    style={{
+                      ...styles.iconButton,
+                      color: themeColors.primary,
+                      fontWeight: 'bold',
+                      padding: '8px 16px',
+                    }}
+                  >
+                    Admin
+                  </button>
+                )}
                 <div 
                   style={styles.avatar}
                   onClick={() => navigate('/profile')}
@@ -326,6 +339,21 @@ const ResponsiveHeader = () => {
             >
               Settings
             </button>
+            {user?.isAdmin && (
+              <button 
+                style={{
+                  ...styles.mobileMenuItem,
+                  color: themeColors.primary,
+                  fontWeight: 'bold',
+                }}
+                onClick={() => {
+                  navigate('/admin');
+                  setMobileMenuOpen(false);
+                }}
+              >
+                Admin Dashboard
+              </button>
+            )}
             <button 
               style={{
                 ...styles.mobileMenuItem,
