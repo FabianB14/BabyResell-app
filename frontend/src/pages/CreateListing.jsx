@@ -66,9 +66,9 @@ const CreateListing = () => {
       const defaultCategories = [
         'Clothes & Shoes',
         'Toys & Games', 
-        'Feeding (Non-liquid)',
+        'Feeding (Non-liquid, Non-ediable)',
         'Diapering',
-        'Bathing & Skincare (Non-liquid)',
+        'Bathing (Non-liquid)',
         'Nursery',
         'Carriers & Wraps',
         'Activity & Entertainment',
