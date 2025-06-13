@@ -248,24 +248,24 @@ const About = () => {
           <div style={gridStyle}>
             <div style={teamMemberStyle}>
               <div style={avatarStyle}>JD</div>
-              <h3 style={{ color: themeColors.text, marginBottom: '8px' }}>Jane Doe</h3>
+              <h3 style={{ color: themeColors.text, marginBottom: '8px' }}>April Brooks</h3>
               <h4 style={{ color: themeColors.primary, marginBottom: '12px', fontSize: '14px' }}>
                 Founder & CEO
               </h4>
               <p style={{ color: themeColors.textSecondary, fontSize: '14px', lineHeight: '1.6' }}>
                 A mother of two who understands the challenges of finding quality baby items 
-                on a budget. Jane's vision drives BabyResell's mission.
+                on a budget. April's vision drives BabyResell's mission.
               </p>
             </div>
 
             <div style={teamMemberStyle}>
               <div style={avatarStyle}>MS</div>
-              <h3 style={{ color: themeColors.text, marginBottom: '8px' }}>Mike Smith</h3>
+              <h3 style={{ color: themeColors.text, marginBottom: '8px' }}>Fabian Brooks</h3>
               <h4 style={{ color: themeColors.primary, marginBottom: '12px', fontSize: '14px' }}>
                 CTO
               </h4>
               <p style={{ color: themeColors.textSecondary, fontSize: '14px', lineHeight: '1.6' }}>
-                With 10+ years in tech, Mike ensures our platform is secure, scalable, 
+                With 10+ years in tech, Fabian ensures our platform is secure, scalable, 
                 and delivers the best user experience possible.
               </p>
             </div>
