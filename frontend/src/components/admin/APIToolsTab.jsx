@@ -27,6 +27,22 @@ const APIToolsTab = () => {
   const [requestHistory, setRequestHistory] = useState([]);
   const [healthStatus, setHealthStatus] = useState(null);
 
+  // Responsive breakpoints
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024);
+    };
+
+    window.addEventListener('resize', handleResize);
+    checkHealthStatus();
+    
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // API endpoints configuration
   const apiEndpoints = {
     authentication: {
@@ -111,10 +127,6 @@ const APIToolsTab = () => {
       brand: 'Graco'
     }
   };
-
-  useEffect(() => {
-    checkHealthStatus();
-  }, []);
 
   const checkHealthStatus = async () => {
     try {
@@ -231,24 +243,27 @@ const APIToolsTab = () => {
     container: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '24px',
+      gap: isMobile ? '16px' : '24px',
     },
 
     header: {
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: '24px',
+      alignItems: isMobile ? 'flex-start' : 'center',
+      flexDirection: isMobile ? 'column' : 'row',
+      gap: isMobile ? '12px' : '16px',
+      marginBottom: isMobile ? '16px' : '24px',
     },
 
     headerLeft: {
       display: 'flex',
       flexDirection: 'column',
       gap: '8px',
+      width: isMobile ? '100%' : 'auto',
     },
 
     title: {
-      fontSize: '24px',
+      fontSize: isMobile ? '20px' : '24px',
       fontWeight: 'bold',
       color: themeColors.text,
       margin: 0,
@@ -256,7 +271,7 @@ const APIToolsTab = () => {
 
     subtitle: {
       color: themeColors.textSecondary,
-      fontSize: '16px',
+      fontSize: isMobile ? '14px' : '16px',
       margin: 0,
     },
 
@@ -264,9 +279,9 @@ const APIToolsTab = () => {
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
-      padding: '8px 16px',
+      padding: isMobile ? '6px 12px' : '8px 16px',
       borderRadius: '8px',
-      fontSize: '14px',
+      fontSize: isMobile ? '12px' : '14px',
       fontWeight: '500',
       backgroundColor: healthStatus === 'healthy' ? 'rgba(16, 185, 129, 0.1)' : 
                       healthStatus === 'unhealthy' ? 'rgba(239, 68, 68, 0.1)' : 
@@ -274,47 +289,51 @@ const APIToolsTab = () => {
       color: healthStatus === 'healthy' ? '#10b981' : 
              healthStatus === 'unhealthy' ? '#ef4444' : 
              themeColors.textSecondary,
+      width: isMobile ? '100%' : 'auto',
+      justifyContent: isMobile ? 'center' : 'flex-start',
     },
 
     mainContent: {
       display: 'grid',
-      gridTemplateColumns: '1fr 400px',
-      gap: '24px',
+      gridTemplateColumns: isMobile ? '1fr' : isTablet ? '1fr' : '1fr 400px',
+      gap: isMobile ? '16px' : '24px',
     },
 
     endpointsPanel: {
       backgroundColor: themeColors.cardBackground,
       borderRadius: '12px',
-      padding: '24px',
+      padding: isMobile ? '16px' : '24px',
       height: 'fit-content',
+      order: isMobile ? 2 : 1,
     },
 
     resultsPanel: {
       backgroundColor: themeColors.cardBackground,
       borderRadius: '12px',
-      padding: '24px',
-      maxHeight: '800px',
+      padding: isMobile ? '16px' : '24px',
+      maxHeight: isMobile ? '400px' : '800px',
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
+      order: isMobile ? 1 : 2,
     },
 
     categorySection: {
-      marginBottom: '24px',
+      marginBottom: isMobile ? '16px' : '24px',
     },
 
     categoryHeader: {
       display: 'flex',
       alignItems: 'center',
       gap: '12px',
-      marginBottom: '16px',
-      padding: '12px',
+      marginBottom: isMobile ? '12px' : '16px',
+      padding: isMobile ? '8px' : '12px',
       borderRadius: '8px',
       backgroundColor: themeColors.secondary,
     },
 
     categoryTitle: {
-      fontSize: '16px',
+      fontSize: isMobile ? '14px' : '16px',
       fontWeight: '600',
       color: themeColors.text,
       margin: 0,
@@ -324,14 +343,16 @@ const APIToolsTab = () => {
       display: 'flex',
       flexDirection: 'column',
       gap: '8px',
-      marginLeft: '16px',
+      marginLeft: isMobile ? '8px' : '16px',
     },
 
     endpointItem: {
       display: 'flex',
-      alignItems: 'center',
+      alignItems: isMobile ? 'stretch' : 'center',
       justifyContent: 'space-between',
-      padding: '12px 16px',
+      flexDirection: isMobile ? 'column' : 'row',
+      gap: isMobile ? '8px' : '0',
+      padding: isMobile ? '10px' : '12px 16px',
       borderRadius: '8px',
       backgroundColor: themeColors.background,
       border: `1px solid ${themeColors.secondary}`,
@@ -343,10 +364,11 @@ const APIToolsTab = () => {
       flexDirection: 'column',
       gap: '4px',
       flex: 1,
+      width: isMobile ? '100%' : 'auto',
     },
 
     endpointName: {
-      fontSize: '14px',
+      fontSize: isMobile ? '13px' : '14px',
       fontWeight: '500',
       color: themeColors.text,
     },
@@ -354,9 +376,10 @@ const APIToolsTab = () => {
     endpointDetails: {
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
-      fontSize: '12px',
+      gap: isMobile ? '6px' : '8px',
+      fontSize: isMobile ? '11px' : '12px',
       color: themeColors.textSecondary,
+      flexWrap: 'wrap',
     },
 
     methodBadge: (method) => ({
@@ -375,15 +398,15 @@ const APIToolsTab = () => {
       display: 'flex',
       alignItems: 'center',
       gap: '6px',
-      padding: '6px 12px',
+      padding: isMobile ? '8px 12px' : '6px 12px',
       backgroundColor: themeColors.primary,
       color: 'white',
       border: 'none',
       borderRadius: '6px',
       cursor: 'pointer',
-      fontSize: '12px',
+      fontSize: isMobile ? '13px' : '12px',
       fontWeight: '500',
-      minWidth: '80px',
+      minWidth: isMobile ? '100%' : '80px',
       justifyContent: 'center',
     },
 
@@ -391,6 +414,8 @@ const APIToolsTab = () => {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
+      flexDirection: isMobile ? 'column' : 'row',
+      gap: isMobile ? '12px' : '0',
       marginBottom: '16px',
     },
 
@@ -398,25 +423,27 @@ const APIToolsTab = () => {
       display: 'flex',
       alignItems: 'center',
       gap: '6px',
-      padding: '6px 12px',
+      padding: isMobile ? '8px 12px' : '6px 12px',
       backgroundColor: 'transparent',
       color: themeColors.textSecondary,
       border: `1px solid ${themeColors.secondary}`,
       borderRadius: '6px',
       cursor: 'pointer',
-      fontSize: '12px',
+      fontSize: isMobile ? '13px' : '12px',
+      width: isMobile ? '100%' : 'auto',
+      justifyContent: 'center',
     },
 
     historyList: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '8px',
+      gap: isMobile ? '6px' : '8px',
       overflowY: 'auto',
-      maxHeight: '600px',
+      maxHeight: isMobile ? '300px' : '600px',
     },
 
     historyItem: {
-      padding: '12px',
+      padding: isMobile ? '10px' : '12px',
       borderRadius: '8px',
       backgroundColor: themeColors.background,
       border: `1px solid ${themeColors.secondary}`,
@@ -425,15 +452,18 @@ const APIToolsTab = () => {
     historyHeader: {
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'center',
+      alignItems: isMobile ? 'flex-start' : 'center',
+      flexDirection: isMobile ? 'column' : 'row',
+      gap: isMobile ? '8px' : '0',
       marginBottom: '8px',
     },
 
     historyInfo: {
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
-      fontSize: '12px',
+      gap: isMobile ? '6px' : '8px',
+      fontSize: isMobile ? '11px' : '12px',
+      flexWrap: 'wrap',
     },
 
     statusBadge: (success) => ({
@@ -450,13 +480,13 @@ const APIToolsTab = () => {
 
     responsePreview: {
       marginTop: '8px',
-      padding: '8px',
+      padding: isMobile ? '6px' : '8px',
       backgroundColor: themeColors.secondary,
       borderRadius: '4px',
-      fontSize: '11px',
+      fontSize: isMobile ? '10px' : '11px',
       fontFamily: 'monospace',
       color: themeColors.textSecondary,
-      maxHeight: '100px',
+      maxHeight: isMobile ? '80px' : '100px',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'pre-wrap',
@@ -464,7 +494,7 @@ const APIToolsTab = () => {
 
     emptyState: {
       textAlign: 'center',
-      padding: '40px 20px',
+      padding: isMobile ? '20px 10px' : '40px 20px',
       color: themeColors.textSecondary,
     },
   };
@@ -490,14 +520,14 @@ const APIToolsTab = () => {
 
       <div style={styles.mainContent}>
         <div style={styles.endpointsPanel}>
-          <h3 style={{ color: themeColors.text, marginBottom: '20px' }}>API Endpoints</h3>
+          <h3 style={{ color: themeColors.text, marginBottom: '20px', fontSize: isMobile ? '16px' : '18px' }}>API Endpoints</h3>
           
           {Object.entries(apiEndpoints).map(([categoryKey, category]) => {
             const Icon = category.icon;
             return (
               <div key={categoryKey} style={styles.categorySection}>
                 <div style={styles.categoryHeader}>
-                  <Icon size={20} color={category.color} />
+                  <Icon size={isMobile ? 18 : 20} color={category.color} />
                   <h4 style={styles.categoryTitle}>{category.label}</h4>
                 </div>
                 
@@ -517,7 +547,7 @@ const APIToolsTab = () => {
                             </span>
                             <span>{endpoint.path}</span>
                             {endpoint.requiresAuth && (
-                              <span style={{ color: '#f59e0b' }}>🔒 Auth Required</span>
+                              <span style={{ color: '#f59e0b', fontSize: isMobile ? '10px' : '11px' }}>🔒 Auth</span>
                             )}
                             {result && (
                               <span style={{ color: result.success ? '#10b981' : '#ef4444' }}>
@@ -547,7 +577,7 @@ const APIToolsTab = () => {
 
         <div style={styles.resultsPanel}>
           <div style={styles.resultsHeader}>
-            <h3 style={{ color: themeColors.text, margin: 0 }}>Request History</h3>
+            <h3 style={{ color: themeColors.text, margin: 0, fontSize: isMobile ? '16px' : '18px' }}>Request History</h3>
             <button style={styles.clearButton} onClick={clearHistory}>
               <Trash2 size={12} />
               Clear History
@@ -557,8 +587,9 @@ const APIToolsTab = () => {
           <div style={styles.historyList}>
             {requestHistory.length === 0 ? (
               <div style={styles.emptyState}>
-                <Server size={48} color={themeColors.textSecondary} />
-                <p>No API requests yet. Test an endpoint to see results here.</p>
+                <Server size={isMobile ? 36 : 48} color={themeColors.textSecondary} />
+                <p style={{ fontSize: isMobile ? '14px' : '16px' }}>No API requests yet.</p>
+                <p style={{ fontSize: isMobile ? '12px' : '14px' }}>Test an endpoint to see results here.</p>
               </div>
             ) : (
               requestHistory.map((item) => (
@@ -569,14 +600,14 @@ const APIToolsTab = () => {
                         {item.method}
                       </span>
                       <span style={{ fontWeight: '500' }}>{item.name}</span>
-                      <span style={{ fontSize: '10px', color: themeColors.textSecondary }}>
+                      <span style={{ fontSize: isMobile ? '9px' : '10px', color: themeColors.textSecondary }}>
                         {new Date(item.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
                     
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {item.responseTime && (
-                        <span style={{ fontSize: '10px', color: themeColors.textSecondary }}>
+                        <span style={{ fontSize: isMobile ? '9px' : '10px', color: themeColors.textSecondary }}>
                           {formatResponseTime(item.responseTime)}
                         </span>
                       )}
@@ -595,8 +626,8 @@ const APIToolsTab = () => {
                   
                   {(item.data || item.error) && (
                     <div style={styles.responsePreview}>
-                      {JSON.stringify(item.data || item.error, null, 2).substring(0, 200)}
-                      {JSON.stringify(item.data || item.error, null, 2).length > 200 && '...'}
+                      {JSON.stringify(item.data || item.error, null, 2).substring(0, isMobile ? 150 : 200)}
+                      {JSON.stringify(item.data || item.error, null, 2).length > (isMobile ? 150 : 200) && '...'}
                     </div>
                   )}
                 </div>

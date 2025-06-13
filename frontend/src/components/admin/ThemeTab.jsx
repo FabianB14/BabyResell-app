@@ -1,893 +1,742 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { 
   Palette, 
-  Sun, 
-  Moon, 
-  Monitor,
-  Droplet,
-  Type,
-  Square,
-  Circle,
-  Save,
-  RotateCcw,
+  Plus,
+  Edit,
+  Trash2,
   Eye,
-  Download,
+  Calendar,
   Upload,
+  Download,
   Copy,
+  RefreshCw,
   Check,
-  Sparkles
+  X,
+  Star,
+  Clock,
+  Sun,
+  Snowflake,
+  Leaf,
+  Flower,
+  Heart,
+  Gift,
+  Sparkles,
+  Moon,
+  MoreVertical
 } from 'lucide-react';
 
 const ThemeTab = () => {
-  const { themeColors, currentTheme } = useTheme();
-  
-  const [selectedPreset, setSelectedPreset] = useState(currentTheme || 'dark');
-  const [customColors, setCustomColors] = useState({
-    primary: themeColors.primary || '#e60023',
-    secondary: themeColors.secondary || '#2e2e2e',
-    background: themeColors.background || '#121212',
-    cardBackground: themeColors.cardBackground || '#1e1e1e',
-    text: themeColors.text || '#ffffff',
-    textSecondary: themeColors.textSecondary || '#b0b0b0',
-    success: '#10b981',
-    warning: '#f59e0b',
-    error: '#ef4444',
-    info: '#3b82f6'
+  const { themeColors } = useTheme();
+  const [activeView, setActiveView] = useState('current');
+  const [selectedTheme, setSelectedTheme] = useState(null);
+  const [showThemeEditor, setShowThemeEditor] = useState(false);
+
+  // Responsive breakpoints
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Mock theme data
+  const [currentTheme] = useState({
+    id: 'summer-2024',
+    name: 'Summer Vibes',
+    displayName: 'Summer Vibes',
+    status: 'active',
+    type: 'seasonal',
+    startDate: '2024-06-21',
+    endDate: '2024-09-22',
+    description: 'Bright and cheerful summer theme with warm colors',
+    colors: {
+      primary: '#f59e0b',
+      secondary: '#fef3c7',
+      accent: '#fb923c',
+      background: '#fffbeb',
+      text: '#92400e',
+      cardBackground: '#ffffff'
+    },
+    icon: Sun,
+    previewImage: '/themes/summer-preview.jpg',
+    usage: 85,
+    createdAt: '2024-05-15T10:00:00Z',
+    updatedAt: '2024-06-01T14:30:00Z'
   });
-  
-  const [previewMode, setPreviewMode] = useState(false);
-  const [copiedColor, setCopiedColor] = useState(null);
-  
-  const themePresets = [
+
+  const [availableThemes] = useState([
     {
-      id: 'dark',
-      name: 'Dark Mode',
-      description: 'Default dark theme',
-      icon: Moon,
+      id: 'fall-2024',
+      name: 'Autumn Harvest',
+      displayName: 'Autumn Harvest',
+      status: 'scheduled',
+      type: 'seasonal',
+      startDate: '2024-09-22',
+      endDate: '2024-12-21',
+      description: 'Warm autumn colors with cozy orange and brown tones',
       colors: {
-        primary: '#e60023',
-        secondary: '#2e2e2e',
-        background: '#121212',
-        cardBackground: '#1e1e1e',
-        text: '#ffffff',
-        textSecondary: '#b0b0b0'
-      }
+        primary: '#ea580c',
+        secondary: '#fed7aa',
+        accent: '#fb923c',
+        background: '#fff7ed',
+        text: '#9a3412',
+        cardBackground: '#ffffff'
+      },
+      icon: Leaf,
+      previewImage: '/themes/fall-preview.jpg',
+      usage: 0,
+      createdAt: '2024-04-10T09:00:00Z',
+      updatedAt: '2024-06-01T11:15:00Z'
     },
     {
-      id: 'light',
-      name: 'Light Mode',
-      description: 'Clean and bright',
-      icon: Sun,
+      id: 'winter-2024',
+      name: 'Winter Wonderland',
+      displayName: 'Winter Wonderland',
+      status: 'draft',
+      type: 'seasonal',
+      startDate: '2024-12-21',
+      endDate: '2025-03-20',
+      description: 'Cool winter theme with blue and white accents',
       colors: {
-        primary: '#e60023',
-        secondary: '#f5f5f5',
-        background: '#ffffff',
-        cardBackground: '#f8f8f8',
-        text: '#111111',
-        textSecondary: '#666666'
-      }
+        primary: '#0ea5e9',
+        secondary: '#e0f2fe',
+        accent: '#38bdf8',
+        background: '#f0f9ff',
+        text: '#0c4a6e',
+        cardBackground: '#ffffff'
+      },
+      icon: Snowflake,
+      previewImage: '/themes/winter-preview.jpg',
+      usage: 0,
+      createdAt: '2024-03-20T08:30:00Z',
+      updatedAt: '2024-05-15T16:45:00Z'
     },
     {
-      id: 'midnight',
-      name: 'Midnight Blue',
-      description: 'Deep blue theme',
-      icon: Moon,
-      colors: {
-        primary: '#3b82f6',
-        secondary: '#1e293b',
-        background: '#0f172a',
-        cardBackground: '#1e293b',
-        text: '#f1f5f9',
-        textSecondary: '#94a3b8'
-      }
-    },
-    {
-      id: 'forest',
-      name: 'Forest Green',
-      description: 'Nature inspired',
-      icon: Droplet,
+      id: 'spring-2025',
+      name: 'Spring Bloom',
+      displayName: 'Spring Bloom',
+      status: 'draft',
+      type: 'seasonal',
+      startDate: '2025-03-20',
+      endDate: '2025-06-21',
+      description: 'Fresh spring theme with green and pink pastels',
       colors: {
         primary: '#10b981',
-        secondary: '#1f2937',
-        background: '#111827',
-        cardBackground: '#1f2937',
-        text: '#f9fafb',
-        textSecondary: '#9ca3af'
-      }
+        secondary: '#d1fae5',
+        accent: '#34d399',
+        background: '#ecfdf5',
+        text: '#065f46',
+        cardBackground: '#ffffff'
+      },
+      icon: Flower,
+      previewImage: '/themes/spring-preview.jpg',
+      usage: 0,
+      createdAt: '2024-02-14T12:00:00Z',
+      updatedAt: '2024-04-22T09:20:00Z'
     },
     {
-      id: 'purple',
-      name: 'Royal Purple',
-      description: 'Elegant purple theme',
-      icon: Sparkles,
+      id: 'valentines-2024',
+      name: 'Valentine\'s Day',
+      displayName: 'Valentine\'s Day',
+      status: 'archived',
+      type: 'holiday',
+      startDate: '2024-02-01',
+      endDate: '2024-02-14',
+      description: 'Romantic Valentine\'s theme with pink and red hearts',
       colors: {
-        primary: '#8b5cf6',
-        secondary: '#2d1b69',
-        background: '#1a0f3a',
-        cardBackground: '#2d1b69',
-        text: '#f3f4f6',
-        textSecondary: '#c4b5fd'
-      }
+        primary: '#ec4899',
+        secondary: '#fce7f3',
+        accent: '#f472b6',
+        background: '#fdf2f8',
+        text: '#9d174d',
+        cardBackground: '#ffffff'
+      },
+      icon: Heart,
+      previewImage: '/themes/valentines-preview.jpg',
+      usage: 92,
+      createdAt: '2024-01-15T10:00:00Z',
+      updatedAt: '2024-02-15T18:00:00Z'
     },
     {
-      id: 'ocean',
-      name: 'Ocean Blue',
-      description: 'Calm ocean theme',
-      icon: Droplet,
+      id: 'christmas-2023',
+      name: 'Christmas Magic',
+      displayName: 'Christmas Magic',
+      status: 'archived',
+      type: 'holiday',
+      startDate: '2023-12-01',
+      endDate: '2023-12-25',
+      description: 'Festive Christmas theme with red and green colors',
       colors: {
-        primary: '#06b6d4',
-        secondary: '#164e63',
-        background: '#083344',
-        cardBackground: '#164e63',
-        text: '#f0fdfa',
-        textSecondary: '#a5f3fc'
-      }
+        primary: '#dc2626',
+        secondary: '#fecaca',
+        accent: '#ef4444',
+        background: '#fef2f2',
+        text: '#991b1b',
+        cardBackground: '#ffffff'
+      },
+      icon: Gift,
+      previewImage: '/themes/christmas-preview.jpg',
+      usage: 95,
+      createdAt: '2023-11-01T14:00:00Z',
+      updatedAt: '2023-12-26T10:30:00Z'
     }
+  ]);
+
+  const viewTabs = [
+    { id: 'current', label: 'Current Theme', icon: Star },
+    { id: 'upcoming', label: 'Upcoming', icon: Calendar },
+    { id: 'archive', label: 'Archive', icon: Clock }
   ];
-  
+
+  const handleThemeAction = (action, themeId) => {
+    console.log(`${action} theme ${themeId}`);
+    // Implement theme actions here
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'active': return '#10b981';
+      case 'scheduled': return '#3b82f6';
+      case 'draft': return '#f59e0b';
+      case 'archived': return '#6b7280';
+      default: return '#6b7280';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'active': return Check;
+      case 'scheduled': return Calendar;
+      case 'draft': return Edit;
+      case 'archived': return Clock;
+      default: return Clock;
+    }
+  };
+
+  const getFilteredThemes = () => {
+    switch (activeView) {
+      case 'current':
+        return [currentTheme];
+      case 'upcoming':
+        return availableThemes.filter(theme => ['scheduled', 'draft'].includes(theme.status));
+      case 'archive':
+        return availableThemes.filter(theme => theme.status === 'archived');
+      default:
+        return [];
+    }
+  };
+
   const styles = {
     container: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 350px',
-      gap: '24px',
-      '@media (max-width: 1024px)': {
-        gridTemplateColumns: '1fr',
-      }
-    },
-    
-    mainSection: {
-      backgroundColor: themeColors.cardBackground,
-      borderRadius: '16px',
-      padding: '24px',
-      border: `1px solid ${themeColors.secondary}`,
-    },
-    
-    sidebarSection: {
-      backgroundColor: themeColors.cardBackground,
-      borderRadius: '16px',
-      padding: '24px',
-      border: `1px solid ${themeColors.secondary}`,
-      height: 'fit-content',
-      position: 'sticky',
-      top: '24px',
-    },
-    
-    sectionTitle: {
-      fontSize: '20px',
-      fontWeight: '600',
-      marginBottom: '20px',
-      color: themeColors.text,
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-    },
-    
-    presetGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-      gap: '16px',
-      marginBottom: '32px',
-    },
-    
-    presetCard: {
-      padding: '16px',
-      borderRadius: '12px',
-      border: `2px solid ${themeColors.secondary}`,
-      cursor: 'pointer',
-      transition: 'all 0.2s',
-      backgroundColor: themeColors.secondary,
-    },
-    
-    selectedPreset: {
-      borderColor: themeColors.primary,
-      backgroundColor: `${themeColors.primary}20`,
-    },
-    
-    presetHeader: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      marginBottom: '12px',
-    },
-    
-    presetIcon: {
-      width: '40px',
-      height: '40px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: '8px',
-      backgroundColor: themeColors.background,
-    },
-    
-    presetInfo: {
-      flex: 1,
-    },
-    
-    presetName: {
-      fontSize: '16px',
-      fontWeight: '500',
-      color: themeColors.text,
-      marginBottom: '2px',
-    },
-    
-    presetDescription: {
-      fontSize: '12px',
-      color: themeColors.textSecondary,
-    },
-    
-    colorPreview: {
-      display: 'flex',
-      gap: '4px',
-      marginTop: '8px',
-    },
-    
-    colorDot: {
-      width: '20px',
-      height: '20px',
-      borderRadius: '50%',
-      border: '2px solid transparent',
-    },
-    
-    colorSection: {
-      marginBottom: '32px',
-    },
-    
-    colorGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-      gap: '20px',
-    },
-    
-    colorGroup: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '8px',
+      gap: isMobile ? '16px' : '24px',
     },
-    
-    colorLabel: {
-      fontSize: '14px',
-      fontWeight: '500',
-      color: themeColors.text,
+
+    header: {
       display: 'flex',
-      alignItems: 'center',
       justifyContent: 'space-between',
+      alignItems: isMobile ? 'flex-start' : 'center',
+      flexDirection: isMobile ? 'column' : 'row',
+      gap: isMobile ? '12px' : '16px',
+      marginBottom: isMobile ? '16px' : '24px',
     },
-    
-    colorInputWrapper: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      padding: '12px',
-      backgroundColor: themeColors.secondary,
-      borderRadius: '8px',
-      border: `1px solid ${themeColors.secondary}`,
-    },
-    
-    colorSwatch: {
-      width: '40px',
-      height: '40px',
-      borderRadius: '8px',
-      border: '2px solid rgba(255, 255, 255, 0.1)',
-      cursor: 'pointer',
-      position: 'relative',
-      overflow: 'hidden',
-    },
-    
-    colorInput: {
-      flex: 1,
-      background: 'none',
-      border: 'none',
+
+    title: {
+      fontSize: isMobile ? '20px' : '24px',
+      fontWeight: 'bold',
       color: themeColors.text,
-      fontSize: '14px',
-      fontFamily: 'monospace',
-      outline: 'none',
+      margin: 0,
     },
-    
-    colorActions: {
-      display: 'flex',
-      gap: '8px',
-    },
-    
-    iconButton: {
-      padding: '6px',
-      backgroundColor: 'transparent',
-      border: 'none',
-      color: themeColors.textSecondary,
-      cursor: 'pointer',
-      borderRadius: '4px',
-      transition: 'all 0.2s',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    
-    preview: {
-      backgroundColor: themeColors.secondary,
-      borderRadius: '12px',
-      padding: '20px',
-      marginBottom: '20px',
-    },
-    
-    previewMockup: {
-      backgroundColor: customColors.background,
-      borderRadius: '8px',
-      padding: '16px',
-      marginTop: '12px',
-    },
-    
-    previewCard: {
-      backgroundColor: customColors.cardBackground,
-      borderRadius: '8px',
-      padding: '12px',
-      marginBottom: '8px',
-    },
-    
-    previewTitle: {
-      color: customColors.text,
-      fontSize: '16px',
-      fontWeight: '600',
-      marginBottom: '4px',
-    },
-    
-    previewText: {
-      color: customColors.textSecondary,
-      fontSize: '14px',
-      marginBottom: '8px',
-    },
-    
-    previewButton: {
-      backgroundColor: customColors.primary,
-      color: '#ffffff',
-      padding: '8px 16px',
-      borderRadius: '6px',
-      border: 'none',
-      fontSize: '14px',
-      fontWeight: '500',
-      cursor: 'pointer',
-    },
-    
-    actions: {
-      display: 'flex',
-      gap: '12px',
-      marginTop: '32px',
-    },
-    
-    primaryButton: {
+
+    headerActions: {
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
-      padding: '12px 24px',
+      flexWrap: 'wrap',
+      width: isMobile ? '100%' : 'auto',
+    },
+
+    button: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      padding: isMobile ? '8px 12px' : '8px 16px',
       backgroundColor: themeColors.primary,
       color: 'white',
       border: 'none',
       borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '600',
       cursor: 'pointer',
-      flex: 1,
-      justifyContent: 'center',
+      fontSize: '14px',
+      fontWeight: '500',
+      whiteSpace: 'nowrap',
     },
-    
+
     secondaryButton: {
+      backgroundColor: 'transparent',
+      color: themeColors.textSecondary,
+      border: `1px solid ${themeColors.secondary}`,
+    },
+
+    tabContainer: {
+      display: 'flex',
+      gap: '4px',
+      backgroundColor: themeColors.secondary,
+      padding: '4px',
+      borderRadius: '8px',
+      width: isMobile ? '100%' : 'fit-content',
+      overflowX: isMobile ? 'auto' : 'visible',
+    },
+
+    tab: {
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
-      padding: '12px 24px',
-      backgroundColor: themeColors.secondary,
-      color: themeColors.text,
+      gap: '6px',
+      padding: isMobile ? '8px 12px' : '8px 16px',
+      backgroundColor: 'transparent',
       border: 'none',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '600',
+      borderRadius: '6px',
       cursor: 'pointer',
-      flex: 1,
-      justifyContent: 'center',
-    },
-    
-    helpText: {
-      fontSize: '12px',
+      fontSize: isMobile ? '13px' : '14px',
+      fontWeight: '500',
       color: themeColors.textSecondary,
+      transition: 'all 0.2s ease',
+      whiteSpace: 'nowrap',
+      minWidth: isMobile ? 'fit-content' : 'auto',
+    },
+
+    activeTab: {
+      backgroundColor: themeColors.primary,
+      color: 'white',
+    },
+
+    currentThemeCard: {
+      backgroundColor: themeColors.cardBackground,
+      borderRadius: '12px',
+      border: `1px solid ${themeColors.secondary}`,
+      padding: isMobile ? '16px' : '24px',
+      marginBottom: isMobile ? '16px' : '24px',
+    },
+
+    currentThemeHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: isMobile ? 'flex-start' : 'center',
+      flexDirection: isMobile ? 'column' : 'row',
+      gap: isMobile ? '12px' : '16px',
+      marginBottom: '16px',
+    },
+
+    currentThemeInfo: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+    },
+
+    themeIcon: {
+      width: isMobile ? '40px' : '48px',
+      height: isMobile ? '40px' : '48px',
+      borderRadius: '12px',
+      backgroundColor: currentTheme.colors.primary,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'white',
+    },
+
+    themeDetails: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '4px',
+    },
+
+    themeName: {
+      fontSize: isMobile ? '18px' : '20px',
+      fontWeight: '600',
+      color: themeColors.text,
+    },
+
+    themeDescription: {
+      fontSize: isMobile ? '13px' : '14px',
+      color: themeColors.textSecondary,
+    },
+
+    statusBadge: (status) => ({
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px',
+      padding: '4px 8px',
+      borderRadius: '12px',
+      fontSize: '11px',
+      fontWeight: '500',
+      backgroundColor: `${getStatusColor(status)}15`,
+      color: getStatusColor(status),
+      textTransform: 'capitalize',
+    }),
+
+    colorPalette: {
+      display: 'flex',
+      gap: '8px',
+      marginTop: '16px',
+    },
+
+    colorSwatch: (color) => ({
+      width: isMobile ? '32px' : '40px',
+      height: isMobile ? '32px' : '40px',
+      borderRadius: '8px',
+      backgroundColor: color,
+      border: '2px solid white',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      cursor: 'pointer',
+    }),
+
+    themeGrid: {
+      display: 'grid',
+      gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+      gap: isMobile ? '12px' : '16px',
+    },
+
+    themeCard: {
+      backgroundColor: themeColors.cardBackground,
+      border: `1px solid ${themeColors.secondary}`,
+      borderRadius: '12px',
+      padding: isMobile ? '16px' : '20px',
+      transition: 'all 0.2s ease',
+      cursor: 'pointer',
+    },
+
+    themeCardHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: '12px',
+    },
+
+    themeCardInfo: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      flex: 1,
+    },
+
+    themeCardIcon: (theme) => ({
+      width: '36px',
+      height: '36px',
+      borderRadius: '8px',
+      backgroundColor: theme.colors.primary,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'white',
+      flexShrink: 0,
+    }),
+
+    themeCardContent: {
+      flex: 1,
+      minWidth: 0,
+    },
+
+    themeCardName: {
+      fontSize: isMobile ? '15px' : '16px',
+      fontWeight: '600',
+      color: themeColors.text,
+      marginBottom: '4px',
+    },
+
+    themeCardMeta: {
+      fontSize: isMobile ? '12px' : '13px',
+      color: themeColors.textSecondary,
+    },
+
+    themeCardActions: {
+      display: 'flex',
+      gap: '4px',
+    },
+
+    actionButton: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '6px',
+      backgroundColor: 'transparent',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      color: themeColors.textSecondary,
+      transition: 'all 0.2s ease',
+    },
+
+    themeCardDetails: {
+      marginTop: '12px',
+      paddingTop: '12px',
+      borderTop: `1px solid ${themeColors.secondary}`,
+    },
+
+    themeCardDescription: {
+      fontSize: isMobile ? '12px' : '13px',
+      color: themeColors.textSecondary,
+      marginBottom: '12px',
+      lineHeight: '1.4',
+    },
+
+    themeCardColors: {
+      display: 'flex',
+      gap: '6px',
+      marginBottom: '12px',
+    },
+
+    smallColorSwatch: (color) => ({
+      width: '20px',
+      height: '20px',
+      borderRadius: '4px',
+      backgroundColor: color,
+      border: '1px solid rgba(0,0,0,0.1)',
+    }),
+
+    themeCardStats: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(2, 1fr)',
+      gap: '12px',
+    },
+
+    stat: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '2px',
+    },
+
+    statLabel: {
+      fontSize: '11px',
+      color: themeColors.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+    },
+
+    statValue: {
+      fontSize: isMobile ? '13px' : '14px',
+      fontWeight: '500',
+      color: themeColors.text,
+    },
+
+    usageBar: {
+      width: '100%',
+      height: '4px',
+      backgroundColor: themeColors.secondary,
+      borderRadius: '2px',
+      overflow: 'hidden',
       marginTop: '4px',
     },
-    
-    warningBox: {
-      backgroundColor: '#f59e0b20',
-      border: '1px solid #f59e0b40',
-      borderRadius: '8px',
-      padding: '12px 16px',
-      display: 'flex',
-      gap: '12px',
-      alignItems: 'flex-start',
-      marginBottom: '20px',
+
+    usageFill: (usage) => ({
+      width: `${usage}%`,
+      height: '100%',
+      backgroundColor: themeColors.primary,
+      transition: 'width 0.3s ease',
+    }),
+
+    emptyState: {
+      textAlign: 'center',
+      padding: '40px 20px',
+      color: themeColors.textSecondary,
     },
   };
-  
-  const handleColorChange = (colorKey, value) => {
-    setCustomColors(prev => ({ ...prev, [colorKey]: value }));
-  };
-  
-  const handlePresetSelect = (preset) => {
-    setSelectedPreset(preset.id);
-    setCustomColors({
-      ...customColors,
-      ...preset.colors
-    });
-  };
-  
-  const copyToClipboard = (color) => {
-    navigator.clipboard.writeText(color);
-    setCopiedColor(color);
-    setTimeout(() => setCopiedColor(null), 2000);
-  };
-  
-  const handleSaveTheme = () => {
-    // This would save the theme settings
-    alert('Theme settings would be saved here!');
-  };
-  
-  const handleResetTheme = () => {
-    if (window.confirm('Are you sure you want to reset to default theme?')) {
-      const defaultPreset = themePresets.find(p => p.id === 'dark');
-      handlePresetSelect(defaultPreset);
-    }
-  };
-  
-  const handleExportTheme = () => {
-    const themeData = {
-      name: 'Custom Theme',
-      colors: customColors,
-      preset: selectedPreset
-    };
-    const dataStr = JSON.stringify(themeData, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = 'babyresell-theme.json';
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-  };
-  
-  return (
-    <div style={styles.container}>
-      {/* Main Content */}
-      <div style={styles.mainSection}>
-        <h2 style={styles.sectionTitle}>
-          <Palette size={20} />
-          Theme Customization
-        </h2>
-        
-        {/* Theme Presets */}
-        <div style={{ marginBottom: '32px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: themeColors.text }}>
-            Theme Presets
-          </h3>
-          <div style={styles.presetGrid}>
-            {themePresets.map((preset) => {
-              const Icon = preset.icon;
-              return (
-                <div
-                  key={preset.id}
-                  style={{
-                    ...styles.presetCard,
-                    ...(selectedPreset === preset.id ? styles.selectedPreset : {})
-                  }}
-                  onClick={() => handlePresetSelect(preset)}
-                >
-                  <div style={styles.presetHeader}>
-                    <div style={{
-                      ...styles.presetIcon,
-                      backgroundColor: preset.colors.primary + '20',
-                      color: preset.colors.primary
-                    }}>
-                      <Icon size={20} />
-                    </div>
-                    <div style={styles.presetInfo}>
-                      <div style={styles.presetName}>{preset.name}</div>
-                      <div style={styles.presetDescription}>{preset.description}</div>
-                    </div>
-                  </div>
-                  <div style={styles.colorPreview}>
-                    {Object.values(preset.colors).slice(0, 6).map((color, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          ...styles.colorDot,
-                          backgroundColor: color,
-                          border: color === '#ffffff' ? '2px solid #e5e5e5' : '2px solid transparent'
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+
+  const renderCurrentTheme = () => (
+    <div style={styles.currentThemeCard}>
+      <div style={styles.currentThemeHeader}>
+        <div style={styles.currentThemeInfo}>
+          <div style={styles.themeIcon}>
+            <currentTheme.icon size={isMobile ? 20 : 24} />
+          </div>
+          <div style={styles.themeDetails}>
+            <div style={styles.themeName}>{currentTheme.displayName}</div>
+            <div style={styles.themeDescription}>{currentTheme.description}</div>
           </div>
         </div>
-        
-        {/* Custom Colors */}
-        <div style={styles.colorSection}>
-          <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: themeColors.text }}>
-            Customize Colors
-          </h3>
-          
-          <div style={styles.warningBox}>
-            <Monitor size={20} color="#f59e0b" />
-            <div>
-              <div style={{ fontWeight: '500', marginBottom: '4px', fontSize: '14px' }}>
-                Live Preview Available
-              </div>
-              <div style={{ fontSize: '12px', color: themeColors.textSecondary }}>
-                Changes will be reflected in the preview panel. Save to apply changes globally.
-              </div>
-            </div>
-          </div>
-          
-          <div style={styles.colorGrid}>
-            {/* Primary Colors */}
-            <div style={styles.colorGroup}>
-              <label style={styles.colorLabel}>
-                Primary Color
-                <Type size={14} color={themeColors.textSecondary} />
-              </label>
-              <div style={styles.colorInputWrapper}>
-                <input
-                  type="color"
-                  value={customColors.primary}
-                  onChange={(e) => handleColorChange('primary', e.target.value)}
-                  style={{
-                    ...styles.colorSwatch,
-                    backgroundColor: customColors.primary,
-                    opacity: 0,
-                    cursor: 'pointer',
-                    width: '40px',
-                    height: '40px',
-                    position: 'absolute',
-                  }}
-                />
-                <div style={{
-                  ...styles.colorSwatch,
-                  backgroundColor: customColors.primary,
-                }} />
-                <input
-                  type="text"
-                  value={customColors.primary}
-                  onChange={(e) => handleColorChange('primary', e.target.value)}
-                  style={styles.colorInput}
-                />
-                <div style={styles.colorActions}>
-                  <button
-                    style={styles.iconButton}
-                    onClick={() => copyToClipboard(customColors.primary)}
-                  >
-                    {copiedColor === customColors.primary ? <Check size={14} /> : <Copy size={14} />}
-                  </button>
-                </div>
-              </div>
-              <span style={styles.helpText}>Main brand color, used for buttons and links</span>
-            </div>
-            
-            {/* Secondary Color */}
-            <div style={styles.colorGroup}>
-              <label style={styles.colorLabel}>
-                Secondary Color
-                <Square size={14} color={themeColors.textSecondary} />
-              </label>
-              <div style={styles.colorInputWrapper}>
-                <input
-                  type="color"
-                  value={customColors.secondary}
-                  onChange={(e) => handleColorChange('secondary', e.target.value)}
-                  style={{
-                    ...styles.colorSwatch,
-                    backgroundColor: customColors.secondary,
-                    opacity: 0,
-                    cursor: 'pointer',
-                    width: '40px',
-                    height: '40px',
-                    position: 'absolute',
-                  }}
-                />
-                <div style={{
-                  ...styles.colorSwatch,
-                  backgroundColor: customColors.secondary,
-                }} />
-                <input
-                  type="text"
-                  value={customColors.secondary}
-                  onChange={(e) => handleColorChange('secondary', e.target.value)}
-                  style={styles.colorInput}
-                />
-                <div style={styles.colorActions}>
-                  <button
-                    style={styles.iconButton}
-                    onClick={() => copyToClipboard(customColors.secondary)}
-                  >
-                    {copiedColor === customColors.secondary ? <Check size={14} /> : <Copy size={14} />}
-                  </button>
-                </div>
-              </div>
-              <span style={styles.helpText}>Used for input fields and borders</span>
-            </div>
-            
-            {/* Background Color */}
-            <div style={styles.colorGroup}>
-              <label style={styles.colorLabel}>
-                Background Color
-                <Monitor size={14} color={themeColors.textSecondary} />
-              </label>
-              <div style={styles.colorInputWrapper}>
-                <input
-                  type="color"
-                  value={customColors.background}
-                  onChange={(e) => handleColorChange('background', e.target.value)}
-                  style={{
-                    ...styles.colorSwatch,
-                    backgroundColor: customColors.background,
-                    opacity: 0,
-                    cursor: 'pointer',
-                    width: '40px',
-                    height: '40px',
-                    position: 'absolute',
-                  }}
-                />
-                <div style={{
-                  ...styles.colorSwatch,
-                  backgroundColor: customColors.background,
-                }} />
-                <input
-                  type="text"
-                  value={customColors.background}
-                  onChange={(e) => handleColorChange('background', e.target.value)}
-                  style={styles.colorInput}
-                />
-                <div style={styles.colorActions}>
-                  <button
-                    style={styles.iconButton}
-                    onClick={() => copyToClipboard(customColors.background)}
-                  >
-                    {copiedColor === customColors.background ? <Check size={14} /> : <Copy size={14} />}
-                  </button>
-                </div>
-              </div>
-              <span style={styles.helpText}>Main page background color</span>
-            </div>
-            
-            {/* Card Background */}
-            <div style={styles.colorGroup}>
-              <label style={styles.colorLabel}>
-                Card Background
-                <Square size={14} color={themeColors.textSecondary} />
-              </label>
-              <div style={styles.colorInputWrapper}>
-                <input
-                  type="color"
-                  value={customColors.cardBackground}
-                  onChange={(e) => handleColorChange('cardBackground', e.target.value)}
-                  style={{
-                    ...styles.colorSwatch,
-                    backgroundColor: customColors.cardBackground,
-                    opacity: 0,
-                    cursor: 'pointer',
-                    width: '40px',
-                    height: '40px',
-                    position: 'absolute',
-                  }}
-                />
-                <div style={{
-                  ...styles.colorSwatch,
-                  backgroundColor: customColors.cardBackground,
-                }} />
-                <input
-                  type="text"
-                  value={customColors.cardBackground}
-                  onChange={(e) => handleColorChange('cardBackground', e.target.value)}
-                  style={styles.colorInput}
-                />
-                <div style={styles.colorActions}>
-                  <button
-                    style={styles.iconButton}
-                    onClick={() => copyToClipboard(customColors.cardBackground)}
-                  >
-                    {copiedColor === customColors.cardBackground ? <Check size={14} /> : <Copy size={14} />}
-                  </button>
-                </div>
-              </div>
-              <span style={styles.helpText}>Background for cards and modals</span>
-            </div>
-            
-            {/* Text Color */}
-            <div style={styles.colorGroup}>
-              <label style={styles.colorLabel}>
-                Text Color
-                <Type size={14} color={themeColors.textSecondary} />
-              </label>
-              <div style={styles.colorInputWrapper}>
-                <input
-                  type="color"
-                  value={customColors.text}
-                  onChange={(e) => handleColorChange('text', e.target.value)}
-                  style={{
-                    ...styles.colorSwatch,
-                    backgroundColor: customColors.text,
-                    opacity: 0,
-                    cursor: 'pointer',
-                    width: '40px',
-                    height: '40px',
-                    position: 'absolute',
-                  }}
-                />
-                <div style={{
-                  ...styles.colorSwatch,
-                  backgroundColor: customColors.text,
-                }} />
-                <input
-                  type="text"
-                  value={customColors.text}
-                  onChange={(e) => handleColorChange('text', e.target.value)}
-                  style={styles.colorInput}
-                />
-                <div style={styles.colorActions}>
-                  <button
-                    style={styles.iconButton}
-                    onClick={() => copyToClipboard(customColors.text)}
-                  >
-                    {copiedColor === customColors.text ? <Check size={14} /> : <Copy size={14} />}
-                  </button>
-                </div>
-              </div>
-              <span style={styles.helpText}>Primary text color</span>
-            </div>
-            
-            {/* Secondary Text */}
-            <div style={styles.colorGroup}>
-              <label style={styles.colorLabel}>
-                Secondary Text
-                <Type size={14} color={themeColors.textSecondary} />
-              </label>
-              <div style={styles.colorInputWrapper}>
-                <input
-                  type="color"
-                  value={customColors.textSecondary}
-                  onChange={(e) => handleColorChange('textSecondary', e.target.value)}
-                  style={{
-                    ...styles.colorSwatch,
-                    backgroundColor: customColors.textSecondary,
-                    opacity: 0,
-                    cursor: 'pointer',
-                    width: '40px',
-                    height: '40px',
-                    position: 'absolute',
-                  }}
-                />
-                <div style={{
-                  ...styles.colorSwatch,
-                  backgroundColor: customColors.textSecondary,
-                }} />
-                <input
-                  type="text"
-                  value={customColors.textSecondary}
-                  onChange={(e) => handleColorChange('textSecondary', e.target.value)}
-                  style={styles.colorInput}
-                />
-                <div style={styles.colorActions}>
-                  <button
-                    style={styles.iconButton}
-                    onClick={() => copyToClipboard(customColors.textSecondary)}
-                  >
-                    {copiedColor === customColors.textSecondary ? <Check size={14} /> : <Copy size={14} />}
-                  </button>
-                </div>
-              </div>
-              <span style={styles.helpText}>Muted text and labels</span>
-            </div>
-          </div>
-        </div>
-        
-        {/* Actions */}
-        <div style={styles.actions}>
-          <button style={styles.primaryButton} onClick={handleSaveTheme}>
-            <Save size={16} />
-            Save Theme
-          </button>
-          <button style={styles.secondaryButton} onClick={handleResetTheme}>
-            <RotateCcw size={16} />
-            Reset to Default
-          </button>
-          <button style={styles.secondaryButton} onClick={handleExportTheme}>
-            <Download size={16} />
-            Export Theme
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={styles.statusBadge(currentTheme.status)}>
+            <Check size={12} />
+            {currentTheme.status}
+          </span>
+          <button style={styles.actionButton}>
+            <MoreVertical size={16} />
           </button>
         </div>
       </div>
-      
-      {/* Sidebar Preview */}
-      <div style={styles.sidebarSection}>
-        <h3 style={styles.sectionTitle}>
-          <Eye size={20} />
-          Live Preview
-        </h3>
-        
-        <div style={styles.preview}>
-          <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '12px', color: themeColors.text }}>
-            Theme Preview
+
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '16px' }}>
+        <div>
+          <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: themeColors.text }}>Active Period</h4>
+          <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: themeColors.textSecondary }}>
+            {formatDate(currentTheme.startDate)} - {formatDate(currentTheme.endDate)}
+          </p>
+          <div style={{ fontSize: '12px', color: themeColors.textSecondary }}>
+            Usage: {currentTheme.usage}% of visitors
           </div>
-          
-          <div style={styles.previewMockup}>
-            <div style={styles.previewCard}>
-              <div style={styles.previewTitle}>Sample Card Title</div>
-              <div style={styles.previewText}>
-                This is how your content will look with the selected theme colors.
-              </div>
-              <button style={styles.previewButton}>
-                Primary Button
-              </button>
-            </div>
-            
-            <div style={styles.previewCard}>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  backgroundColor: customColors.primary,
-                  borderRadius: '8px'
-                }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ ...styles.previewTitle, fontSize: '14px' }}>Item Name</div>
-                  <div style={{ ...styles.previewText, fontSize: '12px' }}>$45.00</div>
+          <div style={styles.usageBar}>
+            <div style={styles.usageFill(currentTheme.usage)} />
+          </div>
+        </div>
+        
+        <div>
+          <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: themeColors.text }}>Color Palette</h4>
+          <div style={styles.colorPalette}>
+            {Object.entries(currentTheme.colors).slice(0, 6).map(([name, color]) => (
+              <div
+                key={name}
+                style={styles.colorSwatch(color)}
+                title={`${name}: ${color}`}
+                onClick={() => copyToClipboard(color)}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <h2 style={styles.title}>Theme Management</h2>
+        <div style={styles.headerActions}>
+          <button style={{ ...styles.button, ...styles.secondaryButton }}>
+            <Upload size={16} />
+            {!isMobile && 'Import Theme'}
+          </button>
+          <button style={styles.button}>
+            <Plus size={16} />
+            {!isMobile && 'Create Theme'}
+          </button>
+        </div>
+      </div>
+
+      <div style={styles.tabContainer}>
+        {viewTabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              style={{
+                ...styles.tab,
+                ...(activeView === tab.id ? styles.activeTab : {})
+              }}
+              onClick={() => setActiveView(tab.id)}
+            >
+              <Icon size={16} />
+              {!isMobile || tab.label.length < 12 ? tab.label : tab.label.split(' ')[0]}
+            </button>
+          );
+        })}
+      </div>
+
+      {activeView === 'current' && renderCurrentTheme()}
+
+      <div style={styles.themeGrid}>
+        {getFilteredThemes().length === 0 ? (
+          <div style={{ ...styles.emptyState, gridColumn: '1 / -1' }}>
+            <Palette size={48} />
+            <p>No themes found for this category.</p>
+          </div>
+        ) : (
+          getFilteredThemes().map((theme) => {
+            const Icon = theme.icon;
+            const StatusIcon = getStatusIcon(theme.status);
+            return (
+              <div 
+                key={theme.id} 
+                style={styles.themeCard}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = themeColors.primary;
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = themeColors.secondary;
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <div style={styles.themeCardHeader}>
+                  <div style={styles.themeCardInfo}>
+                    <div style={styles.themeCardIcon(theme)}>
+                      <Icon size={18} />
+                    </div>
+                    <div style={styles.themeCardContent}>
+                      <div style={styles.themeCardName}>{theme.displayName}</div>
+                      <div style={styles.themeCardMeta}>
+                        {theme.type} • {formatDate(theme.startDate)}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={styles.themeCardActions}>
+                    <span style={styles.statusBadge(theme.status)}>
+                      <StatusIcon size={10} />
+                      {theme.status}
+                    </span>
+                    <button 
+                      style={styles.actionButton}
+                      onClick={() => handleThemeAction('more', theme.id)}
+                    >
+                      <MoreVertical size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                <div style={styles.themeCardDetails}>
+                  <div style={styles.themeCardDescription}>
+                    {theme.description}
+                  </div>
+
+                  <div style={styles.themeCardColors}>
+                    {Object.entries(theme.colors).slice(0, 6).map(([name, color]) => (
+                      <div
+                        key={name}
+                        style={styles.smallColorSwatch(color)}
+                        title={`${name}: ${color}`}
+                      />
+                    ))}
+                  </div>
+
+                  <div style={styles.themeCardStats}>
+                    <div style={styles.stat}>
+                      <div style={styles.statLabel}>Duration</div>
+                      <div style={styles.statValue}>
+                        {Math.ceil((new Date(theme.endDate) - new Date(theme.startDate)) / (1000 * 60 * 60 * 24))} days
+                      </div>
+                    </div>
+                    <div style={styles.stat}>
+                      <div style={styles.statLabel}>Usage</div>
+                      <div style={styles.statValue}>{theme.usage}%</div>
+                      {theme.usage > 0 && (
+                        <div style={styles.usageBar}>
+                          <div style={styles.usageFill(theme.usage)} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Status Colors */}
-        <div style={{ marginTop: '24px' }}>
-          <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '12px', color: themeColors.text }}>
-            Status Colors
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                backgroundColor: customColors.success || '#10b981',
-                borderRadius: '6px'
-              }} />
-              <span style={{ fontSize: '14px', color: themeColors.text }}>Success</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                backgroundColor: customColors.warning || '#f59e0b',
-                borderRadius: '6px'
-              }} />
-              <span style={{ fontSize: '14px', color: themeColors.text }}>Warning</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                backgroundColor: customColors.error || '#ef4444',
-                borderRadius: '6px'
-              }} />
-              <span style={{ fontSize: '14px', color: themeColors.text }}>Error</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                backgroundColor: customColors.info || '#3b82f6',
-                borderRadius: '6px'
-              }} />
-              <span style={{ fontSize: '14px', color: themeColors.text }}>Info</span>
-            </div>
-          </div>
-        </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

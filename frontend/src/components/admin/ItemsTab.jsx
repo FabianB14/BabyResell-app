@@ -1,290 +1,468 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { 
+  Package, 
   Search, 
   Filter, 
   Plus,
+  Eye,
   Edit,
   Trash2,
-  Eye,
-  Archive,
+  Calendar,
+  Heart,
   DollarSign,
   Tag,
-  Calendar,
-  Image as ImageIcon,
-  Package,
+  Star,
+  MoreVertical,
+  Download,
+  Upload,
+  CheckCircle,
+  XCircle,
+  Clock,
   TrendingUp,
-  Heart
+  Image
 } from 'lucide-react';
 
 const ItemsTab = () => {
   const { themeColors } = useTheme();
-  const [items, setItems] = useState([
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [sortBy, setSortBy] = useState('listedDate');
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  // Responsive breakpoints
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Mock item data
+  const [items] = useState([
     {
       id: 1,
-      title: 'Baby Carrier',
-      category: 'Carriers & Wraps',
-      price: 45.00,
-      condition: 'Like New',
+      title: 'Baby Stroller - Graco Modes',
+      description: 'Gently used baby stroller in excellent condition. Perfect for newborns to toddlers.',
+      price: 89.99,
+      category: 'Strollers',
+      condition: 'excellent',
       status: 'active',
-      listedDate: '2025-06-10',
-      views: 125,
-      saves: 8,
-      seller: 'parent123',
-      image: 'https://via.placeholder.com/60'
+      listedDate: '2024-06-10',
+      views: 245,
+      saves: 18,
+      seller: 'Emma Johnson',
+      sellerId: 1,
+      images: ['stroller1.jpg', 'stroller2.jpg'],
+      ageGroup: '0-3 years',
+      brand: 'Graco',
+      featured: true
     },
     {
       id: 2,
-      title: 'Wooden Crib',
-      category: 'Nursery',
-      price: 120.00,
-      condition: 'Good',
-      status: 'active',
-      listedDate: '2025-06-08',
+      title: 'Toddler Bed with Rails',
+      description: 'Beautiful wooden toddler bed with safety rails. Converts from crib.',
+      price: 125.00,
+      category: 'Furniture',
+      condition: 'good',
+      status: 'sold',
+      listedDate: '2024-06-08',
       views: 89,
-      saves: 12,
-      seller: 'seller456',
-      image: 'https://via.placeholder.com/60'
+      saves: 7,
+      seller: 'Michael Brown',
+      sellerId: 2,
+      images: ['bed1.jpg'],
+      ageGroup: '1-4 years',
+      brand: 'Delta',
+      featured: false
     },
     {
       id: 3,
-      title: 'Baby Bottle Set',
+      title: 'Baby Clothes Bundle (6-12 months)',
+      description: 'Mixed lot of baby clothes in various colors and styles.',
+      price: 45.50,
+      category: 'Clothing',
+      condition: 'fair',
+      status: 'draft',
+      listedDate: '2024-06-12',
+      views: 12,
+      saves: 2,
+      seller: 'Sarah Wilson',
+      sellerId: 3,
+      images: ['clothes1.jpg', 'clothes2.jpg', 'clothes3.jpg'],
+      ageGroup: '6-12 months',
+      brand: 'Various',
+      featured: false
+    },
+    {
+      id: 4,
+      title: 'High Chair - Chicco Polly',
+      description: 'Adjustable high chair with multiple recline positions and height settings.',
+      price: 75.99,
       category: 'Feeding',
-      price: 25.00,
-      condition: 'New',
-      status: 'sold',
-      listedDate: '2025-06-05',
-      views: 203,
-      saves: 15,
-      seller: 'parent123',
-      image: 'https://via.placeholder.com/60'
+      condition: 'excellent',
+      status: 'active',
+      listedDate: '2024-06-11',
+      views: 156,
+      saves: 23,
+      seller: 'Lisa Garcia',
+      sellerId: 5,
+      images: ['chair1.jpg'],
+      ageGroup: '6 months+',
+      brand: 'Chicco',
+      featured: true
+    },
+    {
+      id: 5,
+      title: 'Baby Carrier - Ergobaby Original',
+      description: 'Ergonomic baby carrier suitable for newborns to toddlers.',
+      price: 65.00,
+      category: 'Carriers',
+      condition: 'good',
+      status: 'pending',
+      listedDate: '2024-06-13',
+      views: 78,
+      saves: 12,
+      seller: 'David Clark',
+      sellerId: 4,
+      images: ['carrier1.jpg', 'carrier2.jpg'],
+      ageGroup: '0-3 years',
+      brand: 'Ergobaby',
+      featured: false
     }
   ]);
-  
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [selectedItems, setSelectedItems] = useState([]);
-  
+
+  const categories = ['All', 'Strollers', 'Furniture', 'Clothing', 'Feeding', 'Carriers', 'Toys', 'Safety'];
+
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.seller.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === 'all' || item.category.toLowerCase() === filterCategory.toLowerCase();
+    const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
+  const handleItemAction = (action, itemId) => {
+    console.log(`${action} item ${itemId}`);
+    // Implement item actions here
+  };
+
+  const handleBulkAction = (action) => {
+    console.log(`${action} items:`, selectedItems);
+    // Implement bulk actions here
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'active': return '#10b981';
+      case 'sold': return '#3b82f6';
+      case 'draft': return '#f59e0b';
+      case 'pending': return '#8b5cf6';
+      case 'rejected': return '#ef4444';
+      default: return '#6b7280';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'active': return CheckCircle;
+      case 'sold': return CheckCircle;
+      case 'draft': return Clock;
+      case 'pending': return Clock;
+      case 'rejected': return XCircle;
+      default: return Clock;
+    }
+  };
+
+  const getConditionColor = (condition) => {
+    switch (condition) {
+      case 'excellent': return '#10b981';
+      case 'good': return '#3b82f6';
+      case 'fair': return '#f59e0b';
+      case 'poor': return '#ef4444';
+      default: return '#6b7280';
+    }
+  };
+
   const styles = {
     container: {
-      backgroundColor: themeColors.cardBackground,
-      borderRadius: '16px',
-      padding: '24px',
-      border: `1px solid ${themeColors.secondary}`,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: isMobile ? '16px' : '24px',
     },
-    
+
     header: {
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '24px',
-      flexWrap: 'wrap',
-      gap: '16px',
+      alignItems: isMobile ? 'flex-start' : 'center',
+      flexDirection: isMobile ? 'column' : 'row',
+      gap: isMobile ? '12px' : '16px',
+      marginBottom: isMobile ? '16px' : '24px',
     },
-    
+
     title: {
-      fontSize: '20px',
-      fontWeight: '600',
+      fontSize: isMobile ? '20px' : '24px',
+      fontWeight: 'bold',
       color: themeColors.text,
+      margin: 0,
     },
-    
-    controls: {
+
+    headerActions: {
       display: 'flex',
-      gap: '12px',
+      alignItems: 'center',
+      gap: '8px',
       flexWrap: 'wrap',
+      width: isMobile ? '100%' : 'auto',
     },
-    
-    searchBar: {
+
+    searchContainer: {
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
       backgroundColor: themeColors.secondary,
-      padding: '8px 16px',
+      padding: '8px 12px',
       borderRadius: '8px',
-      minWidth: '250px',
+      border: `1px solid ${themeColors.secondary}`,
+      minWidth: isMobile ? '100%' : '250px',
+      order: isMobile ? 1 : 0,
     },
-    
+
     searchInput: {
       background: 'none',
       border: 'none',
-      color: themeColors.text,
-      fontSize: '14px',
       outline: 'none',
+      fontSize: '14px',
+      color: themeColors.text,
       width: '100%',
+      placeholder: themeColors.textSecondary,
     },
-    
+
+    filtersContainer: {
+      display: isMobile ? 'none' : 'flex',
+      alignItems: 'center',
+      gap: '8px',
+    },
+
+    mobileFiltersButton: {
+      display: isMobile ? 'flex' : 'none',
+      alignItems: 'center',
+      gap: '6px',
+      padding: '8px 12px',
+      backgroundColor: 'transparent',
+      color: themeColors.textSecondary,
+      border: `1px solid ${themeColors.secondary}`,
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      order: 2,
+    },
+
+    mobileFilters: {
+      display: isMobile && showMobileFilters ? 'flex' : 'none',
+      flexDirection: 'column',
+      gap: '8px',
+      padding: '12px',
+      backgroundColor: themeColors.cardBackground,
+      borderRadius: '8px',
+      border: `1px solid ${themeColors.secondary}`,
+      marginBottom: '16px',
+    },
+
     filterSelect: {
-      padding: '8px 16px',
+      padding: '8px 12px',
       backgroundColor: themeColors.secondary,
       border: 'none',
       borderRadius: '8px',
       color: themeColors.text,
       fontSize: '14px',
       cursor: 'pointer',
+      minWidth: isMobile ? '100%' : '120px',
     },
-    
-    addButton: {
+
+    button: {
       display: 'flex',
       alignItems: 'center',
       gap: '6px',
-      padding: '8px 16px',
+      padding: isMobile ? '8px 12px' : '8px 16px',
       backgroundColor: themeColors.primary,
+      color: 'white',
       border: 'none',
       borderRadius: '8px',
-      color: 'white',
       cursor: 'pointer',
       fontSize: '14px',
       fontWeight: '500',
+      whiteSpace: 'nowrap',
     },
-    
+
+    secondaryButton: {
+      backgroundColor: 'transparent',
+      color: themeColors.textSecondary,
+      border: `1px solid ${themeColors.secondary}`,
+    },
+
+    statsRow: {
+      display: 'grid',
+      gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+      gap: isMobile ? '8px' : '12px',
+      marginBottom: isMobile ? '16px' : '20px',
+    },
+
+    statCard: {
+      backgroundColor: themeColors.cardBackground,
+      padding: isMobile ? '12px' : '16px',
+      borderRadius: '8px',
+      border: `1px solid ${themeColors.secondary}`,
+      textAlign: 'center',
+    },
+
+    statValue: {
+      fontSize: isMobile ? '18px' : '20px',
+      fontWeight: 'bold',
+      color: themeColors.text,
+      marginBottom: '4px',
+    },
+
+    statLabel: {
+      fontSize: isMobile ? '11px' : '12px',
+      color: themeColors.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+    },
+
+    bulkActions: {
+      display: selectedItems.length > 0 ? 'flex' : 'none',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '12px',
+      backgroundColor: themeColors.cardBackground,
+      borderRadius: '8px',
+      border: `1px solid ${themeColors.secondary}`,
+      marginBottom: '16px',
+      flexWrap: 'wrap',
+    },
+
+    tableContainer: {
+      backgroundColor: themeColors.cardBackground,
+      borderRadius: '12px',
+      border: `1px solid ${themeColors.secondary}`,
+      overflow: 'hidden',
+    },
+
     table: {
       width: '100%',
       borderCollapse: 'collapse',
+      display: isMobile ? 'none' : 'table',
     },
-    
+
     tableHeader: {
-      borderBottom: `1px solid ${themeColors.secondary}`,
+      backgroundColor: themeColors.secondary,
     },
-    
+
     th: {
-      padding: '12px',
+      padding: '12px 16px',
       textAlign: 'left',
-      color: themeColors.textSecondary,
-      fontSize: '14px',
-      fontWeight: '500',
+      fontWeight: '600',
+      color: themeColors.text,
+      fontSize: '13px',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
     },
-    
+
     td: {
-      padding: '16px 12px',
+      padding: '16px',
+      borderBottom: `1px solid ${themeColors.secondary}`,
       color: themeColors.text,
       fontSize: '14px',
-      borderBottom: `1px solid ${themeColors.secondary}`,
+      verticalAlign: 'middle',
     },
-    
+
     itemInfo: {
       display: 'flex',
       alignItems: 'center',
       gap: '12px',
     },
-    
+
     itemImage: {
-      width: '48px',
-      height: '48px',
+      width: '50px',
+      height: '50px',
       borderRadius: '8px',
-      objectFit: 'cover',
+      backgroundColor: themeColors.secondary,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: themeColors.textSecondary,
+      flexShrink: 0,
     },
-    
+
     itemDetails: {
       display: 'flex',
       flexDirection: 'column',
       gap: '2px',
+      minWidth: 0,
     },
-    
+
     itemTitle: {
       fontWeight: '500',
       color: themeColors.text,
+      fontSize: '14px',
+      lineHeight: '1.3',
     },
-    
-    itemCategory: {
+
+    itemMeta: {
       fontSize: '12px',
       color: themeColors.textSecondary,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
     },
-    
-    statusBadge: {
+
+    statusBadge: (status) => ({
       display: 'inline-flex',
       alignItems: 'center',
       gap: '4px',
-      padding: '4px 12px',
-      borderRadius: '16px',
-      fontSize: '12px',
-      fontWeight: '500',
-    },
-    
-    activeStatus: {
-      backgroundColor: '#10b98120',
-      color: '#10b981',
-    },
-    
-    soldStatus: {
-      backgroundColor: '#f59e0b20',
-      color: '#f59e0b',
-    },
-    
-    draftStatus: {
-      backgroundColor: '#6b728020',
-      color: '#6b7280',
-    },
-    
-    actions: {
-      display: 'flex',
-      gap: '8px',
-    },
-    
-    actionButton: {
-      padding: '6px',
-      backgroundColor: 'transparent',
-      border: 'none',
-      color: themeColors.textSecondary,
-      cursor: 'pointer',
-      borderRadius: '4px',
-      transition: 'all 0.2s',
-    },
-    
-    statsSection: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-      gap: '16px',
-      marginBottom: '24px',
-    },
-    
-    statCard: {
-      backgroundColor: themeColors.secondary,
-      padding: '16px',
+      padding: '4px 8px',
       borderRadius: '12px',
+      fontSize: '11px',
+      fontWeight: '500',
+      backgroundColor: `${getStatusColor(status)}15`,
+      color: getStatusColor(status),
+    }),
+
+    conditionBadge: (condition) => ({
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '2px 6px',
+      borderRadius: '6px',
+      fontSize: '10px',
+      fontWeight: '500',
+      backgroundColor: `${getConditionColor(condition)}15`,
+      color: getConditionColor(condition),
+      textTransform: 'capitalize',
+    }),
+
+    metricsContainer: {
       display: 'flex',
       alignItems: 'center',
       gap: '12px',
     },
-    
-    statIcon: {
-      width: '40px',
-      height: '40px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: '8px',
-      backgroundColor: themeColors.background,
-    },
-    
-    statContent: {
-      flex: 1,
-    },
-    
-    statLabel: {
-      fontSize: '12px',
-      color: themeColors.textSecondary,
-      marginBottom: '4px',
-    },
-    
-    statValue: {
-      fontSize: '20px',
-      fontWeight: '600',
-      color: themeColors.text,
-    },
-    
-    checkbox: {
-      width: '18px',
-      height: '18px',
-      cursor: 'pointer',
-    },
-    
-    metricsContainer: {
-      display: 'flex',
-      gap: '16px',
-      alignItems: 'center',
-    },
-    
+
     metric: {
       display: 'flex',
       alignItems: 'center',
@@ -292,137 +470,154 @@ const ItemsTab = () => {
       fontSize: '12px',
       color: themeColors.textSecondary,
     },
+
+    actionButton: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '6px',
+      backgroundColor: 'transparent',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      color: themeColors.textSecondary,
+      transition: 'all 0.2s ease',
+    },
+
+    mobileCards: {
+      display: isMobile ? 'flex' : 'none',
+      flexDirection: 'column',
+      gap: '12px',
+    },
+
+    mobileCard: {
+      backgroundColor: themeColors.cardBackground,
+      border: `1px solid ${themeColors.secondary}`,
+      borderRadius: '12px',
+      padding: '16px',
+    },
+
+    mobileCardHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: '12px',
+    },
+
+    mobileCardItem: {
+      display: 'flex',
+      gap: '12px',
+      flex: 1,
+    },
+
+    mobileCardContent: {
+      flex: 1,
+      minWidth: 0,
+    },
+
+    mobileCardTitle: {
+      fontSize: '16px',
+      fontWeight: '600',
+      color: themeColors.text,
+      marginBottom: '4px',
+      lineHeight: '1.3',
+    },
+
+    mobileCardPrice: {
+      fontSize: '18px',
+      fontWeight: 'bold',
+      color: themeColors.primary,
+      marginBottom: '8px',
+    },
+
+    mobileCardMeta: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '8px',
+      marginBottom: '12px',
+    },
+
+    mobileCardDetails: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: '12px',
+      marginBottom: '12px',
+    },
+
+    mobileCardStat: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '2px',
+    },
+
+    mobileCardLabel: {
+      fontSize: '11px',
+      color: themeColors.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+    },
+
+    mobileCardValue: {
+      fontSize: '14px',
+      fontWeight: '500',
+      color: themeColors.text,
+    },
+
+    mobileCardActions: {
+      display: 'flex',
+      gap: '8px',
+      paddingTop: '12px',
+      borderTop: `1px solid ${themeColors.secondary}`,
+    },
+
+    featuredBadge: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px',
+      padding: '2px 6px',
+      borderRadius: '6px',
+      fontSize: '10px',
+      fontWeight: '500',
+      backgroundColor: '#fbbf2415',
+      color: '#f59e0b',
+    },
+
+    emptyState: {
+      textAlign: 'center',
+      padding: '40px 20px',
+      color: themeColors.textSecondary,
+    },
   };
-  
-  const categories = [
-    'All Categories',
-    'Clothes & Shoes',
-    'Toys & Games',
-    'Feeding',
-    'Nursery',
-    'Carriers & Wraps',
-    'Strollers & Car Seats',
-    'Other'
-  ];
-  
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.category.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || item.category === filterCategory;
-    const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
-  
-  const stats = {
-    total: items.length,
-    active: items.filter(i => i.status === 'active').length,
-    sold: items.filter(i => i.status === 'sold').length,
-    totalValue: items.reduce((sum, i) => sum + i.price, 0)
-  };
-  
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedItems(filteredItems.map(i => i.id));
-    } else {
-      setSelectedItems([]);
-    }
-  };
-  
-  const handleSelectItem = (itemId) => {
-    if (selectedItems.includes(itemId)) {
-      setSelectedItems(selectedItems.filter(id => id !== itemId));
-    } else {
-      setSelectedItems([...selectedItems, itemId]);
-    }
-  };
-  
+
   return (
-    <div>
-      {/* Stats Section */}
-      <div style={styles.statsSection}>
-        <div style={styles.statCard}>
-          <div style={{
-            ...styles.statIcon,
-            backgroundColor: '#3b82f620',
-            color: '#3b82f6'
-          }}>
-            <Package size={20} />
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <h2 style={styles.title}>Item Management</h2>
+        <div style={styles.headerActions}>
+          <div style={styles.searchContainer}>
+            <Search size={16} color={themeColors.textSecondary} />
+            <input
+              type="text"
+              placeholder="Search items..."
+              style={styles.searchInput}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <div style={styles.statContent}>
-            <div style={styles.statLabel}>Total Items</div>
-            <div style={styles.statValue}>{stats.total}</div>
-          </div>
-        </div>
-        
-        <div style={styles.statCard}>
-          <div style={{
-            ...styles.statIcon,
-            backgroundColor: '#10b98120',
-            color: '#10b981'
-          }}>
-            <Tag size={20} />
-          </div>
-          <div style={styles.statContent}>
-            <div style={styles.statLabel}>Active Listings</div>
-            <div style={styles.statValue}>{stats.active}</div>
-          </div>
-        </div>
-        
-        <div style={styles.statCard}>
-          <div style={{
-            ...styles.statIcon,
-            backgroundColor: '#f59e0b20',
-            color: '#f59e0b'
-          }}>
-            <Archive size={20} />
-          </div>
-          <div style={styles.statContent}>
-            <div style={styles.statLabel}>Sold Items</div>
-            <div style={styles.statValue}>{stats.sold}</div>
-          </div>
-        </div>
-        
-        <div style={styles.statCard}>
-          <div style={{
-            ...styles.statIcon,
-            backgroundColor: '#8b5cf620',
-            color: '#8b5cf6'
-          }}>
-            <DollarSign size={20} />
-          </div>
-          <div style={styles.statContent}>
-            <div style={styles.statLabel}>Total Value</div>
-            <div style={styles.statValue}>${stats.totalValue.toFixed(2)}</div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Main Table Section */}
-      <div style={styles.container}>
-        {/* Header */}
-        <div style={styles.header}>
-          <h2 style={styles.title}>Item Management</h2>
-          <div style={styles.controls}>
-            <div style={styles.searchBar}>
-              <Search size={18} color={themeColors.textSecondary} />
-              <input
-                type="text"
-                placeholder="Search items..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={styles.searchInput}
-              />
-            </div>
+
+          {/* Desktop Filters */}
+          <div style={styles.filtersContainer}>
             <select 
               style={styles.filterSelect}
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
             >
               <option value="all">All Categories</option>
-              {categories.slice(1).map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
+              {categories.slice(1).map(category => (
+                <option key={category} value={category}>{category}</option>
               ))}
             </select>
+
             <select 
               style={styles.filterSelect}
               value={filterStatus}
@@ -430,79 +625,212 @@ const ItemsTab = () => {
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
-              <option value="sold">Sold</option>
               <option value="draft">Draft</option>
+              <option value="sold">Sold</option>
+              <option value="pending">Pending</option>
             </select>
-            <button style={styles.addButton}>
-              <Plus size={16} />
-              Add Item
-            </button>
+
+            <select 
+              style={styles.filterSelect}
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="listedDate">Listed Date</option>
+              <option value="price">Price</option>
+              <option value="views">Views</option>
+              <option value="saves">Saves</option>
+            </select>
           </div>
+
+          {/* Mobile Filters Button */}
+          <button 
+            style={styles.mobileFiltersButton}
+            onClick={() => setShowMobileFilters(!showMobileFilters)}
+          >
+            <Filter size={16} />
+            Filters
+          </button>
+
+          <button style={{ ...styles.button, ...styles.secondaryButton }}>
+            <Download size={16} />
+            {!isMobile && 'Export'}
+          </button>
+
+          <button style={styles.button}>
+            <Plus size={16} />
+            {!isMobile && 'Add Item'}
+          </button>
         </div>
-        
-        {/* Table */}
-        <div style={{ overflowX: 'auto' }}>
-          <table style={styles.table}>
-            <thead>
-              <tr style={styles.tableHeader}>
-                <th style={styles.th}>
-                  <input
-                    type="checkbox"
-                    style={styles.checkbox}
-                    onChange={handleSelectAll}
-                    checked={selectedItems.length === filteredItems.length && filteredItems.length > 0}
-                  />
-                </th>
-                <th style={styles.th}>Item</th>
-                <th style={styles.th}>Price</th>
-                <th style={styles.th}>Condition</th>
-                <th style={styles.th}>Status</th>
-                <th style={styles.th}>Listed</th>
-                <th style={styles.th}>Metrics</th>
-                <th style={styles.th}>Seller</th>
-                <th style={styles.th}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredItems.map((item) => (
+      </div>
+
+      {/* Mobile Filters */}
+      <div style={styles.mobileFilters}>
+        <select 
+          style={styles.filterSelect}
+          value={filterCategory}
+          onChange={(e) => setFilterCategory(e.target.value)}
+        >
+          <option value="all">All Categories</option>
+          {categories.slice(1).map(category => (
+            <option key={category} value={category}>{category}</option>
+          ))}
+        </select>
+
+        <select 
+          style={styles.filterSelect}
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+        >
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="draft">Draft</option>
+          <option value="sold">Sold</option>
+          <option value="pending">Pending</option>
+        </select>
+
+        <select 
+          style={styles.filterSelect}
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+        >
+          <option value="listedDate">Sort by Listed Date</option>
+          <option value="price">Sort by Price</option>
+          <option value="views">Sort by Views</option>
+          <option value="saves">Sort by Saves</option>
+        </select>
+      </div>
+
+      {/* Stats Row */}
+      <div style={styles.statsRow}>
+        <div style={styles.statCard}>
+          <div style={styles.statValue}>{items.filter(i => i.status === 'active').length}</div>
+          <div style={styles.statLabel}>Active Items</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={styles.statValue}>{items.filter(i => i.status === 'sold').length}</div>
+          <div style={styles.statLabel}>Sold Items</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={styles.statValue}>{items.reduce((sum, i) => sum + i.views, 0)}</div>
+          <div style={styles.statLabel}>Total Views</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={styles.statValue}>{items.reduce((sum, i) => sum + i.saves, 0)}</div>
+          <div style={styles.statLabel}>Total Saves</div>
+        </div>
+      </div>
+
+      {/* Bulk Actions */}
+      <div style={styles.bulkActions}>
+        <span style={{ fontSize: '14px', color: themeColors.text }}>
+          {selectedItems.length} item{selectedItems.length !== 1 ? 's' : ''} selected
+        </span>
+        <button 
+          style={{ ...styles.button, ...styles.secondaryButton, padding: '6px 12px' }}
+          onClick={() => handleBulkAction('feature')}
+        >
+          <Star size={14} />
+          Feature
+        </button>
+        <button 
+          style={{ ...styles.button, ...styles.secondaryButton, padding: '6px 12px' }}
+          onClick={() => handleBulkAction('archive')}
+        >
+          <Package size={14} />
+          Archive
+        </button>
+        <button 
+          style={{ ...styles.button, ...styles.secondaryButton, padding: '6px 12px' }}
+          onClick={() => handleBulkAction('delete')}
+        >
+          <Trash2 size={14} />
+          Delete
+        </button>
+      </div>
+
+      <div style={styles.tableContainer}>
+        {/* Desktop Table */}
+        <table style={styles.table}>
+          <thead style={styles.tableHeader}>
+            <tr>
+              <th style={styles.th}>
+                <input 
+                  type="checkbox" 
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedItems(filteredItems.map(item => item.id));
+                    } else {
+                      setSelectedItems([]);
+                    }
+                  }}
+                />
+              </th>
+              <th style={styles.th}>Item</th>
+              <th style={styles.th}>Price</th>
+              <th style={styles.th}>Status</th>
+              <th style={styles.th}>Listed</th>
+              <th style={styles.th}>Metrics</th>
+              <th style={styles.th}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredItems.map((item) => {
+              const StatusIcon = getStatusIcon(item.status);
+              return (
                 <tr key={item.id}>
                   <td style={styles.td}>
-                    <input
-                      type="checkbox"
-                      style={styles.checkbox}
+                    <input 
+                      type="checkbox" 
                       checked={selectedItems.includes(item.id)}
-                      onChange={() => handleSelectItem(item.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedItems([...selectedItems, item.id]);
+                        } else {
+                          setSelectedItems(selectedItems.filter(id => id !== item.id));
+                        }
+                      }}
                     />
                   </td>
                   <td style={styles.td}>
                     <div style={styles.itemInfo}>
-                      <img 
-                        src={item.image} 
-                        alt={item.title}
-                        style={styles.itemImage}
-                      />
+                      <div style={styles.itemImage}>
+                        <Image size={20} />
+                      </div>
                       <div style={styles.itemDetails}>
-                        <span style={styles.itemTitle}>{item.title}</span>
-                        <span style={styles.itemCategory}>{item.category}</span>
+                        <div style={styles.itemTitle}>
+                          {item.title}
+                          {item.featured && (
+                            <span style={styles.featuredBadge}>
+                              <Star size={8} />
+                              Featured
+                            </span>
+                          )}
+                        </div>
+                        <div style={styles.itemMeta}>
+                          <span>{item.category}</span>
+                          <span style={styles.conditionBadge(item.condition)}>
+                            {item.condition}
+                          </span>
+                          <span>by {item.seller}</span>
+                        </div>
                       </div>
                     </div>
                   </td>
-                  <td style={styles.td}>${item.price.toFixed(2)}</td>
-                  <td style={styles.td}>{item.condition}</td>
                   <td style={styles.td}>
-                    <span style={{
-                      ...styles.statusBadge,
-                      ...(item.status === 'active' ? styles.activeStatus : 
-                         item.status === 'sold' ? styles.soldStatus : 
-                         styles.draftStatus)
-                    }}>
+                    <span style={{ fontWeight: '600', color: themeColors.primary }}>
+                      ${item.price}
+                    </span>
+                  </td>
+                  <td style={styles.td}>
+                    <span style={styles.statusBadge(item.status)}>
+                      <StatusIcon size={12} />
                       {item.status}
                     </span>
                   </td>
                   <td style={styles.td}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Calendar size={14} color={themeColors.textSecondary} />
-                      {new Date(item.listedDate).toLocaleDateString()}
+                      {formatDate(item.listedDate)}
                     </div>
                   </td>
                   <td style={styles.td}>
@@ -517,11 +845,11 @@ const ItemsTab = () => {
                       </div>
                     </div>
                   </td>
-                  <td style={styles.td}>{item.seller}</td>
                   <td style={styles.td}>
-                    <div style={styles.actions}>
+                    <div style={{ display: 'flex', gap: '4px' }}>
                       <button 
                         style={styles.actionButton}
+                        onClick={() => handleItemAction('view', item.id)}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                       >
@@ -529,6 +857,7 @@ const ItemsTab = () => {
                       </button>
                       <button 
                         style={styles.actionButton}
+                        onClick={() => handleItemAction('edit', item.id)}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                       >
@@ -536,6 +865,7 @@ const ItemsTab = () => {
                       </button>
                       <button 
                         style={styles.actionButton}
+                        onClick={() => handleItemAction('delete', item.id)}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                       >
@@ -544,9 +874,96 @@ const ItemsTab = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* Mobile Cards */}
+        <div style={styles.mobileCards}>
+          {filteredItems.length === 0 ? (
+            <div style={styles.emptyState}>
+              <Package size={48} />
+              <p>No items found matching your criteria.</p>
+            </div>
+          ) : (
+            filteredItems.map((item) => {
+              const StatusIcon = getStatusIcon(item.status);
+              return (
+                <div key={item.id} style={styles.mobileCard}>
+                  <div style={styles.mobileCardHeader}>
+                    <div style={styles.mobileCardItem}>
+                      <div style={styles.itemImage}>
+                        <Image size={20} />
+                      </div>
+                      <div style={styles.mobileCardContent}>
+                        <div style={styles.mobileCardTitle}>
+                          {item.title}
+                          {item.featured && (
+                            <span style={styles.featuredBadge}>
+                              <Star size={8} />
+                            </span>
+                          )}
+                        </div>
+                        <div style={styles.mobileCardPrice}>${item.price}</div>
+                        <div style={styles.mobileCardMeta}>
+                          <span style={styles.statusBadge(item.status)}>
+                            <StatusIcon size={10} />
+                            {item.status}
+                          </span>
+                          <span style={styles.conditionBadge(item.condition)}>
+                            {item.condition}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={styles.mobileCardDetails}>
+                    <div style={styles.mobileCardStat}>
+                      <div style={styles.mobileCardLabel}>Category</div>
+                      <div style={styles.mobileCardValue}>{item.category}</div>
+                    </div>
+                    <div style={styles.mobileCardStat}>
+                      <div style={styles.mobileCardLabel}>Listed</div>
+                      <div style={styles.mobileCardValue}>{formatDate(item.listedDate)}</div>
+                    </div>
+                    <div style={styles.mobileCardStat}>
+                      <div style={styles.mobileCardLabel}>Views</div>
+                      <div style={styles.mobileCardValue}>{item.views}</div>
+                    </div>
+                    <div style={styles.mobileCardStat}>
+                      <div style={styles.mobileCardLabel}>Saves</div>
+                      <div style={styles.mobileCardValue}>{item.saves}</div>
+                    </div>
+                  </div>
+
+                  <div style={styles.mobileCardActions}>
+                    <button 
+                      style={{ ...styles.button, ...styles.secondaryButton, flex: 1 }}
+                      onClick={() => handleItemAction('view', item.id)}
+                    >
+                      <Eye size={14} />
+                      View
+                    </button>
+                    <button 
+                      style={{ ...styles.button, ...styles.secondaryButton, flex: 1 }}
+                      onClick={() => handleItemAction('edit', item.id)}
+                    >
+                      <Edit size={14} />
+                      Edit
+                    </button>
+                    <button 
+                      style={styles.actionButton}
+                      onClick={() => handleItemAction('more', item.id)}
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>

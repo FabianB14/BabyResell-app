@@ -1,805 +1,861 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { 
   Settings, 
-  DollarSign, 
-  Mail, 
-  Shield, 
+  Save, 
+  RefreshCw,
   Bell,
-  Database,
+  Shield,
+  DollarSign,
+  Mail,
   Globe,
-  Zap,
-  AlertTriangle,
-  Save,
-  RotateCcw,
-  Toggle,
-  Info,
-  Lock,
-  Clock,
+  Database,
+  Key,
   Users,
-  Package
+  Package,
+  CreditCard,
+  AlertTriangle,
+  Check,
+  X,
+  Upload,
+  Download,
+  Eye,
+  EyeOff,
+  Copy,
+  Trash2,
+  Plus
 } from 'lucide-react';
 
 const SettingsTab = () => {
   const { themeColors } = useTheme();
-  
-  // Platform Settings
-  const [platformSettings, setPlatformSettings] = useState({
-    platformName: 'BabyResell',
-    platformFeePercentage: 8,
-    minListingPrice: 1,
-    maxListingPrice: 10000,
-    listingDuration: 30,
-    autoArchiveAfterDays: 90,
-    maxImagesPerListing: 8,
-    maxListingsPerUser: 100,
-    requireEmailVerification: true,
-    requireListingApproval: false,
-    maintenanceMode: false,
-    maintenanceMessage: 'We are currently performing maintenance. Please check back later.'
+  const [activeSection, setActiveSection] = useState('general');
+  const [settings, setSettings] = useState({
+    general: {
+      siteName: 'BabyResell',
+      siteDescription: 'A marketplace for parents to buy and sell pre-loved baby items',
+      supportEmail: 'support@babyresell.com',
+      timezone: 'America/Los_Angeles',
+      language: 'en',
+      maintenanceMode: false
+    },
+    notifications: {
+      emailNotifications: true,
+      pushNotifications: true,
+      smsNotifications: false,
+      transactionAlerts: true,
+      securityAlerts: true,
+      marketingEmails: false
+    },
+    payments: {
+      stripePublicKey: 'pk_test_...',
+      stripeSecretKey: '••••••••••••••••',
+      paypalClientId: 'AYSq3RDGsmBLJi...',
+      transactionFeePercent: 5.0,
+      minimumPayout: 25.00,
+      payoutSchedule: 'weekly'
+    },
+    security: {
+      twoFactorRequired: false,
+      sessionTimeout: 30,
+      passwordMinLength: 8,
+      maxLoginAttempts: 5,
+      accountLockoutDuration: 15
+    },
+    content: {
+      autoModeratePosts: true,
+      requirePostApproval: false,
+      maxImagesPerListing: 8,
+      maxDescriptionLength: 1000,
+      allowGuestBrowsing: true
+    }
   });
-  
-  // Email Settings
-  const [emailSettings, setEmailSettings] = useState({
-    sendWelcomeEmail: true,
-    sendTransactionEmails: true,
-    sendNewsletters: false,
-    adminNotificationEmail: 'admin@babyresell.com',
-    supportEmail: 'support@babyresell.com',
-    emailProvider: 'sendgrid'
-  });
-  
-  // Security Settings
-  const [securitySettings, setSecuritySettings] = useState({
-    enforceStrongPasswords: true,
-    sessionTimeout: 7, // days
-    maxLoginAttempts: 5,
-    enableTwoFactor: false,
-    enableCaptcha: true,
-    blockSuspiciousIPs: true,
-    enableRateLimiting: true,
-    rateLimitRequests: 100,
-    rateLimitWindow: 15 // minutes
-  });
-  
-  // Backup Settings
-  const [backupSettings, setBackupSettings] = useState({
-    autoBackupEnabled: true,
-    backupFrequency: 'daily',
-    backupRetention: 30, // days
-    backupLocation: 'cloud',
-    lastBackup: '2025-06-12 03:00:00'
-  });
-  
-  const [hasChanges, setHasChanges] = useState(false);
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [saving, setSaving] = useState(false);
-  
+  const [showSecrets, setShowSecrets] = useState({});
+
+  // Responsive breakpoints
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const settingSections = [
+    { id: 'general', label: 'General', icon: Settings },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'payments', label: 'Payments', icon: CreditCard },
+    { id: 'security', label: 'Security', icon: Shield },
+    { id: 'content', label: 'Content', icon: Package }
+  ];
+
+  const handleSettingChange = (section, key, value) => {
+    setSettings(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [key]: value
+      }
+    }));
+    setUnsavedChanges(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setSaving(false);
+    setUnsavedChanges(false);
+    console.log('Settings saved:', settings);
+  };
+
+  const handleReset = () => {
+    // Reset to original values (would typically fetch from API)
+    setUnsavedChanges(false);
+  };
+
+  const toggleSecretVisibility = (key) => {
+    setShowSecrets(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+  };
+
   const styles = {
     container: {
-      display: 'grid',
-      gap: '24px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: isMobile ? '16px' : '24px',
     },
-    
-    section: {
-      backgroundColor: themeColors.cardBackground,
-      borderRadius: '16px',
-      padding: '24px',
+
+    header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: isMobile ? 'flex-start' : 'center',
+      flexDirection: isMobile ? 'column' : 'row',
+      gap: isMobile ? '12px' : '16px',
+      marginBottom: isMobile ? '16px' : '24px',
+    },
+
+    title: {
+      fontSize: isMobile ? '20px' : '24px',
+      fontWeight: 'bold',
+      color: themeColors.text,
+      margin: 0,
+    },
+
+    headerActions: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      flexWrap: 'wrap',
+      width: isMobile ? '100%' : 'auto',
+    },
+
+    button: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      padding: isMobile ? '8px 12px' : '8px 16px',
+      backgroundColor: themeColors.primary,
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500',
+      whiteSpace: 'nowrap',
+      disabled: saving,
+    },
+
+    secondaryButton: {
+      backgroundColor: 'transparent',
+      color: themeColors.textSecondary,
       border: `1px solid ${themeColors.secondary}`,
     },
-    
-    sectionHeader: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      marginBottom: '24px',
+
+    saveButton: {
+      backgroundColor: unsavedChanges ? themeColors.primary : '#10b981',
+      opacity: unsavedChanges ? 1 : 0.6,
     },
-    
-    sectionIcon: {
-      width: '40px',
-      height: '40px',
+
+    mainContent: {
+      display: 'grid',
+      gridTemplateColumns: isMobile ? '1fr' : isTablet ? '200px 1fr' : '250px 1fr',
+      gap: isMobile ? '16px' : '24px',
+    },
+
+    sidebar: {
+      backgroundColor: themeColors.cardBackground,
+      borderRadius: '12px',
+      border: `1px solid ${themeColors.secondary}`,
+      padding: isMobile ? '12px' : '16px',
+      height: 'fit-content',
+      order: isMobile ? 2 : 1,
+    },
+
+    sidebarTitle: {
+      fontSize: isMobile ? '14px' : '16px',
+      fontWeight: '600',
+      color: themeColors.text,
+      marginBottom: isMobile ? '8px' : '12px',
+    },
+
+    sectionList: {
+      display: 'flex',
+      flexDirection: isMobile ? 'row' : 'column',
+      gap: isMobile ? '8px' : '4px',
+      overflowX: isMobile ? 'auto' : 'visible',
+    },
+
+    sectionItem: {
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
+      gap: '8px',
+      padding: isMobile ? '8px 12px' : '8px 12px',
       borderRadius: '8px',
-      backgroundColor: themeColors.secondary,
+      cursor: 'pointer',
+      fontSize: isMobile ? '13px' : '14px',
+      fontWeight: '500',
+      color: themeColors.textSecondary,
+      transition: 'all 0.2s ease',
+      whiteSpace: 'nowrap',
+      minWidth: isMobile ? 'fit-content' : 'auto',
     },
-    
+
+    activeSectionItem: {
+      backgroundColor: themeColors.primary,
+      color: 'white',
+    },
+
+    settingsPanel: {
+      backgroundColor: themeColors.cardBackground,
+      borderRadius: '12px',
+      border: `1px solid ${themeColors.secondary}`,
+      padding: isMobile ? '16px' : '24px',
+      order: isMobile ? 1 : 2,
+    },
+
+    sectionHeader: {
+      marginBottom: isMobile ? '16px' : '24px',
+      paddingBottom: '12px',
+      borderBottom: `1px solid ${themeColors.secondary}`,
+    },
+
     sectionTitle: {
-      flex: 1,
-    },
-    
-    sectionName: {
-      fontSize: '18px',
+      fontSize: isMobile ? '18px' : '20px',
       fontWeight: '600',
       color: themeColors.text,
       marginBottom: '4px',
     },
-    
+
     sectionDescription: {
-      fontSize: '14px',
+      fontSize: isMobile ? '13px' : '14px',
       color: themeColors.textSecondary,
     },
-    
-    formGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-      gap: '20px',
-    },
-    
-    formGroup: {
+
+    settingsGrid: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '8px',
+      gap: isMobile ? '16px' : '20px',
     },
-    
-    label: {
-      fontSize: '14px',
-      fontWeight: '500',
-      color: themeColors.text,
+
+    settingGroup: {
       display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
+      flexDirection: 'column',
+      gap: '12px',
     },
-    
-    input: {
-      padding: '10px 14px',
-      backgroundColor: themeColors.secondary,
-      border: `1px solid ${themeColors.secondary}`,
-      borderRadius: '8px',
-      color: themeColors.text,
-      fontSize: '14px',
-      outline: 'none',
-      transition: 'border-color 0.2s',
-    },
-    
-    select: {
-      padding: '10px 14px',
-      backgroundColor: themeColors.secondary,
-      border: `1px solid ${themeColors.secondary}`,
-      borderRadius: '8px',
-      color: themeColors.text,
-      fontSize: '14px',
-      cursor: 'pointer',
-      outline: 'none',
-    },
-    
-    textarea: {
-      padding: '10px 14px',
-      backgroundColor: themeColors.secondary,
-      border: `1px solid ${themeColors.secondary}`,
-      borderRadius: '8px',
-      color: themeColors.text,
-      fontSize: '14px',
-      outline: 'none',
-      resize: 'vertical',
-      minHeight: '80px',
-    },
-    
-    helpText: {
-      fontSize: '12px',
-      color: themeColors.textSecondary,
-    },
-    
-    switchContainer: {
+
+    settingItem: {
       display: 'flex',
-      alignItems: 'center',
+      flexDirection: isMobile ? 'column' : 'row',
       justifyContent: 'space-between',
-      padding: '12px 0',
+      alignItems: isMobile ? 'stretch' : 'center',
+      gap: isMobile ? '8px' : '16px',
+      padding: '12px',
+      backgroundColor: themeColors.background,
+      borderRadius: '8px',
+      border: `1px solid ${themeColors.secondary}`,
     },
-    
-    switchLabel: {
+
+    settingInfo: {
       display: 'flex',
       flexDirection: 'column',
       gap: '4px',
       flex: 1,
     },
-    
-    switch: {
-      width: '48px',
-      height: '24px',
+
+    settingLabel: {
+      fontSize: isMobile ? '14px' : '15px',
+      fontWeight: '500',
+      color: themeColors.text,
+    },
+
+    settingDescription: {
+      fontSize: isMobile ? '12px' : '13px',
+      color: themeColors.textSecondary,
+      lineHeight: '1.4',
+    },
+
+    settingControl: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      minWidth: isMobile ? '100%' : '200px',
+    },
+
+    input: {
+      padding: '8px 12px',
       backgroundColor: themeColors.secondary,
+      border: 'none',
+      borderRadius: '6px',
+      color: themeColors.text,
+      fontSize: '14px',
+      width: '100%',
+    },
+
+    select: {
+      padding: '8px 12px',
+      backgroundColor: themeColors.secondary,
+      border: 'none',
+      borderRadius: '6px',
+      color: themeColors.text,
+      fontSize: '14px',
+      cursor: 'pointer',
+      width: '100%',
+    },
+
+    toggle: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      cursor: 'pointer',
+    },
+
+    toggleSwitch: (checked) => ({
+      width: '44px',
+      height: '24px',
+      backgroundColor: checked ? themeColors.primary : themeColors.secondary,
       borderRadius: '12px',
       position: 'relative',
-      cursor: 'pointer',
-      transition: 'background-color 0.2s',
-    },
-    
-    switchActive: {
-      backgroundColor: themeColors.primary,
-    },
-    
-    switchThumb: {
+      transition: 'all 0.2s ease',
+    }),
+
+    toggleHandle: (checked) => ({
       width: '20px',
       height: '20px',
       backgroundColor: 'white',
       borderRadius: '50%',
       position: 'absolute',
       top: '2px',
-      transition: 'transform 0.2s',
-      transform: 'translateX(2px)',
-    },
-    
-    switchThumbActive: {
-      transform: 'translateX(26px)',
-    },
-    
-    infoBox: {
-      backgroundColor: '#3b82f620',
-      border: '1px solid #3b82f640',
-      borderRadius: '8px',
-      padding: '12px 16px',
-      display: 'flex',
-      gap: '12px',
-      alignItems: 'flex-start',
-      marginBottom: '20px',
-    },
-    
-    warningBox: {
-      backgroundColor: '#f59e0b20',
-      border: '1px solid #f59e0b40',
-      borderRadius: '8px',
-      padding: '12px 16px',
-      display: 'flex',
-      gap: '12px',
-      alignItems: 'flex-start',
-      marginBottom: '20px',
-    },
-    
-    actions: {
-      display: 'flex',
-      gap: '12px',
-      marginTop: '32px',
-      paddingTop: '32px',
-      borderTop: `1px solid ${themeColors.secondary}`,
-    },
-    
-    saveButton: {
+      left: checked ? '22px' : '2px',
+      transition: 'all 0.2s ease',
+    }),
+
+    secretInput: {
+      position: 'relative',
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
-      padding: '12px 24px',
-      backgroundColor: themeColors.primary,
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      transition: 'opacity 0.2s',
+      width: '100%',
     },
-    
-    resetButton: {
+
+    secretActions: {
+      display: 'flex',
+      gap: '4px',
+      marginLeft: '8px',
+    },
+
+    iconButton: {
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
-      padding: '12px 24px',
-      backgroundColor: themeColors.secondary,
-      color: themeColors.text,
+      justifyContent: 'center',
+      padding: '4px',
+      backgroundColor: 'transparent',
       border: 'none',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '600',
+      borderRadius: '4px',
       cursor: 'pointer',
-    },
-    
-    statValue: {
-      fontSize: '12px',
       color: themeColors.textSecondary,
-      marginTop: '4px',
+      transition: 'all 0.2s ease',
+    },
+
+    warningBanner: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '12px',
+      backgroundColor: '#fef3c7',
+      border: '1px solid #f59e0b',
+      borderRadius: '8px',
+      marginBottom: '16px',
+    },
+
+    warningText: {
+      fontSize: '13px',
+      color: '#92400e',
+    },
+
+    emptyState: {
+      textAlign: 'center',
+      padding: '40px 20px',
+      color: themeColors.textSecondary,
     },
   };
-  
-  const handleInputChange = (section, field, value) => {
-    setHasChanges(true);
-    switch(section) {
-      case 'platform':
-        setPlatformSettings(prev => ({ ...prev, [field]: value }));
-        break;
-      case 'email':
-        setEmailSettings(prev => ({ ...prev, [field]: value }));
-        break;
-      case 'security':
-        setSecuritySettings(prev => ({ ...prev, [field]: value }));
-        break;
-      case 'backup':
-        setBackupSettings(prev => ({ ...prev, [field]: value }));
-        break;
-    }
-  };
-  
-  const handleSaveSettings = async () => {
-    setSaving(true);
-    // Simulate API call
-    setTimeout(() => {
-      setSaving(false);
-      setHasChanges(false);
-      alert('Settings saved successfully!');
-    }, 1000);
-  };
-  
-  const handleResetSettings = () => {
-    // eslint-disable-next-line no-alert
-    if (window.confirm('Are you sure you want to reset all settings to default?')) {
-      // Reset logic here
-      setHasChanges(false);
-    }
-  };
-  
-  const ToggleSwitch = ({ enabled, onChange }) => (
-    <div 
-      style={{
-        ...styles.switch,
-        ...(enabled ? styles.switchActive : {})
-      }}
-      onClick={onChange}
-    >
-      <div style={{
-        ...styles.switchThumb,
-        ...(enabled ? styles.switchThumbActive : {})
-      }} />
-    </div>
-  );
-  
-  return (
-    <div style={styles.container}>
-      {/* Platform Settings */}
-      <div style={styles.section}>
-        <div style={styles.sectionHeader}>
-          <div style={{
-            ...styles.sectionIcon,
-            backgroundColor: '#3b82f620',
-            color: '#3b82f6'
-          }}>
-            <Globe size={20} />
-          </div>
-          <div style={styles.sectionTitle}>
-            <div style={styles.sectionName}>Platform Settings</div>
-            <div style={styles.sectionDescription}>
-              Configure general platform settings and policies
-            </div>
-          </div>
+
+  const renderGeneralSettings = () => (
+    <div style={styles.settingsGrid}>
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Site Name</div>
+          <div style={styles.settingDescription}>The name of your marketplace</div>
         </div>
-        
-        <div style={styles.formGrid}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Platform Name</label>
-            <input
-              type="text"
-              style={styles.input}
-              value={platformSettings.platformName}
-              onChange={(e) => handleInputChange('platform', 'platformName', e.target.value)}
-            />
-          </div>
-          
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              Platform Fee (%)
-              <Info size={14} color={themeColors.textSecondary} />
-            </label>
-            <input
-              type="number"
-              style={styles.input}
-              value={platformSettings.platformFeePercentage}
-              onChange={(e) => handleInputChange('platform', 'platformFeePercentage', Number(e.target.value))}
-              min="0"
-              max="100"
-            />
-            <span style={styles.helpText}>
-              Percentage charged on each transaction
+        <div style={styles.settingControl}>
+          <input
+            type="text"
+            style={styles.input}
+            value={settings.general.siteName}
+            onChange={(e) => handleSettingChange('general', 'siteName', e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Site Description</div>
+          <div style={styles.settingDescription}>Brief description of your marketplace</div>
+        </div>
+        <div style={styles.settingControl}>
+          <input
+            type="text"
+            style={styles.input}
+            value={settings.general.siteDescription}
+            onChange={(e) => handleSettingChange('general', 'siteDescription', e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Support Email</div>
+          <div style={styles.settingDescription}>Email address for customer support</div>
+        </div>
+        <div style={styles.settingControl}>
+          <input
+            type="email"
+            style={styles.input}
+            value={settings.general.supportEmail}
+            onChange={(e) => handleSettingChange('general', 'supportEmail', e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Timezone</div>
+          <div style={styles.settingDescription}>Default timezone for the application</div>
+        </div>
+        <div style={styles.settingControl}>
+          <select
+            style={styles.select}
+            value={settings.general.timezone}
+            onChange={(e) => handleSettingChange('general', 'timezone', e.target.value)}
+          >
+            <option value="America/Los_Angeles">Pacific Time</option>
+            <option value="America/Denver">Mountain Time</option>
+            <option value="America/Chicago">Central Time</option>
+            <option value="America/New_York">Eastern Time</option>
+          </select>
+        </div>
+      </div>
+
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Maintenance Mode</div>
+          <div style={styles.settingDescription}>Temporarily disable public access to the site</div>
+        </div>
+        <div style={styles.settingControl}>
+          <div 
+            style={styles.toggle}
+            onClick={() => handleSettingChange('general', 'maintenanceMode', !settings.general.maintenanceMode)}
+          >
+            <div style={styles.toggleSwitch(settings.general.maintenanceMode)}>
+              <div style={styles.toggleHandle(settings.general.maintenanceMode)} />
+            </div>
+            <span style={{ fontSize: '14px', color: themeColors.text }}>
+              {settings.general.maintenanceMode ? 'Enabled' : 'Disabled'}
             </span>
           </div>
-          
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Min Listing Price ($)</label>
-            <input
-              type="number"
-              style={styles.input}
-              value={platformSettings.minListingPrice}
-              onChange={(e) => handleInputChange('platform', 'minListingPrice', Number(e.target.value))}
-              min="0"
-            />
-          </div>
-          
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Max Listing Price ($)</label>
-            <input
-              type="number"
-              style={styles.input}
-              value={platformSettings.maxListingPrice}
-              onChange={(e) => handleInputChange('platform', 'maxListingPrice', Number(e.target.value))}
-              min="0"
-            />
-          </div>
-          
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Listing Duration (days)</label>
-            <input
-              type="number"
-              style={styles.input}
-              value={platformSettings.listingDuration}
-              onChange={(e) => handleInputChange('platform', 'listingDuration', Number(e.target.value))}
-              min="1"
-            />
-          </div>
-          
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Max Images per Listing</label>
-            <input
-              type="number"
-              style={styles.input}
-              value={platformSettings.maxImagesPerListing}
-              onChange={(e) => handleInputChange('platform', 'maxImagesPerListing', Number(e.target.value))}
-              min="1"
-              max="20"
-            />
-          </div>
         </div>
-        
-        <div style={{ marginTop: '24px' }}>
-          <div style={styles.switchContainer}>
-            <div style={styles.switchLabel}>
-              <span style={styles.label}>Require Email Verification</span>
-              <span style={styles.helpText}>
-                Users must verify their email before listing items
-              </span>
-            </div>
-            <ToggleSwitch 
-              enabled={platformSettings.requireEmailVerification}
-              onChange={() => handleInputChange('platform', 'requireEmailVerification', !platformSettings.requireEmailVerification)}
-            />
-          </div>
-          
-          <div style={styles.switchContainer}>
-            <div style={styles.switchLabel}>
-              <span style={styles.label}>Require Listing Approval</span>
-              <span style={styles.helpText}>
-                Admin must approve listings before they go live
-              </span>
-            </div>
-            <ToggleSwitch 
-              enabled={platformSettings.requireListingApproval}
-              onChange={() => handleInputChange('platform', 'requireListingApproval', !platformSettings.requireListingApproval)}
-            />
-          </div>
-          
-          <div style={styles.switchContainer}>
-            <div style={styles.switchLabel}>
-              <span style={styles.label}>
-                <AlertTriangle size={16} color="#f59e0b" />
-                Maintenance Mode
-              </span>
-              <span style={styles.helpText}>
-                Temporarily disable the platform for maintenance
-              </span>
-            </div>
-            <ToggleSwitch 
-              enabled={platformSettings.maintenanceMode}
-              onChange={() => handleInputChange('platform', 'maintenanceMode', !platformSettings.maintenanceMode)}
-            />
-          </div>
-        </div>
-        
-        {platformSettings.maintenanceMode && (
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Maintenance Message</label>
-            <textarea
-              style={styles.textarea}
-              value={platformSettings.maintenanceMessage}
-              onChange={(e) => handleInputChange('platform', 'maintenanceMessage', e.target.value)}
-            />
-          </div>
-        )}
       </div>
-      
-      {/* Email Settings */}
-      <div style={styles.section}>
-        <div style={styles.sectionHeader}>
-          <div style={{
-            ...styles.sectionIcon,
-            backgroundColor: '#10b98120',
-            color: '#10b981'
-          }}>
-            <Mail size={20} />
-          </div>
-          <div style={styles.sectionTitle}>
-            <div style={styles.sectionName}>Email Settings</div>
-            <div style={styles.sectionDescription}>
-              Configure email notifications and providers
+    </div>
+  );
+
+  const renderNotificationSettings = () => (
+    <div style={styles.settingsGrid}>
+      {Object.entries(settings.notifications).map(([key, value]) => (
+        <div key={key} style={styles.settingItem}>
+          <div style={styles.settingInfo}>
+            <div style={styles.settingLabel}>
+              {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+            </div>
+            <div style={styles.settingDescription}>
+              {key === 'emailNotifications' && 'Receive notifications via email'}
+              {key === 'pushNotifications' && 'Receive push notifications in browser'}
+              {key === 'smsNotifications' && 'Receive notifications via SMS'}
+              {key === 'transactionAlerts' && 'Get alerts for new transactions'}
+              {key === 'securityAlerts' && 'Get alerts for security events'}
+              {key === 'marketingEmails' && 'Receive marketing and promotional emails'}
             </div>
           </div>
-        </div>
-        
-        <div style={styles.formGrid}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Admin Notification Email</label>
-            <input
-              type="email"
-              style={styles.input}
-              value={emailSettings.adminNotificationEmail}
-              onChange={(e) => handleInputChange('email', 'adminNotificationEmail', e.target.value)}
-            />
-          </div>
-          
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Support Email</label>
-            <input
-              type="email"
-              style={styles.input}
-              value={emailSettings.supportEmail}
-              onChange={(e) => handleInputChange('email', 'supportEmail', e.target.value)}
-            />
-          </div>
-          
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Email Provider</label>
-            <select
-              style={styles.select}
-              value={emailSettings.emailProvider}
-              onChange={(e) => handleInputChange('email', 'emailProvider', e.target.value)}
+          <div style={styles.settingControl}>
+            <div 
+              style={styles.toggle}
+              onClick={() => handleSettingChange('notifications', key, !value)}
             >
-              <option value="sendgrid">SendGrid</option>
-              <option value="mailgun">Mailgun</option>
-              <option value="aws-ses">AWS SES</option>
-              <option value="smtp">Custom SMTP</option>
-            </select>
+              <div style={styles.toggleSwitch(value)}>
+                <div style={styles.toggleHandle(value)} />
+              </div>
+              <span style={{ fontSize: '14px', color: themeColors.text }}>
+                {value ? 'Enabled' : 'Disabled'}
+              </span>
+            </div>
           </div>
         </div>
-        
-        <div style={{ marginTop: '24px' }}>
-          <div style={styles.switchContainer}>
-            <div style={styles.switchLabel}>
-              <span style={styles.label}>Send Welcome Emails</span>
-              <span style={styles.helpText}>
-                Send welcome email to new users
-              </span>
-            </div>
-            <ToggleSwitch 
-              enabled={emailSettings.sendWelcomeEmail}
-              onChange={() => handleInputChange('email', 'sendWelcomeEmail', !emailSettings.sendWelcomeEmail)}
+      ))}
+    </div>
+  );
+
+  const renderPaymentSettings = () => (
+    <div style={styles.settingsGrid}>
+      <div style={styles.warningBanner}>
+        <AlertTriangle size={16} color="#f59e0b" />
+        <span style={styles.warningText}>
+          Payment credentials are sensitive. Keep them secure and never share them.
+        </span>
+      </div>
+
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Stripe Public Key</div>
+          <div style={styles.settingDescription}>Your Stripe publishable key</div>
+        </div>
+        <div style={styles.settingControl}>
+          <input
+            type="text"
+            style={styles.input}
+            value={settings.payments.stripePublicKey}
+            onChange={(e) => handleSettingChange('payments', 'stripePublicKey', e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Stripe Secret Key</div>
+          <div style={styles.settingDescription}>Your Stripe secret key (keep confidential)</div>
+        </div>
+        <div style={styles.settingControl}>
+          <div style={styles.secretInput}>
+            <input
+              type={showSecrets.stripeSecret ? "text" : "password"}
+              style={styles.input}
+              value={settings.payments.stripeSecretKey}
+              onChange={(e) => handleSettingChange('payments', 'stripeSecretKey', e.target.value)}
             />
-          </div>
-          
-          <div style={styles.switchContainer}>
-            <div style={styles.switchLabel}>
-              <span style={styles.label}>Send Transaction Emails</span>
-              <span style={styles.helpText}>
-                Notify users about purchases and sales
-              </span>
+            <div style={styles.secretActions}>
+              <button
+                style={styles.iconButton}
+                onClick={() => toggleSecretVisibility('stripeSecret')}
+              >
+                {showSecrets.stripeSecret ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+              <button
+                style={styles.iconButton}
+                onClick={() => copyToClipboard(settings.payments.stripeSecretKey)}
+              >
+                <Copy size={16} />
+              </button>
             </div>
-            <ToggleSwitch 
-              enabled={emailSettings.sendTransactionEmails}
-              onChange={() => handleInputChange('email', 'sendTransactionEmails', !emailSettings.sendTransactionEmails)}
-            />
           </div>
         </div>
       </div>
-      
-      {/* Security Settings */}
-      <div style={styles.section}>
-        <div style={styles.sectionHeader}>
-          <div style={{
-            ...styles.sectionIcon,
-            backgroundColor: '#ef444420',
-            color: '#ef4444'
-          }}>
-            <Shield size={20} />
-          </div>
-          <div style={styles.sectionTitle}>
-            <div style={styles.sectionName}>Security Settings</div>
-            <div style={styles.sectionDescription}>
-              Configure platform security and access controls
-            </div>
-          </div>
+
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Transaction Fee (%)</div>
+          <div style={styles.settingDescription}>Percentage fee charged on transactions</div>
         </div>
-        
-        <div style={styles.infoBox}>
-          <Info size={20} color="#3b82f6" />
-          <div>
-            <div style={{ fontWeight: '500', marginBottom: '4px' }}>
-              Security Best Practices
-            </div>
-            <div style={{ fontSize: '12px', color: themeColors.textSecondary }}>
-              Enable all recommended security features to protect your platform and users.
-            </div>
-          </div>
+        <div style={styles.settingControl}>
+          <input
+            type="number"
+            min="0"
+            max="10"
+            step="0.1"
+            style={styles.input}
+            value={settings.payments.transactionFeePercent}
+            onChange={(e) => handleSettingChange('payments', 'transactionFeePercent', parseFloat(e.target.value))}
+          />
         </div>
-        
-        <div style={styles.formGrid}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Session Timeout (days)</label>
-            <input
-              type="number"
-              style={styles.input}
-              value={securitySettings.sessionTimeout}
-              onChange={(e) => handleInputChange('security', 'sessionTimeout', Number(e.target.value))}
-              min="1"
-              max="30"
-            />
-          </div>
-          
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Max Login Attempts</label>
-            <input
-              type="number"
-              style={styles.input}
-              value={securitySettings.maxLoginAttempts}
-              onChange={(e) => handleInputChange('security', 'maxLoginAttempts', Number(e.target.value))}
-              min="3"
-              max="10"
-            />
-          </div>
-          
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Rate Limit (requests)</label>
-            <input
-              type="number"
-              style={styles.input}
-              value={securitySettings.rateLimitRequests}
-              onChange={(e) => handleInputChange('security', 'rateLimitRequests', Number(e.target.value))}
-              min="10"
-              max="1000"
-            />
-          </div>
-          
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Rate Limit Window (minutes)</label>
-            <input
-              type="number"
-              style={styles.input}
-              value={securitySettings.rateLimitWindow}
-              onChange={(e) => handleInputChange('security', 'rateLimitWindow', Number(e.target.value))}
-              min="1"
-              max="60"
-            />
-          </div>
+      </div>
+
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Minimum Payout</div>
+          <div style={styles.settingDescription}>Minimum amount required for seller payouts</div>
         </div>
-        
-        <div style={{ marginTop: '24px' }}>
-          <div style={styles.switchContainer}>
-            <div style={styles.switchLabel}>
-              <span style={styles.label}>Enforce Strong Passwords</span>
-              <span style={styles.helpText}>
-                Require minimum 8 characters, numbers, and special characters
-              </span>
+        <div style={styles.settingControl}>
+          <input
+            type="number"
+            min="10"
+            step="5"
+            style={styles.input}
+            value={settings.payments.minimumPayout}
+            onChange={(e) => handleSettingChange('payments', 'minimumPayout', parseFloat(e.target.value))}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderSecuritySettings = () => (
+    <div style={styles.settingsGrid}>
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Require Two-Factor Authentication</div>
+          <div style={styles.settingDescription}>Force all admin users to enable 2FA</div>
+        </div>
+        <div style={styles.settingControl}>
+          <div 
+            style={styles.toggle}
+            onClick={() => handleSettingChange('security', 'twoFactorRequired', !settings.security.twoFactorRequired)}
+          >
+            <div style={styles.toggleSwitch(settings.security.twoFactorRequired)}>
+              <div style={styles.toggleHandle(settings.security.twoFactorRequired)} />
             </div>
-            <ToggleSwitch 
-              enabled={securitySettings.enforceStrongPasswords}
-              onChange={() => handleInputChange('security', 'enforceStrongPasswords', !securitySettings.enforceStrongPasswords)}
-            />
-          </div>
-          
-          <div style={styles.switchContainer}>
-            <div style={styles.switchLabel}>
-              <span style={styles.label}>Enable CAPTCHA</span>
-              <span style={styles.helpText}>
-                Protect forms from bots and spam
-              </span>
-            </div>
-            <ToggleSwitch 
-              enabled={securitySettings.enableCaptcha}
-              onChange={() => handleInputChange('security', 'enableCaptcha', !securitySettings.enableCaptcha)}
-            />
-          </div>
-          
-          <div style={styles.switchContainer}>
-            <div style={styles.switchLabel}>
-              <span style={styles.label}>Block Suspicious IPs</span>
-              <span style={styles.helpText}>
-                Automatically block IPs with suspicious activity
-              </span>
-            </div>
-            <ToggleSwitch 
-              enabled={securitySettings.blockSuspiciousIPs}
-              onChange={() => handleInputChange('security', 'blockSuspiciousIPs', !securitySettings.blockSuspiciousIPs)}
-            />
+            <span style={{ fontSize: '14px', color: themeColors.text }}>
+              {settings.security.twoFactorRequired ? 'Required' : 'Optional'}
+            </span>
           </div>
         </div>
       </div>
-      
-      {/* Backup Settings */}
-      <div style={styles.section}>
-        <div style={styles.sectionHeader}>
-          <div style={{
-            ...styles.sectionIcon,
-            backgroundColor: '#8b5cf620',
-            color: '#8b5cf6'
-          }}>
-            <Database size={20} />
-          </div>
-          <div style={styles.sectionTitle}>
-            <div style={styles.sectionName}>Backup Settings</div>
-            <div style={styles.sectionDescription}>
-              Configure automatic backups and data retention
-            </div>
-          </div>
+
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Session Timeout (minutes)</div>
+          <div style={styles.settingDescription}>Automatically log out inactive users</div>
         </div>
-        
-        <div style={styles.formGrid}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Backup Frequency</label>
-            <select
-              style={styles.select}
-              value={backupSettings.backupFrequency}
-              onChange={(e) => handleInputChange('backup', 'backupFrequency', e.target.value)}
-            >
-              <option value="hourly">Hourly</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
-          </div>
-          
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Backup Retention (days)</label>
-            <input
-              type="number"
-              style={styles.input}
-              value={backupSettings.backupRetention}
-              onChange={(e) => handleInputChange('backup', 'backupRetention', Number(e.target.value))}
-              min="7"
-              max="365"
-            />
-          </div>
-          
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Backup Location</label>
-            <select
-              style={styles.select}
-              value={backupSettings.backupLocation}
-              onChange={(e) => handleInputChange('backup', 'backupLocation', e.target.value)}
-            >
-              <option value="cloud">Cloud Storage</option>
-              <option value="local">Local Storage</option>
-              <option value="both">Both Cloud & Local</option>
-            </select>
-          </div>
-          
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Last Backup</label>
-            <div style={styles.statValue}>
-              <Clock size={14} style={{ display: 'inline', marginRight: '4px' }} />
-              {backupSettings.lastBackup}
-            </div>
-          </div>
+        <div style={styles.settingControl}>
+          <input
+            type="number"
+            min="5"
+            max="120"
+            style={styles.input}
+            value={settings.security.sessionTimeout}
+            onChange={(e) => handleSettingChange('security', 'sessionTimeout', parseInt(e.target.value))}
+          />
         </div>
-        
-        <div style={{ marginTop: '24px' }}>
-          <div style={styles.switchContainer}>
-            <div style={styles.switchLabel}>
-              <span style={styles.label}>Enable Automatic Backups</span>
-              <span style={styles.helpText}>
-                Automatically backup database and user files
-              </span>
+      </div>
+
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Password Minimum Length</div>
+          <div style={styles.settingDescription}>Minimum characters required for passwords</div>
+        </div>
+        <div style={styles.settingControl}>
+          <input
+            type="number"
+            min="6"
+            max="20"
+            style={styles.input}
+            value={settings.security.passwordMinLength}
+            onChange={(e) => handleSettingChange('security', 'passwordMinLength', parseInt(e.target.value))}
+          />
+        </div>
+      </div>
+
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Max Login Attempts</div>
+          <div style={styles.settingDescription}>Number of failed attempts before account lockout</div>
+        </div>
+        <div style={styles.settingControl}>
+          <input
+            type="number"
+            min="3"
+            max="10"
+            style={styles.input}
+            value={settings.security.maxLoginAttempts}
+            onChange={(e) => handleSettingChange('security', 'maxLoginAttempts', parseInt(e.target.value))}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderContentSettings = () => (
+    <div style={styles.settingsGrid}>
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Auto-Moderate Posts</div>
+          <div style={styles.settingDescription}>Automatically screen posts for inappropriate content</div>
+        </div>
+        <div style={styles.settingControl}>
+          <div 
+            style={styles.toggle}
+            onClick={() => handleSettingChange('content', 'autoModeratePosts', !settings.content.autoModeratePosts)}
+          >
+            <div style={styles.toggleSwitch(settings.content.autoModeratePosts)}>
+              <div style={styles.toggleHandle(settings.content.autoModeratePosts)} />
             </div>
-            <ToggleSwitch 
-              enabled={backupSettings.autoBackupEnabled}
-              onChange={() => handleInputChange('backup', 'autoBackupEnabled', !backupSettings.autoBackupEnabled)}
-            />
+            <span style={{ fontSize: '14px', color: themeColors.text }}>
+              {settings.content.autoModeratePosts ? 'Enabled' : 'Disabled'}
+            </span>
           </div>
         </div>
       </div>
-      
-      {/* Actions */}
-      <div style={styles.actions}>
-        <button 
-          style={{
-            ...styles.saveButton,
-            opacity: saving ? 0.7 : 1,
-          }}
-          onClick={handleSaveSettings}
-          disabled={saving || !hasChanges}
-        >
-          <Save size={16} />
-          {saving ? 'Saving...' : 'Save Settings'}
-        </button>
-        
-        <button 
-          style={styles.resetButton}
-          onClick={handleResetSettings}
-        >
-          <RotateCcw size={16} />
-          Reset to Default
-        </button>
+
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Require Post Approval</div>
+          <div style={styles.settingDescription}>All new listings must be manually approved</div>
+        </div>
+        <div style={styles.settingControl}>
+          <div 
+            style={styles.toggle}
+            onClick={() => handleSettingChange('content', 'requirePostApproval', !settings.content.requirePostApproval)}
+          >
+            <div style={styles.toggleSwitch(settings.content.requirePostApproval)}>
+              <div style={styles.toggleHandle(settings.content.requirePostApproval)} />
+            </div>
+            <span style={{ fontSize: '14px', color: themeColors.text }}>
+              {settings.content.requirePostApproval ? 'Required' : 'Auto-Publish'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Max Images Per Listing</div>
+          <div style={styles.settingDescription}>Maximum number of images allowed per item</div>
+        </div>
+        <div style={styles.settingControl}>
+          <input
+            type="number"
+            min="1"
+            max="20"
+            style={styles.input}
+            value={settings.content.maxImagesPerListing}
+            onChange={(e) => handleSettingChange('content', 'maxImagesPerListing', parseInt(e.target.value))}
+          />
+        </div>
+      </div>
+
+      <div style={styles.settingItem}>
+        <div style={styles.settingInfo}>
+          <div style={styles.settingLabel}>Max Description Length</div>
+          <div style={styles.settingDescription}>Maximum characters allowed in item descriptions</div>
+        </div>
+        <div style={styles.settingControl}>
+          <input
+            type="number"
+            min="100"
+            max="5000"
+            step="100"
+            style={styles.input}
+            value={settings.content.maxDescriptionLength}
+            onChange={(e) => handleSettingChange('content', 'maxDescriptionLength', parseInt(e.target.value))}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderActiveSection = () => {
+    switch (activeSection) {
+      case 'general': return renderGeneralSettings();
+      case 'notifications': return renderNotificationSettings();
+      case 'payments': return renderPaymentSettings();
+      case 'security': return renderSecuritySettings();
+      case 'content': return renderContentSettings();
+      default: return <div style={styles.emptyState}>Select a settings section</div>;
+    }
+  };
+
+  const getSectionInfo = () => {
+    const info = {
+      general: { title: 'General Settings', description: 'Basic configuration and site information' },
+      notifications: { title: 'Notification Settings', description: 'Configure email, push, and SMS notifications' },
+      payments: { title: 'Payment Settings', description: 'Payment processing and fee configuration' },
+      security: { title: 'Security Settings', description: 'Authentication and security policies' },
+      content: { title: 'Content Settings', description: 'Content moderation and posting rules' }
+    };
+    return info[activeSection] || {};
+  };
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <h2 style={styles.title}>Admin Settings</h2>
+        <div style={styles.headerActions}>
+          <button 
+            style={{ ...styles.button, ...styles.secondaryButton }}
+            onClick={handleReset}
+            disabled={!unsavedChanges}
+          >
+            <RefreshCw size={16} />
+            Reset
+          </button>
+          <button 
+            style={{ ...styles.button, ...styles.saveButton }}
+            onClick={handleSave}
+            disabled={saving || !unsavedChanges}
+          >
+            {saving ? <RefreshCw size={16} /> : <Save size={16} />}
+            {saving ? 'Saving...' : unsavedChanges ? 'Save Changes' : 'Saved'}
+          </button>
+        </div>
+      </div>
+
+      <div style={styles.mainContent}>
+        <div style={styles.sidebar}>
+          <h3 style={styles.sidebarTitle}>Settings</h3>
+          <div style={styles.sectionList}>
+            {settingSections.map((section) => {
+              const Icon = section.icon;
+              return (
+                <div
+                  key={section.id}
+                  style={{
+                    ...styles.sectionItem,
+                    ...(activeSection === section.id ? styles.activeSectionItem : {})
+                  }}
+                  onClick={() => setActiveSection(section.id)}
+                >
+                  <Icon size={16} />
+                  {!isMobile || isTablet ? section.label : ''}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={styles.settingsPanel}>
+          <div style={styles.sectionHeader}>
+            <h3 style={styles.sectionTitle}>{getSectionInfo().title}</h3>
+            <p style={styles.sectionDescription}>{getSectionInfo().description}</p>
+          </div>
+          {renderActiveSection()}
+        </div>
       </div>
     </div>
   );
