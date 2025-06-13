@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 // Import individual tab components
-import {DashboardTab} from '../../components/admin/DashboardTab';
+import DashboardTab from '../components/admin/DashboardTab';
 import UsersTab from '../../components/admin/UsersTab';
 import ItemsTab from '../../components/admin/ItemsTab';
 import TransactionsTab from '../../components/admin/TransactionsTab';
