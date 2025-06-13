@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme } from '../contexts/ThemeContext';
+import ThemeCreatorModal from '../components/admin/ThemeCreatorModal'; // Add this import
 import { 
   Palette, 
   Plus,
@@ -31,6 +32,7 @@ const ThemeTab = () => {
   const [activeView, setActiveView] = useState('current');
   const [selectedTheme, setSelectedTheme] = useState(null);
   const [showThemeEditor, setShowThemeEditor] = useState(false);
+  const [showThemeCreator, setShowThemeCreator] = useState(false); // Add this state
 
   // Responsive breakpoints
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -66,34 +68,34 @@ const ThemeTab = () => {
     },
     icon: Sun,
     previewImage: '/themes/summer-preview.jpg',
-    usage: 85,
+    usage: 78,
     createdAt: '2024-05-15T10:00:00Z',
-    updatedAt: '2024-06-01T14:30:00Z'
+    updatedAt: '2024-06-21T09:30:00Z'
   });
 
   const [availableThemes] = useState([
     {
-      id: 'fall-2024',
+      id: 'autumn-2024',
       name: 'Autumn Harvest',
       displayName: 'Autumn Harvest',
       status: 'scheduled',
       type: 'seasonal',
       startDate: '2024-09-22',
-      endDate: '2024-12-21',
-      description: 'Warm autumn colors with cozy orange and brown tones',
+      endDate: '2024-12-20',
+      description: 'Warm autumn colors with cozy vibes',
       colors: {
-        primary: '#ea580c',
+        primary: '#d97706',
         secondary: '#fed7aa',
-        accent: '#fb923c',
-        background: '#fff7ed',
+        accent: '#ea580c',
+        background: '#fef7ed',
         text: '#9a3412',
         cardBackground: '#ffffff'
       },
       icon: Leaf,
-      previewImage: '/themes/fall-preview.jpg',
+      previewImage: '/themes/autumn-preview.jpg',
       usage: 0,
-      createdAt: '2024-04-10T09:00:00Z',
-      updatedAt: '2024-06-01T11:15:00Z'
+      createdAt: '2024-04-10T12:00:00Z',
+      updatedAt: '2024-04-10T12:00:00Z'
     },
     {
       id: 'winter-2024',
@@ -101,13 +103,13 @@ const ThemeTab = () => {
       displayName: 'Winter Wonderland',
       status: 'draft',
       type: 'seasonal',
-      startDate: '2024-12-21',
+      startDate: '2024-12-20',
       endDate: '2025-03-20',
-      description: 'Cool winter theme with blue and white accents',
+      description: 'Cool winter theme with crystalline blues',
       colors: {
         primary: '#0ea5e9',
         secondary: '#e0f2fe',
-        accent: '#38bdf8',
+        accent: '#0284c7',
         background: '#f0f9ff',
         text: '#0c4a6e',
         cardBackground: '#ffffff'
@@ -115,68 +117,68 @@ const ThemeTab = () => {
       icon: Snowflake,
       previewImage: '/themes/winter-preview.jpg',
       usage: 0,
-      createdAt: '2024-03-20T08:30:00Z',
-      updatedAt: '2024-05-15T16:45:00Z'
+      createdAt: '2024-03-15T08:00:00Z',
+      updatedAt: '2024-05-20T14:15:00Z'
     },
     {
-      id: 'spring-2025',
+      id: 'spring-2024',
       name: 'Spring Bloom',
       displayName: 'Spring Bloom',
-      status: 'draft',
+      status: 'archived',
       type: 'seasonal',
-      startDate: '2025-03-20',
-      endDate: '2025-06-21',
-      description: 'Fresh spring theme with green and pink pastels',
+      startDate: '2024-03-20',
+      endDate: '2024-06-20',
+      description: 'Fresh spring theme with vibrant greens',
       colors: {
-        primary: '#10b981',
-        secondary: '#d1fae5',
-        accent: '#34d399',
-        background: '#ecfdf5',
-        text: '#065f46',
+        primary: '#22c55e',
+        secondary: '#dcfce7',
+        accent: '#16a34a',
+        background: '#f0fdf4',
+        text: '#15803d',
         cardBackground: '#ffffff'
       },
       icon: Flower,
       previewImage: '/themes/spring-preview.jpg',
-      usage: 0,
-      createdAt: '2024-02-14T12:00:00Z',
-      updatedAt: '2024-04-22T09:20:00Z'
+      usage: 82,
+      createdAt: '2024-01-20T16:00:00Z',
+      updatedAt: '2024-06-20T23:59:00Z'
     },
     {
       id: 'valentines-2024',
-      name: 'Valentine\'s Day',
-      displayName: 'Valentine\'s Day',
+      name: 'Valentine Romance',
+      displayName: 'Valentine Romance',
       status: 'archived',
       type: 'holiday',
       startDate: '2024-02-01',
-      endDate: '2024-02-14',
-      description: 'Romantic Valentine\'s theme with pink and red hearts',
+      endDate: '2024-02-15',
+      description: 'Romantic Valentine\'s Day theme',
       colors: {
         primary: '#ec4899',
         secondary: '#fce7f3',
-        accent: '#f472b6',
+        accent: '#db2777',
         background: '#fdf2f8',
-        text: '#9d174d',
+        text: '#be185d',
         cardBackground: '#ffffff'
       },
       icon: Heart,
-      previewImage: '/themes/valentines-preview.jpg',
-      usage: 92,
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-02-15T18:00:00Z'
+      previewImage: '/themes/valentine-preview.jpg',
+      usage: 91,
+      createdAt: '2024-01-01T10:00:00Z',
+      updatedAt: '2024-02-15T23:59:00Z'
     },
     {
       id: 'christmas-2023',
-      name: 'Christmas Magic',
-      displayName: 'Christmas Magic',
+      name: 'Christmas Joy',
+      displayName: 'Christmas Joy',
       status: 'archived',
       type: 'holiday',
       startDate: '2023-12-01',
-      endDate: '2023-12-25',
-      description: 'Festive Christmas theme with red and green colors',
+      endDate: '2023-12-26',
+      description: 'Festive Christmas theme with holiday spirit',
       colors: {
         primary: '#dc2626',
-        secondary: '#fecaca',
-        accent: '#ef4444',
+        secondary: '#fee2e2',
+        accent: '#b91c1c',
         background: '#fef2f2',
         text: '#991b1b',
         cardBackground: '#ffffff'
@@ -194,6 +196,27 @@ const ThemeTab = () => {
     { id: 'upcoming', label: 'Upcoming', icon: Calendar },
     { id: 'archive', label: 'Archive', icon: Clock }
   ];
+
+  // Add function to handle theme saving
+  const handleThemeSave = async (themeData) => {
+    try {
+      // Here you would typically save to your backend
+      console.log('Saving theme:', themeData);
+      
+      // For now, just log the theme data
+      // In a real app, you'd send this to your API:
+      // const response = await themesAPI.createTheme(themeData);
+      
+      alert('Theme saved successfully!');
+      
+      // Optionally refresh themes list or update local state
+      // loadThemes();
+      
+    } catch (error) {
+      console.error('Error saving theme:', error);
+      throw error; // Let the modal handle the error
+    }
+  };
 
   const handleThemeAction = (action, themeId) => {
     console.log(`${action} theme ${themeId}`);
@@ -239,6 +262,10 @@ const ThemeTab = () => {
       default:
         return [];
     }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
   };
 
   const styles = {
@@ -389,6 +416,19 @@ const ThemeTab = () => {
       textTransform: 'capitalize',
     }),
 
+    actionButton: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '6px',
+      backgroundColor: 'transparent',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      color: themeColors.textSecondary,
+      transition: 'all 0.2s ease',
+    },
+
     colorPalette: {
       display: 'flex',
       gap: '8px',
@@ -403,6 +443,22 @@ const ThemeTab = () => {
       border: '2px solid white',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
       cursor: 'pointer',
+    }),
+
+    usageBar: {
+      width: '100%',
+      height: '4px',
+      backgroundColor: themeColors.secondary,
+      borderRadius: '2px',
+      overflow: 'hidden',
+      marginTop: '4px',
+    },
+
+    usageFill: (usage) => ({
+      width: `${usage}%`,
+      height: '100%',
+      backgroundColor: themeColors.primary,
+      transition: 'width 0.3s ease',
     }),
 
     themeGrid: {
@@ -468,19 +524,6 @@ const ThemeTab = () => {
       gap: '4px',
     },
 
-    actionButton: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '6px',
-      backgroundColor: 'transparent',
-      border: 'none',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      color: themeColors.textSecondary,
-      transition: 'all 0.2s ease',
-    },
-
     themeCardDetails: {
       marginTop: '12px',
       paddingTop: '12px',
@@ -532,22 +575,6 @@ const ThemeTab = () => {
       fontWeight: '500',
       color: themeColors.text,
     },
-
-    usageBar: {
-      width: '100%',
-      height: '4px',
-      backgroundColor: themeColors.secondary,
-      borderRadius: '2px',
-      overflow: 'hidden',
-      marginTop: '4px',
-    },
-
-    usageFill: (usage) => ({
-      width: `${usage}%`,
-      height: '100%',
-      backgroundColor: themeColors.primary,
-      transition: 'width 0.3s ease',
-    }),
 
     emptyState: {
       textAlign: 'center',
@@ -609,10 +636,6 @@ const ThemeTab = () => {
       </div>
     </div>
   );
-
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-  };
 
   return (
     <div style={styles.container}>
@@ -741,6 +764,13 @@ const ThemeTab = () => {
           })
         )}
       </div>
+
+      {/* Add the ThemeCreatorModal component */}
+      <ThemeCreatorModal
+        isOpen={showThemeCreator}
+        onClose={() => setShowThemeCreator(false)}
+        onSave={handleThemeSave}
+      />
     </div>
   );
 };
