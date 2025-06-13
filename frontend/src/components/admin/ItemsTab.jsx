@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { itemsAPI } from '../../services/api'; // Import your existing API
 import { 
   Package, 
   Search, 
@@ -20,7 +21,10 @@ import {
   XCircle,
   Clock,
   TrendingUp,
-  Image
+  Image,
+  RefreshCw,
+  Loader,
+  AlertTriangle
 } from 'lucide-react';
 
 const ItemsTab = () => {
@@ -28,9 +32,19 @@ const ItemsTab = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [sortBy, setSortBy] = useState('listedDate');
+  const [sortBy, setSortBy] = useState('createdAt');
   const [selectedItems, setSelectedItems] = useState([]);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    pages: 0
+  });
 
   // Responsive breakpoints
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -46,119 +60,180 @@ const ItemsTab = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mock item data
-  const [items] = useState([
-    {
-      id: 1,
-      title: 'Baby Stroller - Graco Modes',
-      description: 'Gently used baby stroller in excellent condition. Perfect for newborns to toddlers.',
-      price: 89.99,
-      category: 'Strollers',
-      condition: 'excellent',
-      status: 'active',
-      listedDate: '2024-06-10',
-      views: 245,
-      saves: 18,
-      seller: 'Emma Johnson',
-      sellerId: 1,
-      images: ['stroller1.jpg', 'stroller2.jpg'],
-      ageGroup: '0-3 years',
-      brand: 'Graco',
-      featured: true
-    },
-    {
-      id: 2,
-      title: 'Toddler Bed with Rails',
-      description: 'Beautiful wooden toddler bed with safety rails. Converts from crib.',
-      price: 125.00,
-      category: 'Furniture',
-      condition: 'good',
-      status: 'sold',
-      listedDate: '2024-06-08',
-      views: 89,
-      saves: 7,
-      seller: 'Michael Brown',
-      sellerId: 2,
-      images: ['bed1.jpg'],
-      ageGroup: '1-4 years',
-      brand: 'Delta',
-      featured: false
-    },
-    {
-      id: 3,
-      title: 'Baby Clothes Bundle (6-12 months)',
-      description: 'Mixed lot of baby clothes in various colors and styles.',
-      price: 45.50,
-      category: 'Clothing',
-      condition: 'fair',
-      status: 'draft',
-      listedDate: '2024-06-12',
-      views: 12,
-      saves: 2,
-      seller: 'Sarah Wilson',
-      sellerId: 3,
-      images: ['clothes1.jpg', 'clothes2.jpg', 'clothes3.jpg'],
-      ageGroup: '6-12 months',
-      brand: 'Various',
-      featured: false
-    },
-    {
-      id: 4,
-      title: 'High Chair - Chicco Polly',
-      description: 'Adjustable high chair with multiple recline positions and height settings.',
-      price: 75.99,
-      category: 'Feeding',
-      condition: 'excellent',
-      status: 'active',
-      listedDate: '2024-06-11',
-      views: 156,
-      saves: 23,
-      seller: 'Lisa Garcia',
-      sellerId: 5,
-      images: ['chair1.jpg'],
-      ageGroup: '6 months+',
-      brand: 'Chicco',
-      featured: true
-    },
-    {
-      id: 5,
-      title: 'Baby Carrier - Ergobaby Original',
-      description: 'Ergonomic baby carrier suitable for newborns to toddlers.',
-      price: 65.00,
-      category: 'Carriers',
-      condition: 'good',
-      status: 'pending',
-      listedDate: '2024-06-13',
-      views: 78,
-      saves: 12,
-      seller: 'David Clark',
-      sellerId: 4,
-      images: ['carrier1.jpg', 'carrier2.jpg'],
-      ageGroup: '0-3 years',
-      brand: 'Ergobaby',
-      featured: false
+  // Load items from API
+  const loadItems = async (page = 1) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const params = {
+        page,
+        limit: pagination.limit,
+        sort: sortBy === 'createdAt' ? '-createdAt' : sortBy
+      };
+
+      // Add search if provided
+      if (searchTerm.trim()) {
+        params.search = searchTerm.trim();
+      }
+
+      // Add category filter
+      if (filterCategory !== 'all') {
+        params.category = filterCategory;
+      }
+
+      const response = await itemsAPI.getAllItems(params);
+      
+      if (response.data.success) {
+        // Transform the data to include computed fields
+        const transformedItems = response.data.data.map(item => ({
+          id: item._id,
+          title: item.title,
+          description: item.description,
+          price: item.price,
+          category: item.category,
+          condition: item.condition,
+          status: getItemStatus(item), // Custom function to determine status
+          listedDate: item.createdAt,
+          images: item.images || [],
+          ageGroup: item.ageGroup,
+          brand: item.brand,
+          seller: item.user?.username || item.user?.firstName || 'Unknown',
+          sellerId: item.user?._id,
+          views: item.views || 0,
+          saves: item.saves?.length || 0,
+          featured: item.featured || false,
+          thumbnail: item.images?.[0] || null
+        }));
+
+        setItems(transformedItems);
+        setPagination({
+          page: response.data.pagination?.page || page,
+          limit: response.data.pagination?.limit || 20,
+          total: response.data.pagination?.total || transformedItems.length,
+          pages: response.data.pagination?.pages || Math.ceil(transformedItems.length / 20)
+        });
+      }
+    } catch (error) {
+      console.error('Error loading items:', error);
+      setError('Failed to load items. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  ]);
-
-  const categories = ['All', 'Strollers', 'Furniture', 'Clothing', 'Feeding', 'Carriers', 'Toys', 'Safety'];
-
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.seller.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || item.category.toLowerCase() === filterCategory.toLowerCase();
-    const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
-
-  const handleItemAction = (action, itemId) => {
-    console.log(`${action} item ${itemId}`);
-    // Implement item actions here
   };
 
-  const handleBulkAction = (action) => {
+  // Load categories
+  const loadCategories = async () => {
+    try {
+      const response = await itemsAPI.getCategories();
+      if (response.data.success) {
+        setCategories(response.data.data);
+      }
+    } catch (error) {
+      console.warn('Failed to load categories:', error);
+      // Fallback categories
+      setCategories(['Strollers', 'Furniture', 'Clothing', 'Feeding', 'Carriers', 'Toys', 'Safety']);
+    }
+  };
+
+  // Helper function to determine item status
+  const getItemStatus = (item) => {
+    if (item.sold) return 'sold';
+    if (item.active === false) return 'inactive';
+    if (item.approved === false) return 'pending';
+    return 'active';
+  };
+
+  // Initial load
+  useEffect(() => {
+    loadItems();
+    loadCategories();
+  }, [sortBy]);
+
+  // Search debounce
+  useEffect(() => {
+    const delayedSearch = setTimeout(() => {
+      if (searchTerm !== '' || items.length === 0) {
+        loadItems(1);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayedSearch);
+  }, [searchTerm, filterCategory]);
+
+  const filteredItems = items.filter(item => {
+    const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
+    return matchesStatus;
+  });
+
+  const handleItemAction = async (action, itemId) => {
+    console.log(`${action} item ${itemId}`);
+    try {
+      switch (action) {
+        case 'view':
+          // Navigate to item detail or open modal
+          console.log('View item:', itemId);
+          break;
+        case 'edit':
+          // Open edit modal or navigate to edit page
+          console.log('Edit item:', itemId);
+          break;
+        case 'delete':
+          if (window.confirm('Are you sure you want to delete this item?')) {
+            await itemsAPI.deleteItem(itemId);
+            await loadItems(pagination.page);
+          }
+          break;
+        case 'feature':
+          // TODO: Implement item featuring
+          console.log('Feature item:', itemId);
+          break;
+        case 'approve':
+          // TODO: Implement item approval
+          console.log('Approve item:', itemId);
+          break;
+        default:
+          console.log('Unknown action:', action);
+      }
+    } catch (error) {
+      console.error(`Error performing ${action} on item ${itemId}:`, error);
+      setError(`Failed to ${action} item. Please try again.`);
+    }
+  };
+
+  const handleBulkAction = async (action) => {
     console.log(`${action} items:`, selectedItems);
-    // Implement bulk actions here
+    try {
+      switch (action) {
+        case 'feature':
+          // TODO: Implement bulk featuring
+          console.log('Bulk feature items:', selectedItems);
+          break;
+        case 'archive':
+          // TODO: Implement bulk archiving
+          console.log('Bulk archive items:', selectedItems);
+          break;
+        case 'delete':
+          if (window.confirm(`Are you sure you want to delete ${selectedItems.length} items?`)) {
+            // TODO: Implement bulk deletion
+            console.log('Bulk delete items:', selectedItems);
+          }
+          break;
+        case 'export':
+          // TODO: Implement item export
+          console.log('Export items:', selectedItems);
+          break;
+        default:
+          console.log('Unknown bulk action:', action);
+      }
+      
+      // Refresh data after bulk action
+      await loadItems(pagination.page);
+      setSelectedItems([]);
+    } catch (error) {
+      console.error(`Error performing bulk ${action}:`, error);
+      setError(`Failed to ${action} items. Please try again.`);
+    }
   };
 
   const formatDate = (dateString) => {

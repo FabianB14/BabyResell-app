@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { userAPI } from '../../services/api'; 
 import { 
   Users, 
   Search, 
@@ -19,16 +20,27 @@ import {
   Upload,
   AlertTriangle,
   CheckCircle,
-  XCircle
+  XCircle,
+  RefreshCw,
+  Loader
 } from 'lucide-react';
 
 const UsersTab = () => {
   const { themeColors } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [sortBy, setSortBy] = useState('joinDate');
+  const [sortBy, setSortBy] = useState('createdAt');
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    pages: 0
+  });
 
   // Responsive breakpoints
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -44,95 +56,145 @@ const UsersTab = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mock user data
-  const [users] = useState([
-    {
-      id: 1,
-      name: 'Emma Johnson',
-      email: 'emma.johnson@email.com',
-      status: 'active',
-      joinDate: '2024-01-15',
-      lastActive: '2024-06-12',
-      items: 12,
-      transactions: 8,
-      revenue: 450.50,
-      avatar: null,
-      location: 'Seattle, WA',
-      verified: true
-    },
-    {
-      id: 2,
-      name: 'Michael Brown',
-      email: 'michael.brown@email.com',
-      status: 'active',
-      joinDate: '2024-02-20',
-      lastActive: '2024-06-13',
-      items: 5,
-      transactions: 3,
-      revenue: 125.00,
-      avatar: null,
-      location: 'Portland, OR',
-      verified: true
-    },
-    {
-      id: 3,
-      name: 'Sarah Wilson',
-      email: 'sarah.wilson@email.com',
-      status: 'suspended',
-      joinDate: '2024-01-10',
-      lastActive: '2024-05-28',
-      items: 0,
-      transactions: 0,
-      revenue: 0.00,
-      avatar: null,
-      location: 'Austin, TX',
-      verified: false
-    },
-    {
-      id: 4,
-      name: 'David Clark',
-      email: 'david.clark@email.com',
-      status: 'inactive',
-      joinDate: '2024-03-05',
-      lastActive: '2024-04-15',
-      items: 2,
-      transactions: 1,
-      revenue: 35.99,
-      avatar: null,
-      location: 'Denver, CO',
-      verified: true
-    },
-    {
-      id: 5,
-      name: 'Lisa Garcia',
-      email: 'lisa.garcia@email.com',
-      status: 'active',
-      joinDate: '2024-04-12',
-      lastActive: '2024-06-13',
-      items: 18,
-      transactions: 15,
-      revenue: 825.75,
-      avatar: null,
-      location: 'Phoenix, AZ',
-      verified: true
+  // Load users from API
+  const loadUsers = async (page = 1) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const params = {
+        page,
+        limit: pagination.limit,
+        sort: sortBy === 'createdAt' ? '-createdAt' : sortBy
+      };
+
+      // Add search if provided
+      if (searchTerm.trim()) {
+        params.search = searchTerm.trim();
+      }
+
+      const response = await userAPI.getAllUsers(params);
+      
+      if (response.data.success) {
+        // Transform the data to include computed fields
+        const transformedUsers = response.data.data.map(user => ({
+          id: user._id,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
+          email: user.email,
+          username: user.username,
+          status: user.isActive !== false ? 'active' : 'suspended',
+          joinDate: user.createdAt,
+          lastActive: user.lastLoginAt || user.updatedAt,
+          avatar: user.profileImage,
+          location: user.location || 'Not specified',
+          verified: user.isEmailVerified || false,
+          isAdmin: user.isAdmin || false,
+          // These would need to be calculated or fetched from additional endpoints
+          items: 0, // TODO: Add actual count from pins/items
+          transactions: 0, // TODO: Add actual transaction count
+          revenue: 0 // TODO: Add actual revenue calculation
+        }));
+
+        setUsers(transformedUsers);
+        setPagination({
+          page: response.data.pagination.page,
+          limit: response.data.pagination.limit || 20,
+          total: response.data.pagination.total,
+          pages: response.data.pagination.pages
+        });
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+      setError('Failed to load users. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  ]);
-
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || user.status === filterStatus;
-    return matchesSearch && matchesFilter;
-  });
-
-  const handleUserAction = (action, userId) => {
-    console.log(`${action} user ${userId}`);
-    // Implement user actions here
   };
 
-  const handleBulkAction = (action) => {
+  // Initial load
+  useEffect(() => {
+    loadUsers();
+  }, [sortBy]);
+
+  // Search debounce
+  useEffect(() => {
+    const delayedSearch = setTimeout(() => {
+      if (searchTerm !== '' || users.length === 0) {
+        loadUsers(1);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayedSearch);
+  }, [searchTerm]);
+
+  const filteredUsers = users.filter(user => {
+    const matchesFilter = filterStatus === 'all' || user.status === filterStatus;
+    return matchesFilter;
+  });
+
+  const handleUserAction = async (action, userId) => {
+    console.log(`${action} user ${userId}`);
+    try {
+      switch (action) {
+        case 'view':
+          // Navigate to user detail or open modal
+          console.log('View user:', userId);
+          break;
+        case 'edit':
+          // Open edit modal or navigate to edit page
+          console.log('Edit user:', userId);
+          break;
+        case 'delete':
+          if (window.confirm('Are you sure you want to delete this user?')) {
+            // TODO: Implement user deletion
+            // await userAPI.deleteUser(userId);
+            await loadUsers(pagination.page);
+          }
+          break;
+        case 'suspend':
+          // TODO: Implement user suspension
+          console.log('Suspend user:', userId);
+          break;
+        case 'activate':
+          // TODO: Implement user activation
+          console.log('Activate user:', userId);
+          break;
+        default:
+          console.log('Unknown action:', action);
+      }
+    } catch (error) {
+      console.error(`Error performing ${action} on user ${userId}:`, error);
+      setError(`Failed to ${action} user. Please try again.`);
+    }
+  };
+
+  const handleBulkAction = async (action) => {
     console.log(`${action} users:`, selectedUsers);
-    // Implement bulk actions here
+    try {
+      switch (action) {
+        case 'activate':
+          // TODO: Implement bulk activation
+          console.log('Bulk activate users:', selectedUsers);
+          break;
+        case 'suspend':
+          // TODO: Implement bulk suspension
+          console.log('Bulk suspend users:', selectedUsers);
+          break;
+        case 'export':
+          // TODO: Implement user export
+          console.log('Export users:', selectedUsers);
+          break;
+        default:
+          console.log('Unknown bulk action:', action);
+      }
+      
+      // Refresh data after bulk action
+      await loadUsers(pagination.page);
+      setSelectedUsers([]);
+    } catch (error) {
+      console.error(`Error performing bulk ${action}:`, error);
+      setError(`Failed to ${action} users. Please try again.`);
+    }
   };
 
   const formatDate = (dateString) => {
