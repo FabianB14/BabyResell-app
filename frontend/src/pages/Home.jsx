@@ -421,31 +421,38 @@ const Home = () => {
                       onMouseEnter={hoverEffect}
                       onMouseLeave={removeHoverEffect}
                     >
-                      {/* Price Tag */}
-                      {item.price && (
-                        <div style={priceTagStyle}>
-                          ${typeof item.price === 'number' ? item.price.toFixed(2) : item.price}
-                        </div>
-                      )}
+                      {/* Image Container - This wraps the image and its overlays */}
+                      <div style={{
+                        position: 'relative',
+                        width: '100%',
+                        overflow: 'hidden'
+                      }}>
+                        {/* Price Tag - now inside image container */}
+                        {item.price && (
+                          <div style={priceTagStyle}>
+                            ${typeof item.price === 'number' ? item.price.toFixed(2) : item.price}
+                          </div>
+                        )}
+                        
+                        {/* Item Image */}
+                        <img 
+                          src={imageUrl}
+                          alt={item.title || 'Baby item'} 
+                          style={imageStyle(height)}
+                          onError={(e) => {
+                            e.target.src = `https://via.placeholder.com/300x${height}?text=${encodeURIComponent(item.title || 'Image Error')}`;
+                          }}
+                        />
+                        
+                        {/* Condition Tag - now inside image container */}
+                        {item.condition && (
+                          <div style={conditionTagStyle}>
+                            {item.condition}
+                          </div>
+                        )}
+                      </div>
                       
-                      {/* Item Image */}
-                      <img 
-                        src={imageUrl}
-                        alt={item.title || 'Baby item'} 
-                        style={imageStyle(height)}
-                        onError={(e) => {
-                          e.target.src = `https://via.placeholder.com/300x${height}?text=${encodeURIComponent(item.title || 'Image Error')}`;
-                        }}
-                      />
-                      
-                      {/* Condition Tag */}
-                      {item.condition && (
-                        <div style={conditionTagStyle}>
-                          {item.condition}
-                        </div>
-                      )}
-                      
-                      {/* Item Details */}
+                      {/* Item Details - separate from image container */}
                       <div style={cardContentStyle}>
                         <h3 style={{ fontSize: '16px', marginBottom: '4px', fontWeight: '600' }}>
                           {item.title || 'Untitled Item'}
