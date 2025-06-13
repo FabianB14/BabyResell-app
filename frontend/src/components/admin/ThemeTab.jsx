@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useTheme } from '../../contexts/ThemeContext';
-import ThemeCreatorModal from '../ThemeCreatorModal'; // Add this import
+import { useTheme } from '../contexts/ThemeContext';
+import ThemeCreatorModal from '../ThemeCreatorModal';
+import ThemePreviewModal from '../ThemePreviewModal';
 import { 
   Palette, 
   Plus,
@@ -24,15 +25,29 @@ import {
   Gift,
   Sparkles,
   Moon,
-  MoreVertical
+  MoreVertical,
+  Play,
+  Settings
 } from 'lucide-react';
 
 const ThemeTab = () => {
-  const { themeColors } = useTheme();
+  const { 
+    themeColors, 
+    currentTheme, 
+    availableThemes, 
+    predefinedThemes,
+    activateTheme, 
+    createTheme,
+    loading 
+  } = useTheme();
+  
   const [activeView, setActiveView] = useState('current');
   const [selectedTheme, setSelectedTheme] = useState(null);
   const [showThemeEditor, setShowThemeEditor] = useState(false);
-  const [showThemeCreator, setShowThemeCreator] = useState(false); // Add this state
+  const [showThemeCreator, setShowThemeCreator] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false); // Add preview modal state
+  const [previewTheme, setPreviewTheme] = useState(null); // Theme being previewed
+  const [activatingThemeId, setActivatingThemeId] = useState(null); // Track which theme is being activated
 
   // Responsive breakpoints
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -48,35 +63,11 @@ const ThemeTab = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mock theme data
-  const [currentTheme] = useState({
-    id: 'summer-2024',
-    name: 'Summer Vibes',
-    displayName: 'Summer Vibes',
-    status: 'active',
-    type: 'seasonal',
-    startDate: '2024-06-21',
-    endDate: '2024-09-22',
-    description: 'Bright and cheerful summer theme with warm colors',
-    colors: {
-      primary: '#f59e0b',
-      secondary: '#fef3c7',
-      accent: '#fb923c',
-      background: '#fffbeb',
-      text: '#92400e',
-      cardBackground: '#ffffff'
-    },
-    icon: Sun,
-    previewImage: '/themes/summer-preview.jpg',
-    usage: 78,
-    createdAt: '2024-05-15T10:00:00Z',
-    updatedAt: '2024-06-21T09:30:00Z'
-  });
-
-  const [availableThemes] = useState([
+  // Mock theme data - we'll combine this with predefined themes and available themes
+  const [localThemes] = useState([
     {
       id: 'autumn-2024',
-      name: 'Autumn Harvest',
+      name: 'autumn-2024',
       displayName: 'Autumn Harvest',
       status: 'scheduled',
       type: 'seasonal',
@@ -99,7 +90,7 @@ const ThemeTab = () => {
     },
     {
       id: 'winter-2024',
-      name: 'Winter Wonderland',
+      name: 'winter-2024',
       displayName: 'Winter Wonderland',
       status: 'draft',
       type: 'seasonal',
@@ -122,7 +113,7 @@ const ThemeTab = () => {
     },
     {
       id: 'spring-2024',
-      name: 'Spring Bloom',
+      name: 'spring-2024',
       displayName: 'Spring Bloom',
       status: 'archived',
       type: 'seasonal',
@@ -145,7 +136,7 @@ const ThemeTab = () => {
     },
     {
       id: 'valentines-2024',
-      name: 'Valentine Romance',
+      name: 'valentines-2024',
       displayName: 'Valentine Romance',
       status: 'archived',
       type: 'holiday',
@@ -168,7 +159,7 @@ const ThemeTab = () => {
     },
     {
       id: 'christmas-2023',
-      name: 'Christmas Joy',
+      name: 'christmas-2023',
       displayName: 'Christmas Joy',
       status: 'archived',
       type: 'holiday',
@@ -191,27 +182,101 @@ const ThemeTab = () => {
     }
   ]);
 
+  // Combine all available themes
+  const getAllThemes = () => {
+    const allThemes = [];
+    
+    // Add predefined themes
+    if (predefinedThemes) {
+      Object.values(predefinedThemes).forEach(theme => {
+        allThemes.push({
+          ...theme,
+          status: theme.id === currentTheme?.id || theme.name === currentTheme?.name ? 'active' : 'available',
+          type: 'seasonal',
+          icon: getThemeIcon(theme.name || theme.id)
+        });
+      });
+    }
+    
+    // Add backend themes
+    if (availableThemes && Array.isArray(availableThemes)) {
+      availableThemes.forEach(theme => {
+        allThemes.push({
+          ...theme,
+          status: theme.id === currentTheme?.id || theme.name === currentTheme?.name ? 'active' : 'available',
+          icon: getThemeIcon(theme.name || theme.id)
+        });
+      });
+    }
+    
+    // Add local themes
+    localThemes.forEach(theme => {
+      if (!allThemes.find(t => t.id === theme.id || t.name === theme.name)) {
+        allThemes.push({
+          ...theme,
+          status: theme.id === currentTheme?.id || theme.name === currentTheme?.name ? 'active' : theme.status,
+          icon: theme.icon
+        });
+      }
+    });
+    
+    return allThemes;
+  };
+
+  const getThemeIcon = (themeName) => {
+    const name = (themeName || '').toLowerCase();
+    if (name.includes('spring')) return Flower;
+    if (name.includes('summer')) return Sun;
+    if (name.includes('fall') || name.includes('autumn')) return Leaf;
+    if (name.includes('winter')) return Snowflake;
+    if (name.includes('christmas')) return Gift;
+    if (name.includes('valentine')) return Heart;
+    return Palette;
+  };
+
   const viewTabs = [
     { id: 'current', label: 'Current Theme', icon: Star },
-    { id: 'upcoming', label: 'Upcoming', icon: Calendar },
+    { id: 'available', label: 'Available Themes', icon: Palette },
     { id: 'archive', label: 'Archive', icon: Clock }
   ];
 
-  // Add function to handle theme saving
+  // Handle theme activation
+  const handleActivateTheme = async (themeId) => {
+    try {
+      setActivatingThemeId(themeId);
+      const result = await activateTheme(themeId);
+      
+      if (result.success) {
+        // Theme activated successfully
+        console.log('Theme activated successfully:', result.theme);
+        // The ThemeContext will handle updating the current theme
+      } else {
+        alert(result.error || 'Failed to activate theme');
+      }
+    } catch (error) {
+      console.error('Error activating theme:', error);
+      alert('Failed to activate theme. Please try again.');
+    } finally {
+      setActivatingThemeId(null);
+    }
+  };
+
+  // Handle theme preview
+  const handlePreviewTheme = (theme) => {
+    setPreviewTheme(theme);
+    setShowPreviewModal(true);
+  };
+
+  // Handle theme save from creator modal
   const handleThemeSave = async (themeData) => {
     try {
-      // Here you would typically save to your backend
-      console.log('Saving theme:', themeData);
+      const result = await createTheme(themeData);
       
-      // For now, just log the theme data
-      // In a real app, you'd send this to your API:
-      // const response = await themesAPI.createTheme(themeData);
-      
-      alert('Theme saved successfully!');
-      
-      // Optionally refresh themes list or update local state
-      // loadThemes();
-      
+      if (result.success) {
+        alert('Theme created successfully!');
+      } else {
+        throw new Error(result.error || 'Failed to create theme');
+      }
     } catch (error) {
       console.error('Error saving theme:', error);
       throw error; // Let the modal handle the error
@@ -234,6 +299,7 @@ const ThemeTab = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'active': return '#10b981';
+      case 'available': return '#3b82f6';
       case 'scheduled': return '#3b82f6';
       case 'draft': return '#f59e0b';
       case 'archived': return '#6b7280';
@@ -244,6 +310,7 @@ const ThemeTab = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'active': return Check;
+      case 'available': return Palette;
       case 'scheduled': return Calendar;
       case 'draft': return Edit;
       case 'archived': return Clock;
@@ -252,13 +319,15 @@ const ThemeTab = () => {
   };
 
   const getFilteredThemes = () => {
+    const allThemes = getAllThemes();
+    
     switch (activeView) {
       case 'current':
-        return [currentTheme];
-      case 'upcoming':
-        return availableThemes.filter(theme => ['scheduled', 'draft'].includes(theme.status));
+        return allThemes.filter(theme => theme.status === 'active');
+      case 'available':
+        return allThemes.filter(theme => ['available', 'scheduled', 'draft'].includes(theme.status));
       case 'archive':
-        return availableThemes.filter(theme => theme.status === 'archived');
+        return allThemes.filter(theme => theme.status === 'archived');
       default:
         return [];
     }
@@ -312,6 +381,7 @@ const ThemeTab = () => {
       fontSize: '14px',
       fontWeight: '500',
       whiteSpace: 'nowrap',
+      transition: 'all 0.2s ease',
     },
 
     secondaryButton: {
@@ -379,7 +449,7 @@ const ThemeTab = () => {
       width: isMobile ? '40px' : '48px',
       height: isMobile ? '40px' : '48px',
       borderRadius: '12px',
-      backgroundColor: currentTheme.colors.primary,
+      backgroundColor: currentTheme?.colors?.primary || themeColors.primary,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -474,6 +544,7 @@ const ThemeTab = () => {
       padding: isMobile ? '16px' : '20px',
       transition: 'all 0.2s ease',
       cursor: 'pointer',
+      position: 'relative',
     },
 
     themeCardHeader: {
@@ -494,7 +565,7 @@ const ThemeTab = () => {
       width: '36px',
       height: '36px',
       borderRadius: '8px',
-      backgroundColor: theme.colors.primary,
+      backgroundColor: theme.colors?.primary || themeColors.primary,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -522,6 +593,7 @@ const ThemeTab = () => {
     themeCardActions: {
       display: 'flex',
       gap: '4px',
+      alignItems: 'center',
     },
 
     themeCardDetails: {
@@ -551,91 +623,138 @@ const ThemeTab = () => {
       border: '1px solid rgba(0,0,0,0.1)',
     }),
 
-    themeCardStats: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(2, 1fr)',
-      gap: '12px',
-    },
-
-    stat: {
+    themeCardButtonContainer: {
       display: 'flex',
-      flexDirection: 'column',
-      gap: '2px',
+      gap: '8px',
+      marginTop: '12px',
     },
 
-    statLabel: {
-      fontSize: '11px',
-      color: themeColors.textSecondary,
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px',
-    },
-
-    statValue: {
-      fontSize: isMobile ? '13px' : '14px',
+    themeCardButton: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px',
+      padding: '6px 12px',
+      borderRadius: '6px',
+      border: 'none',
+      cursor: 'pointer',
+      fontSize: '12px',
       fontWeight: '500',
-      color: themeColors.text,
+      transition: 'all 0.2s ease',
+      flex: 1,
+      justifyContent: 'center',
+    },
+
+    previewButton: {
+      backgroundColor: 'transparent',
+      color: themeColors.primary,
+      border: `1px solid ${themeColors.primary}`,
+    },
+
+    activateButton: {
+      backgroundColor: themeColors.primary,
+      color: 'white',
+    },
+
+    activatingButton: {
+      backgroundColor: themeColors.textSecondary,
+      color: 'white',
+      cursor: 'not-allowed',
     },
 
     emptyState: {
       textAlign: 'center',
       padding: '40px 20px',
       color: themeColors.textSecondary,
+      gridColumn: '1 / -1',
+    },
+
+    loadingState: {
+      textAlign: 'center',
+      padding: '40px 20px',
+      color: themeColors.textSecondary,
+      gridColumn: '1 / -1',
     },
   };
 
-  const renderCurrentTheme = () => (
-    <div style={styles.currentThemeCard}>
-      <div style={styles.currentThemeHeader}>
-        <div style={styles.currentThemeInfo}>
-          <div style={styles.themeIcon}>
-            <currentTheme.icon size={isMobile ? 20 : 24} />
+  const renderCurrentTheme = () => {
+    if (!currentTheme) return null;
+    
+    const CurrentThemeIcon = getThemeIcon(currentTheme.name || currentTheme.id);
+    
+    return (
+      <div style={styles.currentThemeCard}>
+        <div style={styles.currentThemeHeader}>
+          <div style={styles.currentThemeInfo}>
+            <div style={styles.themeIcon}>
+              <CurrentThemeIcon size={isMobile ? 20 : 24} />
+            </div>
+            <div style={styles.themeDetails}>
+              <div style={styles.themeName}>{currentTheme.displayName || currentTheme.name}</div>
+              <div style={styles.themeDescription}>
+                {currentTheme.description || 'Currently active theme'}
+              </div>
+            </div>
           </div>
-          <div style={styles.themeDetails}>
-            <div style={styles.themeName}>{currentTheme.displayName}</div>
-            <div style={styles.themeDescription}>{currentTheme.description}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={styles.statusBadge('active')}>
+              <Check size={12} />
+              Active
+            </span>
+            <button style={styles.actionButton}>
+              <MoreVertical size={16} />
+            </button>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={styles.statusBadge(currentTheme.status)}>
-            <Check size={12} />
-            {currentTheme.status}
-          </span>
-          <button style={styles.actionButton}>
-            <MoreVertical size={16} />
-          </button>
-        </div>
-      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '16px' }}>
-        <div>
-          <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: themeColors.text }}>Active Period</h4>
-          <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: themeColors.textSecondary }}>
-            {formatDate(currentTheme.startDate)} - {formatDate(currentTheme.endDate)}
-          </p>
-          <div style={{ fontSize: '12px', color: themeColors.textSecondary }}>
-            Usage: {currentTheme.usage}% of visitors
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '16px' }}>
+          <div>
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: themeColors.text }}>Theme Colors</h4>
+            <div style={styles.colorPalette}>
+              {currentTheme.colors && Object.entries(currentTheme.colors).slice(0, 6).map(([name, color]) => (
+                <div
+                  key={name}
+                  style={styles.colorSwatch(color)}
+                  title={`${name}: ${color}`}
+                  onClick={() => copyToClipboard(color)}
+                />
+              ))}
+            </div>
           </div>
-          <div style={styles.usageBar}>
-            <div style={styles.usageFill(currentTheme.usage)} />
-          </div>
-        </div>
-        
-        <div>
-          <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: themeColors.text }}>Color Palette</h4>
-          <div style={styles.colorPalette}>
-            {Object.entries(currentTheme.colors).slice(0, 6).map(([name, color]) => (
-              <div
-                key={name}
-                style={styles.colorSwatch(color)}
-                title={`${name}: ${color}`}
-                onClick={() => copyToClipboard(color)}
-              />
-            ))}
+          
+          <div>
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: themeColors.text }}>Quick Actions</h4>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+              <button
+                style={{ ...styles.button, ...styles.secondaryButton, fontSize: '12px', padding: '6px 12px' }}
+                onClick={() => handlePreviewTheme(currentTheme)}
+              >
+                <Eye size={14} />
+                Preview
+              </button>
+              <button
+                style={{ ...styles.button, fontSize: '12px', padding: '6px 12px' }}
+                onClick={() => setShowThemeCreator(true)}
+              >
+                <Plus size={14} />
+                Create New
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  if (loading) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.loadingState}>
+          <RefreshCw size={48} style={{ animation: 'spin 1s linear infinite' }} />
+          <p>Loading themes...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.container}>
@@ -679,17 +798,20 @@ const ThemeTab = () => {
 
       <div style={styles.themeGrid}>
         {getFilteredThemes().length === 0 ? (
-          <div style={{ ...styles.emptyState, gridColumn: '1 / -1' }}>
+          <div style={styles.emptyState}>
             <Palette size={48} />
             <p>No themes found for this category.</p>
           </div>
         ) : (
           getFilteredThemes().map((theme) => {
-            const Icon = theme.icon;
+            const Icon = theme.icon || getThemeIcon(theme.name || theme.id);
             const StatusIcon = getStatusIcon(theme.status);
+            const isActive = theme.status === 'active';
+            const isActivating = activatingThemeId === (theme.id || theme.name);
+            
             return (
               <div 
-                key={theme.id} 
+                key={theme.id || theme.name} 
                 style={styles.themeCard}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = themeColors.primary;
@@ -706,9 +828,10 @@ const ThemeTab = () => {
                       <Icon size={18} />
                     </div>
                     <div style={styles.themeCardContent}>
-                      <div style={styles.themeCardName}>{theme.displayName}</div>
+                      <div style={styles.themeCardName}>{theme.displayName || theme.name}</div>
                       <div style={styles.themeCardMeta}>
-                        {theme.type} • {formatDate(theme.startDate)}
+                        {theme.type || 'Custom'} theme
+                        {theme.startDate && ` • ${formatDate(theme.startDate)}`}
                       </div>
                     </div>
                   </div>
@@ -719,7 +842,7 @@ const ThemeTab = () => {
                     </span>
                     <button 
                       style={styles.actionButton}
-                      onClick={() => handleThemeAction('more', theme.id)}
+                      onClick={() => handleThemeAction('more', theme.id || theme.name)}
                     >
                       <MoreVertical size={14} />
                     </button>
@@ -728,35 +851,62 @@ const ThemeTab = () => {
 
                 <div style={styles.themeCardDetails}>
                   <div style={styles.themeCardDescription}>
-                    {theme.description}
+                    {theme.description || `A beautiful ${theme.type || 'custom'} theme with carefully chosen colors.`}
                   </div>
 
-                  <div style={styles.themeCardColors}>
-                    {Object.entries(theme.colors).slice(0, 6).map(([name, color]) => (
-                      <div
-                        key={name}
-                        style={styles.smallColorSwatch(color)}
-                        title={`${name}: ${color}`}
-                      />
-                    ))}
-                  </div>
+                  {theme.colors && (
+                    <div style={styles.themeCardColors}>
+                      {Object.entries(theme.colors).slice(0, 6).map(([name, color]) => (
+                        <div
+                          key={name}
+                          style={styles.smallColorSwatch(color)}
+                          title={`${name}: ${color}`}
+                        />
+                      ))}
+                    </div>
+                  )}
 
-                  <div style={styles.themeCardStats}>
-                    <div style={styles.stat}>
-                      <div style={styles.statLabel}>Duration</div>
-                      <div style={styles.statValue}>
-                        {Math.ceil((new Date(theme.endDate) - new Date(theme.startDate)) / (1000 * 60 * 60 * 24))} days
-                      </div>
-                    </div>
-                    <div style={styles.stat}>
-                      <div style={styles.statLabel}>Usage</div>
-                      <div style={styles.statValue}>{theme.usage}%</div>
-                      {theme.usage > 0 && (
-                        <div style={styles.usageBar}>
-                          <div style={styles.usageFill(theme.usage)} />
-                        </div>
-                      )}
-                    </div>
+                  <div style={styles.themeCardButtonContainer}>
+                    <button
+                      style={{ ...styles.themeCardButton, ...styles.previewButton }}
+                      onClick={() => handlePreviewTheme(theme)}
+                    >
+                      <Eye size={12} />
+                      Preview
+                    </button>
+                    
+                    {!isActive && (
+                      <button
+                        style={{ 
+                          ...styles.themeCardButton, 
+                          ...(isActivating ? styles.activatingButton : styles.activateButton)
+                        }}
+                        onClick={() => handleActivateTheme(theme.id || theme.name)}
+                        disabled={isActivating}
+                      >
+                        {isActivating ? (
+                          <>
+                            <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                            Activating...
+                          </>
+                        ) : (
+                          <>
+                            <Play size={12} />
+                            Activate
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {isActive && (
+                      <button
+                        style={{ ...styles.themeCardButton, ...styles.activateButton }}
+                        disabled
+                      >
+                        <Check size={12} />
+                        Active
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -765,12 +915,33 @@ const ThemeTab = () => {
         )}
       </div>
 
-      {/* Add the ThemeCreatorModal component */}
+      {/* Theme Creator Modal */}
       <ThemeCreatorModal
         isOpen={showThemeCreator}
         onClose={() => setShowThemeCreator(false)}
         onSave={handleThemeSave}
       />
+
+      {/* Theme Preview Modal */}
+      <ThemePreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => {
+          setShowPreviewModal(false);
+          setPreviewTheme(null);
+        }}
+        theme={previewTheme}
+        onActivate={handleActivateTheme}
+        currentThemeId={currentTheme?.id || currentTheme?.name}
+      />
+
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
     </div>
   );
 };
