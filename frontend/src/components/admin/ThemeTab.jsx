@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useTheme } from '../contexts/ThemeContext';
-import ThemeCreatorModal from '../components/admin/ThemeCreatorModal'; // Add this import
+import { useTheme } from '../../contexts/ThemeContext';
+import ThemeCreatorModal from '../components/ThemeCreatorModal'; // Add this import
 import { 
   Palette, 
   Plus,
