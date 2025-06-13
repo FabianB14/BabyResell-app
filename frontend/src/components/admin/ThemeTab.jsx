@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import ThemeCreatorModal from '../ThemeCreatorModal';
-import ThemePreviewModal from '../ThemePreviewModal';
+import ThemePreviewModal from '../ThemePreviewModal'; // Add this import
 import { 
   Palette, 
   Plus,
@@ -38,7 +38,9 @@ const ThemeTab = () => {
     predefinedThemes,
     activateTheme, 
     createTheme,
-    loading 
+    loading,
+    setUserActive,
+    setModalOpenState
   } = useTheme();
   
   const [activeView, setActiveView] = useState('current');
@@ -265,11 +267,13 @@ const ThemeTab = () => {
   const handlePreviewTheme = (theme) => {
     setPreviewTheme(theme);
     setShowPreviewModal(true);
+    setModalOpenState(true); // Tell ThemeContext a modal is open
   };
 
   // Handle theme save from creator modal
   const handleThemeSave = async (themeData) => {
     try {
+      setUserActive(true); // Mark user as active during save
       const result = await createTheme(themeData);
       
       if (result.success) {
@@ -733,7 +737,10 @@ const ThemeTab = () => {
               </button>
               <button
                 style={{ ...styles.button, fontSize: '12px', padding: '6px 12px' }}
-                onClick={() => setShowThemeCreator(true)}
+                onClick={() => {
+                  setShowThemeCreator(true);
+                  setModalOpenState(true); // Tell ThemeContext a modal is open
+                }}
               >
                 <Plus size={14} />
                 Create New
@@ -767,7 +774,10 @@ const ThemeTab = () => {
           </button>
           <button 
             style={styles.button}
-            onClick={() => setShowThemeCreator(true)}
+            onClick={() => {
+              setShowThemeCreator(true);
+              setModalOpenState(true); // Tell ThemeContext a modal is open
+            }}
           >
             <Plus size={16} />
             {!isMobile && 'Create Theme'}
@@ -918,7 +928,10 @@ const ThemeTab = () => {
       {/* Theme Creator Modal */}
       <ThemeCreatorModal
         isOpen={showThemeCreator}
-        onClose={() => setShowThemeCreator(false)}
+        onClose={() => {
+          setShowThemeCreator(false);
+          setModalOpenState(false); // Tell ThemeContext modal is closed
+        }}
         onSave={handleThemeSave}
       />
 
@@ -928,6 +941,7 @@ const ThemeTab = () => {
         onClose={() => {
           setShowPreviewModal(false);
           setPreviewTheme(null);
+          setModalOpenState(false); // Tell ThemeContext modal is closed
         }}
         theme={previewTheme}
         onActivate={handleActivateTheme}

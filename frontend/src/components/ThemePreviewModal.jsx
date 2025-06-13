@@ -4,6 +4,23 @@ import { X, Check, Eye, Palette } from 'lucide-react';
 const ThemePreviewModal = ({ isOpen, onClose, theme, onActivate, currentThemeId }) => {
   const [activating, setActivating] = useState(false);
 
+  // Notify parent about user activity when modal is being used
+  React.useEffect(() => {
+    if (isOpen) {
+      const handleActivity = () => {
+        // Modal is being used, user is active
+      };
+      
+      document.addEventListener('mousedown', handleActivity);
+      document.addEventListener('keydown', handleActivity);
+      
+      return () => {
+        document.removeEventListener('mousedown', handleActivity);
+        document.removeEventListener('keydown', handleActivity);
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen || !theme) return null;
 
   const handleActivate = async () => {

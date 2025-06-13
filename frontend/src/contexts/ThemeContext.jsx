@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { themeAPI } from '../services/api';
 
 // Create context
@@ -128,13 +128,24 @@ export const ThemeProvider = ({ children }) => {
   const [availableThemes, setAvailableThemes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // NEW: Track when user is actively working to prevent disruptive refreshes
+  const [isUserActive, setIsUserActive] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const lastActivityRef = useRef(Date.now());
 
   // Get theme colors (computed from current theme)
   const themeColors = currentTheme.colors || defaultTheme.colors;
 
   // Load active theme from backend - THIS IS CALLED BY ALL USERS
-  const loadActiveTheme = async () => {
+  const loadActiveTheme = async (force = false) => {
     try {
+      // Don't refresh if user is actively working unless forced
+      if (!force && (isUserActive || modalOpen)) {
+        console.log('Skipping theme refresh - user is active or modal is open');
+        return;
+      }
+
       setLoading(true);
       setError(null);
       
@@ -179,8 +190,14 @@ export const ThemeProvider = ({ children }) => {
   };
 
   // Load all available themes
-  const loadAvailableThemes = async () => {
+  const loadAvailableThemes = async (force = false) => {
     try {
+      // Don't refresh if user is actively working unless forced
+      if (!force && (isUserActive || modalOpen)) {
+        console.log('Skipping available themes refresh - user is active or modal is open');
+        return;
+      }
+
       const response = await themeAPI.getAllThemes();
       if (response.data.success) {
         setAvailableThemes(response.data.data);
@@ -240,8 +257,8 @@ export const ThemeProvider = ({ children }) => {
       if (response.data.success) {
         console.log('Theme activated successfully on backend:', response.data.data);
         
-        // Reload the active theme to get the latest state
-        await loadActiveTheme();
+        // Force reload the active theme to get the latest state
+        await loadActiveTheme(true);
         
         return { 
           success: true, 
@@ -271,8 +288,8 @@ export const ThemeProvider = ({ children }) => {
       if (response.data.success) {
         console.log('Seasonal theme activated globally:', response.data.data);
         
-        // Reload the active theme to get the latest state
-        await loadActiveTheme();
+        // Force reload the active theme to get the latest state
+        await loadActiveTheme(true);
         
         return { success: true, theme: response.data.data };
       }
@@ -295,7 +312,8 @@ export const ThemeProvider = ({ children }) => {
       const response = await themeAPI.createTheme(themeData);
       if (response.data.success) {
         console.log('Theme created successfully:', response.data.data);
-        await loadAvailableThemes(); // Refresh themes list
+        // Force refresh themes list after creating
+        await loadAvailableThemes(true);
         return { success: true, theme: response.data.data };
       }
       return { success: false, error: 'Failed to create theme' };
@@ -310,10 +328,11 @@ export const ThemeProvider = ({ children }) => {
     try {
       const response = await themeAPI.updateTheme(themeId, themeData);
       if (response.data.success) {
-        await loadAvailableThemes(); // Refresh themes list
+        // Force refresh themes list after updating
+        await loadAvailableThemes(true);
         // If it's the current theme, reload it
         if (currentTheme.id === themeId) {
-          await loadActiveTheme();
+          await loadActiveTheme(true);
         }
         return { success: true, theme: response.data.data };
       }
@@ -329,7 +348,8 @@ export const ThemeProvider = ({ children }) => {
     try {
       const response = await themeAPI.deleteTheme(themeId);
       if (response.data.success) {
-        await loadAvailableThemes(); // Refresh themes list
+        // Force refresh themes list after deleting
+        await loadAvailableThemes(true);
         return { success: true };
       }
       return { success: false, error: 'Failed to delete theme' };
@@ -337,6 +357,18 @@ export const ThemeProvider = ({ children }) => {
       console.error('Error deleting theme:', error);
       return { success: false, error: error.message };
     }
+  };
+
+  // NEW: Functions for child components to control refresh behavior
+  const setUserActive = (active) => {
+    setIsUserActive(active);
+    if (active) {
+      lastActivityRef.current = Date.now();
+    }
+  };
+
+  const setModalOpenState = (open) => {
+    setModalOpen(open);
   };
 
   // Apply CSS variables to document root for all users
@@ -369,17 +401,47 @@ export const ThemeProvider = ({ children }) => {
   // Load initial theme on mount - THIS HAPPENS FOR ALL USERS
   useEffect(() => {
     console.log('ThemeProvider mounted, loading initial theme...');
-    loadActiveTheme(); // This gets the global active theme
-    loadAvailableThemes();
+    loadActiveTheme(true); // Force load on mount
+    loadAvailableThemes(true); // Force load on mount
   }, []);
 
-  // Optional: Auto-refresh theme every 30 seconds to catch changes made by other admins
+  // IMPROVED: Smart auto-refresh that respects user activity
   useEffect(() => {
     const interval = setInterval(() => {
-      loadActiveTheme();
-    }, 30000); // Refresh every 30 seconds
+      const timeSinceLastActivity = Date.now() - lastActivityRef.current;
+      const inactiveTime = 2 * 60 * 1000; // 2 minutes
+      
+      // Only auto-refresh if user has been inactive for 2+ minutes AND no modals are open
+      if (timeSinceLastActivity > inactiveTime && !modalOpen && !isUserActive) {
+        console.log('Auto-refreshing themes after user inactivity');
+        loadActiveTheme(false); // Non-forced refresh
+      }
+    }, 60000); // Check every minute instead of every 30 seconds
 
     return () => clearInterval(interval);
+  }, [isUserActive, modalOpen]);
+
+  // Track user activity to prevent disruptive refreshes
+  useEffect(() => {
+    const handleUserActivity = () => {
+      lastActivityRef.current = Date.now();
+      setIsUserActive(true);
+      
+      // Reset user active state after 30 seconds of no activity
+      setTimeout(() => setIsUserActive(false), 30000);
+    };
+
+    // Listen for user activity
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    events.forEach(event => {
+      document.addEventListener(event, handleUserActivity, true);
+    });
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, handleUserActivity, true);
+      });
+    };
   }, []);
 
   const contextValue = {
@@ -401,6 +463,10 @@ export const ThemeProvider = ({ children }) => {
     loadActiveTheme,
     loadAvailableThemes,
     getCurrentSeasonalTheme,
+    
+    // NEW: Activity control functions for child components
+    setUserActive,
+    setModalOpenState,
     
     // Predefined themes for reference
     predefinedThemes
