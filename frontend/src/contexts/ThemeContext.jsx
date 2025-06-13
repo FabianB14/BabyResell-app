@@ -105,6 +105,34 @@ const predefinedThemes = {
       text: '#ffffff',
       textSecondary: '#a1a1aa'
     }
+  },
+  nude: {
+    id: 'nude',
+    name: 'nude',
+    displayName: 'Nude Elegance',
+    colors: {
+      primary: '#d4a574',
+      secondary: '#f5f0eb',
+      accent: '#c49578',
+      background: '#faf8f6',
+      cardBackground: '#ffffff',
+      text: '#8b5a3c',
+      textSecondary: '#a0826d'
+    }
+  },
+  dark: {
+    id: 'dark',
+    name: 'dark',
+    displayName: 'Dark Mode',
+    colors: {
+      primary: '#e60023',
+      secondary: '#2e2e2e',
+      accent: '#e2336b',
+      background: '#121212',
+      cardBackground: '#1e1e1e',
+      text: '#ffffff',
+      textSecondary: '#b0b0b0'
+    }
   }
 };
 

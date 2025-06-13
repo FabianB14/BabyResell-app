@@ -623,7 +623,10 @@ const ThemeTab = () => {
             <Upload size={16} />
             {!isMobile && 'Import Theme'}
           </button>
-          <button style={styles.button}>
+          <button 
+            style={styles.button}
+            onClick={() => setShowThemeCreator(true)}
+          >
             <Plus size={16} />
             {!isMobile && 'Create Theme'}
           </button>
