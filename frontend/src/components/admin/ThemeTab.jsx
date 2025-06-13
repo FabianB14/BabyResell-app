@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import ThemeCreatorModal from '../ThemeCreatorModal';
 import ThemePreviewModal from '../ThemePreviewModal';
 import { 
