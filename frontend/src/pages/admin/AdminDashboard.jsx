@@ -20,12 +20,12 @@ import {
 
 // Import individual tab components
 import DashboardTab from '../components/admin/DashboardTab';
-import UsersTab from '../../components/admin/UsersTab';
-import ItemsTab from '../../components/admin/ItemsTab';
-import TransactionsTab from '../../components/admin/TransactionsTab';
-import SettingsTab from '../../components/admin/SettingsTab';
-import APIToolsTab from '../../components/admin/APIToolsTab';
-import ThemeTab from '../../components/admin/ThemeTab';
+import UsersTab from '../components/admin/UsersTab';
+import ItemsTab from './components/admin/ItemsTab';
+import TransactionsTab from '../components/admin/TransactionsTab';
+import SettingsTab from '../components/admin/SettingsTab';
+import APIToolsTab from '../components/admin/APIToolsTab';
+import ThemeTab from '../components/admin/ThemeTab';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
