@@ -31,6 +31,7 @@ const ResponsiveHomeGrid = ({ items = [], onItemClick }) => {
       price: 45.00,
       image: 'https://via.placeholder.com/300x400?text=Baby+Carrier',
       condition: 'Like New',
+      location: 'Seattle, WA',
       user: { username: 'parent123' }
     },
     {
@@ -39,6 +40,7 @@ const ResponsiveHomeGrid = ({ items = [], onItemClick }) => {
       price: 120.00,
       image: 'https://via.placeholder.com/300x350?text=Wooden+Crib',
       condition: 'Good',
+      location: 'Federal Way, WA',
       user: { username: 'seller456' }
     },
     {
@@ -47,6 +49,7 @@ const ResponsiveHomeGrid = ({ items = [], onItemClick }) => {
       price: 35.00,
       image: 'https://via.placeholder.com/300x450?text=Baby+Toys',
       condition: 'Good',
+      location: 'Tacoma, WA',
       user: { username: 'toystore' }
     },
     {
@@ -54,7 +57,8 @@ const ResponsiveHomeGrid = ({ items = [], onItemClick }) => {
       title: 'Stroller',
       price: 75.00,
       image: 'https://via.placeholder.com/300x380?text=Stroller',
-      condition: 'Good',
+      condition: 'New',
+      location: 'Bellevue, WA',
       user: { username: 'babygear' }
     },
   ];
@@ -83,14 +87,16 @@ const ResponsiveHomeGrid = ({ items = [], onItemClick }) => {
       transition: 'transform 0.2s',
     },
     
-    imageContainer: {
+    // Image container with fixed aspect ratio
+    imageWrapper: {
       position: 'relative',
       width: '100%',
       paddingBottom: '120%', // 5:6 aspect ratio
-      overflow: 'hidden',
       backgroundColor: '#2e2e2e',
+      overflow: 'hidden', // This ensures nothing bleeds out
     },
     
+    // Image fills the container
     image: {
       position: 'absolute',
       top: 0,
@@ -100,31 +106,38 @@ const ResponsiveHomeGrid = ({ items = [], onItemClick }) => {
       objectFit: 'cover',
     },
     
+    // Price tag - top right of image
     priceTag: {
       position: 'absolute',
       top: '8px',
       right: '8px',
       backgroundColor: '#e60023',
       color: 'white',
-      padding: '4px 8px',
+      padding: '6px 12px',
       borderRadius: '12px',
-      fontSize: '12px',
+      fontSize: '13px',
       fontWeight: 'bold',
+      zIndex: 2,
     },
     
+    // Condition tag - bottom left of image (inside image bounds)
     conditionTag: {
       position: 'absolute',
       bottom: '8px',
       left: '8px',
       backgroundColor: 'rgba(0, 0, 0, 0.7)',
       color: 'white',
-      padding: '4px 8px',
+      padding: '4px 10px',
       borderRadius: '8px',
       fontSize: '11px',
+      fontWeight: '500',
+      zIndex: 2,
     },
     
+    // Details section below image
     details: {
       padding: '12px',
+      backgroundColor: '#1e1e1e',
     },
     
     title: {
@@ -140,7 +153,7 @@ const ResponsiveHomeGrid = ({ items = [], onItemClick }) => {
       lineHeight: '1.3',
     },
     
-    user: {
+    locationInfo: {
       color: '#b0b0b0',
       fontSize: '12px',
       display: 'flex',
@@ -153,15 +166,8 @@ const ResponsiveHomeGrid = ({ items = [], onItemClick }) => {
       height: '16px',
       borderRadius: '50%',
       backgroundColor: '#444',
+      marginRight: '4px',
     },
-    
-    // Mobile-specific styles
-    mobileOptimizations: {
-      '@media (max-width: 480px)': {
-        padding: '8px',
-        gap: '8px',
-      }
-    }
   };
   
   return (
@@ -184,10 +190,12 @@ const ResponsiveHomeGrid = ({ items = [], onItemClick }) => {
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
+              {/* Image wrapper with all overlays */}
               <div style={{
-                ...styles.imageContainer,
+                ...styles.imageWrapper,
                 paddingBottom: window.innerWidth < 480 ? '120%' : `${randomHeight / 3}%`
               }}>
+                {/* The actual image */}
                 <img 
                   src={item.image || item.thumbnail}
                   alt={item.title}
@@ -195,12 +203,14 @@ const ResponsiveHomeGrid = ({ items = [], onItemClick }) => {
                   loading="lazy"
                 />
                 
+                {/* Price tag overlay - top right */}
                 {item.price && (
                   <div style={styles.priceTag}>
                     ${item.price.toFixed(2)}
                   </div>
                 )}
                 
+                {/* Condition tag overlay - bottom left */}
                 {item.condition && (
                   <div style={styles.conditionTag}>
                     {item.condition}
@@ -208,16 +218,22 @@ const ResponsiveHomeGrid = ({ items = [], onItemClick }) => {
                 )}
               </div>
               
+              {/* Details section - separate from image */}
               <div style={styles.details}>
                 <div style={styles.title}>
                   {item.title}
                 </div>
-                {item.user && (
-                  <div style={styles.user}>
-                    <div style={styles.avatar} />
-                    <span>{item.user.username}</span>
-                  </div>
-                )}
+                
+                {/* Location info - now fully visible */}
+                <div style={styles.locationInfo}>
+                  {item.user && (
+                    <>
+                      <div style={styles.avatar} />
+                      <span>{item.user.username}</span>
+                      {item.location && <span> • {item.location}</span>}
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           );
