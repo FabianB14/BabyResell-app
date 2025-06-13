@@ -11,6 +11,9 @@ import {
   ShoppingBag
 } from 'lucide-react';
 
+// DashboardTab component to display stats and recent activity
+// This component is used in the AdminDashboard to show key metrics and recent activities
+
 const DashboardTab = ({ stats }) => {
   const { themeColors } = useTheme();
   const [recentActivity, setRecentActivity] = useState([

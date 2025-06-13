@@ -18,7 +18,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 
-// Fixed import paths - need to go up two levels from pages/admin/
+
 import DashboardTab from '../../components/admin/DashboardTab';
 import UsersTab from '../../components/admin/UsersTab';
 import ItemsTab from '../../components/admin/ItemsTab';
