@@ -428,7 +428,7 @@ const ThemeTab = () => {
   };
   
   const handleResetTheme = () => {
-    if (confirm('Are you sure you want to reset to default theme?')) {
+    if (window.confirm('Are you sure you want to reset to default theme?')) {
       const defaultPreset = themePresets.find(p => p.id === 'dark');
       handlePresetSelect(defaultPreset);
     }

@@ -318,7 +318,8 @@ const SettingsTab = () => {
   };
   
   const handleResetSettings = () => {
-    if (confirm('Are you sure you want to reset all settings to default?')) {
+    // eslint-disable-next-line no-alert
+    if (window.confirm('Are you sure you want to reset all settings to default?')) {
       // Reset logic here
       setHasChanges(false);
     }
