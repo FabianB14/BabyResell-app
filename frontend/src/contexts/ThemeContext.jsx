@@ -106,20 +106,6 @@ const predefinedThemes = {
       textSecondary: '#a1a1aa'
     }
   },
-  nude: {
-    id: 'nude',
-    name: 'nude',
-    displayName: 'Nude Elegance',
-    colors: {
-      primary: '#d4a574',
-      secondary: '#f5f0eb',
-      accent: '#c49578',
-      background: '#faf8f6',
-      cardBackground: '#ffffff',
-      text: '#8b5a3c',
-      textSecondary: '#a0826d'
-    }
-  },
   dark: {
     id: 'dark',
     name: 'dark',
@@ -146,30 +132,40 @@ export const ThemeProvider = ({ children }) => {
   // Get theme colors (computed from current theme)
   const themeColors = currentTheme.colors || defaultTheme.colors;
 
-  // Load active theme from backend
+  // Load active theme from backend - THIS IS CALLED BY ALL USERS
   const loadActiveTheme = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Try to get active theme from backend
+      console.log('Loading active theme from backend...');
+      
+      // Get the globally active theme from backend
       const response = await themeAPI.getActiveTheme();
       
       if (response.data.success && response.data.data) {
         const backendTheme = response.data.data;
+        
+        console.log('Active theme loaded from backend:', backendTheme);
         
         // Map backend theme to our format
         const theme = {
           id: backendTheme._id,
           name: backendTheme.name,
           displayName: backendTheme.displayName || backendTheme.name,
-          colors: backendTheme.colors || predefinedThemes[backendTheme.name]?.colors || defaultTheme.colors
+          colors: backendTheme.colors || predefinedThemes[backendTheme.name]?.colors || defaultTheme.colors,
+          isActive: backendTheme.isActive,
+          activatedAt: backendTheme.activatedAt,
+          type: backendTheme.isSeasonal ? 'seasonal' : backendTheme.isHoliday ? 'holiday' : 'custom'
         };
         
         setCurrentTheme(theme);
+        console.log('Theme applied locally:', theme);
       } else {
+        console.log('No active theme found in backend, using fallback');
         // Fallback to automatic seasonal theme
-        await activateSeasonalTheme();
+        const seasonalTheme = getCurrentSeasonalTheme();
+        setCurrentTheme(seasonalTheme);
       }
     } catch (error) {
       console.warn('Failed to load active theme from backend, using fallback:', error);
@@ -222,60 +218,66 @@ export const ThemeProvider = ({ children }) => {
     }
   };
 
-  // Activate a theme by ID
+  // **GLOBAL THEME ACTIVATION** - This makes themes change for ALL users
   const activateTheme = async (themeId) => {
     try {
       setLoading(true);
+      console.log('Activating theme globally:', themeId);
       
-      // If it's a predefined theme, just switch to it
+      let response;
+      
+      // Check if it's a predefined theme (by name) or database theme (by ID)
       if (predefinedThemes[themeId]) {
-        setCurrentTheme(predefinedThemes[themeId]);
-        setLoading(false);
-        return { success: true };
+        // Activate predefined theme by name - this creates/activates it globally
+        console.log('Activating predefined theme:', themeId);
+        response = await themeAPI.activateThemeByName(themeId);
+      } else {
+        // Activate existing database theme by ID
+        console.log('Activating database theme by ID:', themeId);
+        response = await themeAPI.activateTheme(themeId);
       }
-      
-      // Try to activate theme via backend
-      const response = await themeAPI.activateTheme(themeId);
       
       if (response.data.success) {
-        const backendTheme = response.data.data;
-        const theme = {
-          id: backendTheme._id,
-          name: backendTheme.name,
-          displayName: backendTheme.displayName || backendTheme.name,
-          colors: backendTheme.colors || predefinedThemes[backendTheme.name]?.colors || defaultTheme.colors
-        };
+        console.log('Theme activated successfully on backend:', response.data.data);
         
-        setCurrentTheme(theme);
-        return { success: true, theme };
+        // Reload the active theme to get the latest state
+        await loadActiveTheme();
+        
+        return { 
+          success: true, 
+          theme: response.data.data,
+          message: response.data.message 
+        };
       }
       
-      return { success: false, error: 'Failed to activate theme' };
+      return { success: false, error: response.data.message || 'Failed to activate theme' };
     } catch (error) {
-      console.error('Error activating theme:', error);
-      return { success: false, error: error.message };
+      console.error('Error activating theme globally:', error);
+      return { success: false, error: error.message || 'Failed to activate theme' };
     } finally {
       setLoading(false);
     }
   };
 
-  // Activate seasonal theme automatically
+  // Activate seasonal theme automatically (global)
   const activateSeasonalTheme = async () => {
     try {
       setLoading(true);
+      console.log('Activating seasonal theme globally...');
       
-      // Try backend first
+      // This activates the current seasonal theme for ALL users
       const response = await themeAPI.activateSeasonalTheme();
       
       if (response.data.success) {
+        console.log('Seasonal theme activated globally:', response.data.data);
+        
+        // Reload the active theme to get the latest state
         await loadActiveTheme();
-        return { success: true };
+        
+        return { success: true, theme: response.data.data };
       }
       
-      // Fallback to local seasonal theme
-      const seasonalTheme = getCurrentSeasonalTheme();
-      setCurrentTheme(seasonalTheme);
-      return { success: true, theme: seasonalTheme };
+      return { success: false, error: 'Failed to activate seasonal theme' };
     } catch (error) {
       console.warn('Backend seasonal activation failed, using local fallback:', error);
       const seasonalTheme = getCurrentSeasonalTheme();
@@ -286,11 +288,13 @@ export const ThemeProvider = ({ children }) => {
     }
   };
 
-  // Create a new theme
+  // Create a new theme (global)
   const createTheme = async (themeData) => {
     try {
+      console.log('Creating new theme:', themeData);
       const response = await themeAPI.createTheme(themeData);
       if (response.data.success) {
+        console.log('Theme created successfully:', response.data.data);
         await loadAvailableThemes(); // Refresh themes list
         return { success: true, theme: response.data.data };
       }
@@ -301,7 +305,7 @@ export const ThemeProvider = ({ children }) => {
     }
   };
 
-  // Update theme
+  // Update theme (global)
   const updateTheme = async (themeId, themeData) => {
     try {
       const response = await themeAPI.updateTheme(themeId, themeData);
@@ -320,7 +324,7 @@ export const ThemeProvider = ({ children }) => {
     }
   };
 
-  // Delete theme
+  // Delete theme (global)
   const deleteTheme = async (themeId) => {
     try {
       const response = await themeAPI.deleteTheme(themeId);
@@ -335,9 +339,11 @@ export const ThemeProvider = ({ children }) => {
     }
   };
 
-  // Apply CSS variables to document root
+  // Apply CSS variables to document root for all users
   useEffect(() => {
     const root = document.documentElement;
+    
+    console.log('Applying theme colors to CSS variables:', themeColors);
     
     // Apply theme colors as CSS variables
     Object.entries(themeColors).forEach(([key, value]) => {
@@ -353,15 +359,27 @@ export const ThemeProvider = ({ children }) => {
     root.style.setProperty('--color-text', themeColors.text);
     root.style.setProperty('--color-text-secondary', themeColors.textSecondary);
     
-    // Update document background
+    // Update document background for immediate visual feedback
     document.body.style.backgroundColor = themeColors.background;
     document.body.style.color = themeColors.text;
+    
+    console.log('CSS variables applied successfully');
   }, [themeColors]);
 
-  // Load initial theme on mount
+  // Load initial theme on mount - THIS HAPPENS FOR ALL USERS
   useEffect(() => {
-    loadActiveTheme();
+    console.log('ThemeProvider mounted, loading initial theme...');
+    loadActiveTheme(); // This gets the global active theme
     loadAvailableThemes();
+  }, []);
+
+  // Optional: Auto-refresh theme every 30 seconds to catch changes made by other admins
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadActiveTheme();
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   const contextValue = {
@@ -372,9 +390,9 @@ export const ThemeProvider = ({ children }) => {
     loading,
     error,
     
-    // Theme actions
-    activateTheme,
-    activateSeasonalTheme,
+    // Theme actions (all global)
+    activateTheme,          // ← This now changes theme for ALL users
+    activateSeasonalTheme,  // ← This now changes theme for ALL users
     createTheme,
     updateTheme,
     deleteTheme,

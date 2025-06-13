@@ -111,19 +111,51 @@ export const uploadAPI = {
   deleteImage: (imageUrl) => api.delete('/upload/image', { data: { imageUrl } }),
 };
 
-// Theme endpoints
+// Theme endpoints - UPDATED for global theme management
 export const themeAPI = {
+  // Get current/active theme (used by all users)
   getCurrentTheme: () => api.get('/themes/current'),
+  getActiveTheme: () => api.get('/themes/active'),
+  
+  // Get all available themes
   getAllThemes: () => api.get('/themes'),
   getThemeSchedule: () => api.get('/themes/schedule'),
   
-  // Adding admin theme management (new functionality)
-  getActiveTheme: () => api.get('/themes/active'),
-  createTheme: (themeData) => api.post('/themes', themeData),
-  updateTheme: (id, themeData) => api.put(`/themes/${id}`, themeData),
-  deleteTheme: (id) => api.delete(`/themes/${id}`),
-  activateTheme: (id) => api.post(`/themes/${id}/activate`),
-  activateSeasonalTheme: () => api.post('/themes/activate-seasonal'),
+  // **NEW: GLOBAL THEME ACTIVATION METHODS** (Admin only)
+  
+  // Activate theme by database ID (for custom themes created in admin)
+  activateTheme: (id) => {
+    console.log('API: Activating theme by ID:', id);
+    return api.post(`/themes/${id}/activate`);
+  },
+  
+  // NEW: Activate theme by name (for predefined themes like 'spring', 'summer', etc.)
+  activateThemeByName: (themeName) => {
+    console.log('API: Activating theme by name:', themeName);
+    return api.post('/themes/activate-by-name', { themeName });
+  },
+  
+  // Activate current seasonal theme automatically
+  activateSeasonalTheme: () => {
+    console.log('API: Activating seasonal theme');
+    return api.post('/themes/activate-seasonal');
+  },
+  
+  // Theme CRUD operations (Admin only)
+  createTheme: (themeData) => {
+    console.log('API: Creating theme:', themeData);
+    return api.post('/themes', themeData);
+  },
+  
+  updateTheme: (id, themeData) => {
+    console.log('API: Updating theme:', id, themeData);
+    return api.put(`/themes/${id}`, themeData);
+  },
+  
+  deleteTheme: (id) => {
+    console.log('API: Deleting theme:', id);
+    return api.delete(`/themes/${id}`);
+  },
 };
 
 // Transaction API
