@@ -19,13 +19,13 @@ import {
 } from 'lucide-react';
 
 // Import individual tab components
-import DashboardTab from '../components/admin/DashboardTab';
-import UsersTab from '../components/admin/UsersTab';
-import ItemsTab from '../components/admin/ItemsTab';
-import TransactionsTab from '../components/admin/TransactionsTab';
-import SettingsTab from '../components/admin/SettingsTab';
-import APIToolsTab from '../components/admin/APIToolsTab';
-import ThemeTab from '../components/admin/ThemeTab';
+import DashboardTab from 'src/components/admin/DashboardTab';
+import UsersTab from 'src/components/admin/UsersTab';
+import ItemsTab from 'src/components/admin/ItemsTab';
+import TransactionsTab from 'src/components/admin/TransactionsTab';
+import SettingsTab from 'src/components/admin/SettingsTab';
+import APIToolsTab from 'src/components/admin/APIToolsTab';
+import ThemeTab from 'src/components/admin/ThemeTab';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
