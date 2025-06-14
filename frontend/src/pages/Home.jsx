@@ -1,22 +1,9 @@
-// Restored Home.jsx with original Pinterest-style grid and proper image handling
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { itemsAPI } from '../services/api';
 import ItemDetailModal from '../components/ItemDetailModal';
-import { 
-  Search, 
-  Filter, 
-  ChevronDown, 
-  ChevronUp, 
-  X,
-  SlidersHorizontal,
-  Heart,
-  MapPin,
-  User
-} from 'lucide-react';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -28,7 +15,6 @@ const Home = () => {
   const [error, setError] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [filters, setFilters] = useState({
     category: '',
     minPrice: '',
@@ -43,60 +29,13 @@ const Home = () => {
     pages: 0
   });
 
-  // Responsive columns - matching original
-  const [columns, setColumns] = useState(getColumnCount());
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-  function getColumnCount() {
-    if (window.innerWidth < 640) return 2;
-    if (window.innerWidth < 1024) return 3;
-    return 4;
-  }
-
-  useEffect(() => {
-    const handleResize = () => {
-      setColumns(getColumnCount());
-      setIsMobile(window.innerWidth < 768);
-      
-      // Auto-close mobile filters when switching to desktop
-      if (window.innerWidth >= 768) {
-        setShowMobileFilters(false);
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Count active filters
-  const getActiveFilterCount = () => {
-    let count = 0;
-    if (searchQuery.trim()) count++;
-    if (filters.category) count++;
-    if (filters.condition) count++;
-    if (filters.minPrice) count++;
-    if (filters.maxPrice) count++;
-    return count;
-  };
-
-  // Clear all filters
-  const clearAllFilters = () => {
-    setSearchQuery('');
-    setFilters({
-      category: '',
-      minPrice: '',
-      maxPrice: '',
-      condition: '',
-      sort: '-createdAt'
-    });
-  };
-
-  // Fetch items logic
+  // Fetch baby items from the backend
   const fetchItems = async (resetItems = false) => {
     try {
       setLoading(true);
       setError(null);
       
+      // Build query parameters
       const params = {
         page: resetItems ? 1 : pagination.page,
         limit: pagination.limit,
@@ -108,12 +47,15 @@ const Home = () => {
         ...(filters.maxPrice && { maxPrice: parseFloat(filters.maxPrice) }),
       };
 
+      console.log('Fetching items with params:', params);
+      
       const response = await itemsAPI.getAllItems(params);
       
       if (response.data.success) {
         const newItems = response.data.data || [];
         const paginationData = response.data.pagination || {};
         
+        // If resetting (new search/filter), replace items; otherwise append for pagination
         setItems(resetItems ? newItems : [...items, ...newItems]);
         setPagination({
           page: paginationData.page || 1,
@@ -121,9 +63,19 @@ const Home = () => {
           total: paginationData.total || 0,
           pages: paginationData.pages || 0
         });
+        
+        console.log('Items fetched successfully:', { 
+          count: newItems.length, 
+          total: paginationData.total 
+        });
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch items');
       }
     } catch (err) {
+      console.error('Error fetching items:', err);
       setError(err.response?.data?.message || err.message || 'Failed to load items');
+      
+      // If it's the first load and the API fails, don't show any items
       if (resetItems) {
         setItems([]);
       }
@@ -131,6 +83,20 @@ const Home = () => {
       setLoading(false);
     }
   };
+
+  // Initial load
+  useEffect(() => {
+    fetchItems(true);
+  }, []);
+
+  // Refetch when search or filters change
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchItems(true);
+    }, 500); // Debounce search queries
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, filters]);
 
   // Handle search
   const handleSearch = (query) => {
@@ -147,9 +113,36 @@ const Home = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
+  // Load more items (pagination)
+  const loadMore = () => {
+    if (loading || pagination.page >= pagination.pages) return;
+    
+    setPagination(prev => ({ ...prev, page: prev.page + 1 }));
+    fetchItems(false);
+  };
+
+  // Dynamic columns based on window width
+  const [columns, setColumns] = useState(getColumnCount());
+
+  function getColumnCount() {
+    if (window.innerWidth < 640) return 2;
+    if (window.innerWidth < 1024) return 3;
+    return 4;
+  }
+
+  // Update columns when window is resized
+  useEffect(() => {
+    const handleResize = () => {
+      setColumns(getColumnCount());
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Open item detail modal
   const handleItemClick = (item) => {
-    console.log('Item clicked:', item);
+    console.log('Item clicked:', item); // Debug log
     setSelectedItem(item);
   };
 
@@ -160,36 +153,11 @@ const Home = () => {
       return;
     }
     
+    // Navigate to checkout
     navigate('/checkout', { state: { item } });
   };
 
-  // Effects for fetching data
-  useEffect(() => {
-    fetchItems(true);
-  }, []);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      fetchItems(true);
-    }, 500);
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, filters]);
-
-  const activeFilterCount = getActiveFilterCount();
-
-  // Group items into columns for masonry layout (original logic)
-  const getItemsInColumns = () => {
-    const itemsInColumns = Array.from({ length: columns }, () => []);
-    
-    items.forEach((item, index) => {
-      const columnIndex = index % columns;
-      itemsInColumns[columnIndex].push(item);
-    });
-    
-    return itemsInColumns;
-  };
-
-  // Styles - matching original design
+  // CSS for Pinterest-style layout
   const containerStyle = {
     maxWidth: '1500px',
     margin: '0 auto',
@@ -201,7 +169,7 @@ const Home = () => {
     padding: '20px',
     borderRadius: '12px',
     marginBottom: '24px',
-    display: isMobile ? 'none' : 'grid',
+    display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
     gap: '16px'
   };
@@ -222,7 +190,7 @@ const Home = () => {
     margin: '0 auto'
   };
 
-  const itemStyle = {
+  const itemStyle = (item) => ({
     marginBottom: '16px',
     breakInside: 'avoid',
     backgroundColor: themeColors.cardBackground,
@@ -231,19 +199,19 @@ const Home = () => {
     position: 'relative',
     transition: 'transform 0.2s, box-shadow 0.2s',
     cursor: 'pointer'
-  };
+  });
 
   const imageStyle = (height = 300) => ({
     width: '100%',
     height: `${height}px`,
     objectFit: 'cover',
-    pointerEvents: 'none'
+    pointerEvents: 'none' // This ensures clicks pass through to the parent div
   });
 
   const cardContentStyle = {
     padding: '12px',
     color: themeColors.text,
-    pointerEvents: 'none'
+    pointerEvents: 'none' // Ensure clicks pass through to parent
   };
 
   const priceTagStyle = {
@@ -256,7 +224,7 @@ const Home = () => {
     borderRadius: '16px',
     fontWeight: 'bold',
     fontSize: '14px',
-    pointerEvents: 'none'
+    pointerEvents: 'none' // This ensures clicks pass through
   };
 
   const conditionTagStyle = {
@@ -268,7 +236,7 @@ const Home = () => {
     padding: '4px 8px',
     borderRadius: '12px',
     fontSize: '12px',
-    pointerEvents: 'none'
+    pointerEvents: 'none' // This ensures clicks pass through
   };
 
   const loadMoreButtonStyle = {
@@ -285,33 +253,6 @@ const Home = () => {
     transition: 'transform 0.2s'
   };
 
-  // Mobile filter styles
-  const mobileFilterToggleStyle = {
-    display: isMobile ? 'flex' : 'none',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    padding: '12px 16px',
-    backgroundColor: showMobileFilters ? themeColors.primary : 'transparent',
-    color: showMobileFilters ? 'white' : themeColors.text,
-    border: `1px solid ${showMobileFilters ? themeColors.primary : themeColors.secondary}`,
-    borderRadius: '12px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    marginBottom: '16px',
-    position: 'relative',
-  };
-
-  const mobileFiltersStyle = {
-    display: isMobile && showMobileFilters ? 'block' : 'none',
-    backgroundColor: themeColors.cardBackground,
-    borderRadius: '12px',
-    padding: '16px',
-    marginBottom: '24px',
-    border: `1px solid ${themeColors.secondary}`,
-  };
-
   const hoverEffect = (e) => {
     e.currentTarget.style.transform = 'scale(1.02)';
     e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.2)';
@@ -322,379 +263,268 @@ const Home = () => {
     e.currentTarget.style.boxShadow = 'none';
   };
 
-  const itemsInColumns = getItemsInColumns();
+  // Group items into columns for the masonry layout
+  const getItemsInColumns = () => {
+    const itemsInColumns = Array.from({ length: columns }, () => []);
+    
+    items.forEach((item, index) => {
+      const columnIndex = index % columns;
+      itemsInColumns[columnIndex].push(item);
+    });
+    
+    return itemsInColumns;
+  };
+
+  const columnsOfItems = getItemsInColumns();
 
   return (
-    <div style={containerStyle}>
-      {/* Search Section */}
-      <div style={{
-        backgroundColor: themeColors.cardBackground,
-        padding: '20px',
-        borderRadius: '12px',
-        marginBottom: '24px'
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          backgroundColor: themeColors.secondary,
-          padding: '12px 16px',
-          borderRadius: '24px',
-          marginBottom: isMobile ? '16px' : '0'
-        }}>
-          <Search size={20} color={themeColors.textSecondary} />
+    <div style={{ backgroundColor: themeColors.background, minHeight: '100vh' }}>
+      <div style={containerStyle}>
+        {/* Search and Filters */}
+        <div style={filtersStyle}>
           <input
             type="text"
-            placeholder="Search baby items..."
-            style={{
-              background: 'none',
-              border: 'none',
-              outline: 'none',
-              fontSize: '16px',
-              color: themeColors.text,
-              width: '100%',
-              fontFamily: 'inherit',
-            }}
+            placeholder="Search items..."
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
+            style={filterInputStyle}
           />
-          {searchQuery && (
-            <button
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: themeColors.textSecondary,
-              }}
-              onClick={() => handleSearch('')}
-            >
-              <X size={16} />
-            </button>
-          )}
+          
+          <select
+            value={filters.category}
+            onChange={(e) => handleFilterChange('category', e.target.value)}
+            style={filterInputStyle}
+          >
+            <option value="">All Categories</option>
+            <option value="Clothes & Shoes">Clothes & Shoes</option>
+            <option value="Toys & Games">Toys & Games</option>
+            <option value="Feeding">Feeding</option>
+            <option value="Diapering">Diapering</option>
+            <option value="Bathing & Skincare">Bathing & Skincare</option>
+            <option value="Health & Safety">Health & Safety</option>
+            <option value="Nursery">Nursery</option>
+            <option value="Strollers & Car Seats">Strollers & Car Seats</option>
+            <option value="Carriers & Wraps">Carriers & Wraps</option>
+            <option value="Activity & Entertainment">Activity & Entertainment</option>
+            <option value="Books">Books</option>
+            <option value="Other">Other</option>
+          </select>
+          
+          <select
+            value={filters.condition}
+            onChange={(e) => handleFilterChange('condition', e.target.value)}
+            style={filterInputStyle}
+          >
+            <option value="">All Conditions</option>
+            <option value="New">New</option>
+            <option value="Like New">Like New</option>
+            <option value="Good">Good</option>
+            <option value="Fair">Fair</option>
+            <option value="Poor">Poor</option>
+          </select>
+          
+          <input
+            type="number"
+            placeholder="Min Price"
+            value={filters.minPrice}
+            onChange={(e) => handleFilterChange('minPrice', e.target.value)}
+            style={filterInputStyle}
+            min="0"
+            step="0.01"
+          />
+          
+          <input
+            type="number"
+            placeholder="Max Price"
+            value={filters.maxPrice}
+            onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
+            style={filterInputStyle}
+            min="0"
+            step="0.01"
+          />
+          
+          <select
+            value={filters.sort}
+            onChange={(e) => handleFilterChange('sort', e.target.value)}
+            style={filterInputStyle}
+          >
+            <option value="-createdAt">Newest First</option>
+            <option value="createdAt">Oldest First</option>
+            <option value="price">Price: Low to High</option>
+            <option value="-price">Price: High to Low</option>
+            <option value="title">Name: A to Z</option>
+            <option value="-title">Name: Z to A</option>
+          </select>
         </div>
 
-        {/* Mobile Filter Toggle */}
-        <button
-          style={mobileFilterToggleStyle}
-          onClick={() => setShowMobileFilters(!showMobileFilters)}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <SlidersHorizontal size={16} />
-            <span>Filters</span>
-            {showMobileFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        {/* Results Count */}
+        {!loading && (
+          <div style={{ 
+            color: themeColors.textSecondary, 
+            marginBottom: '20px',
+            textAlign: 'center'
+          }}>
+            {pagination.total > 0 
+              ? `Showing ${items.length} of ${pagination.total} items`
+              : 'No items found'
+            }
           </div>
-          {activeFilterCount > 0 && (
-            <span style={{
-              position: 'absolute',
-              top: '-6px',
-              right: '-6px',
-              backgroundColor: '#EF4444',
-              color: 'white',
-              borderRadius: '12px',
-              padding: '2px 6px',
-              fontSize: '11px',
-              fontWeight: '600',
-              minWidth: '20px',
-              textAlign: 'center',
+        )}
+
+        {/* Loading State */}
+        {loading && items.length === 0 && (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+            <div className="loader"></div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div style={{ 
+            padding: '20px', 
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            borderRadius: '8px',
+            color: '#ef4444',
+            textAlign: 'center',
+            marginBottom: '20px'
+          }}>
+            <h3>Error: {error}</h3>
+            <p>Please try again or check your connection.</p>
+            <button 
+              style={loadMoreButtonStyle}
+              onClick={() => fetchItems(true)}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Items Grid */}
+        {!loading && items.length > 0 && (
+          <div style={masonryStyle}>
+            {columnsOfItems.map((column, columnIndex) => (
+              <div key={columnIndex}>
+                {column.map(item => {
+                  // Get the best image URL
+                  const imageUrl = item.images && item.images.length > 0
+                    ? (item.images.find(img => img.isPrimary)?.thumbnail || item.images[0].thumbnail)
+                    : item.thumbnail || item.image || `https://via.placeholder.com/300x300?text=${encodeURIComponent(item.title || 'No Image')}`;
+                  
+                  // Calculate dynamic height based on image aspect ratio or random
+                  const height = item.height || (250 + Math.floor(Math.random() * 150));
+                  
+                  return (
+                    <div 
+                      key={item._id || item.id} 
+                      style={itemStyle(item)}
+                      onClick={() => handleItemClick(item)}
+                      onMouseEnter={hoverEffect}
+                      onMouseLeave={removeHoverEffect}
+                    >
+                      {/* Image Container - This wraps the image and its overlays */}
+                      <div style={{
+                        position: 'relative',
+                        width: '100%',
+                        overflow: 'hidden'
+                      }}>
+                        {/* Price Tag - now inside image container */}
+                        {item.price && (
+                          <div style={priceTagStyle}>
+                            ${typeof item.price === 'number' ? item.price.toFixed(2) : item.price}
+                          </div>
+                        )}
+                        
+                        {/* Item Image */}
+                        <img 
+                          src={imageUrl}
+                          alt={item.title || 'Baby item'} 
+                          style={imageStyle(height)}
+                          onError={(e) => {
+                            e.target.src = `https://via.placeholder.com/300x${height}?text=${encodeURIComponent(item.title || 'Image Error')}`;
+                          }}
+                        />
+                        
+                        {/* Condition Tag - now inside image container */}
+                        {item.condition && (
+                          <div style={conditionTagStyle}>
+                            {item.condition}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Item Details - separate from image container */}
+                      <div style={cardContentStyle}>
+                        <h3 style={{ fontSize: '16px', marginBottom: '4px', fontWeight: '600' }}>
+                          {item.title || 'Untitled Item'}
+                        </h3>
+                        {item.user && (
+                          <div style={{ fontSize: '12px', color: themeColors.textSecondary }}>
+                            by {item.user.username || 'Anonymous'}
+                          </div>
+                        )}
+                        {item.location && (
+                          <div style={{ fontSize: '12px', color: themeColors.textSecondary }}>
+                            📍 {item.location}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Load More Button */}
+        {!loading && items.length > 0 && pagination.page < pagination.pages && (
+          <button 
+            style={loadMoreButtonStyle}
+            onClick={loadMore}
+            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+          >
+            Load More Items ({pagination.total - items.length} remaining)
+          </button>
+        )}
+
+        {/* Empty State */}
+        {!loading && items.length === 0 && !error && (
+          <div style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            color: themeColors.textSecondary
+          }}>
+            <div style={{
+              fontSize: '48px',
+              marginBottom: '20px'
             }}>
-              {activeFilterCount}
-            </span>
-          )}
-        </button>
-
-        {/* Mobile Filters */}
-        <div style={mobileFiltersStyle}>
-          <div style={{ display: 'grid', gap: '16px' }}>
-            <select
-              style={filterInputStyle}
-              value={filters.category}
-              onChange={(e) => handleFilterChange('category', e.target.value)}
-            >
-              <option value="">All Categories</option>
-              <option value="clothing">Clothing</option>
-              <option value="toys">Toys</option>
-              <option value="feeding">Feeding</option>
-              <option value="gear">Gear</option>
-              <option value="books">Books</option>
-            </select>
-
-            <select
-              style={filterInputStyle}
-              value={filters.condition}
-              onChange={(e) => handleFilterChange('condition', e.target.value)}
-            >
-              <option value="">All Conditions</option>
-              <option value="new">New</option>
-              <option value="like-new">Like New</option>
-              <option value="good">Good</option>
-              <option value="fair">Fair</option>
-            </select>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <input
-                type="number"
-                placeholder="Min Price"
-                style={filterInputStyle}
-                value={filters.minPrice}
-                onChange={(e) => handleFilterChange('minPrice', e.target.value)}
-              />
-              <input
-                type="number"
-                placeholder="Max Price"
-                style={filterInputStyle}
-                value={filters.maxPrice}
-                onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-              />
+              🍼
             </div>
-
-            <select
-              style={filterInputStyle}
-              value={filters.sort}
-              onChange={(e) => handleFilterChange('sort', e.target.value)}
-            >
-              <option value="-createdAt">Newest First</option>
-              <option value="price">Price: Low to High</option>
-              <option value="-price">Price: High to Low</option>
-              <option value="-views">Most Popular</option>
-            </select>
-
-            {activeFilterCount > 0 && (
-              <button
-                style={{
-                  ...filterInputStyle,
-                  backgroundColor: '#EF4444',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                }}
-                onClick={clearAllFilters}
+            <h3 style={{ color: themeColors.text, marginBottom: '12px' }}>
+              No items found
+            </h3>
+            <p style={{ marginBottom: '24px' }}>
+              {searchQuery || Object.values(filters).some(f => f) 
+                ? 'Try adjusting your search or filters'
+                : 'Be the first to list an item!'
+              }
+            </p>
+            {isAuthenticated && (
+              <button 
+                style={loadMoreButtonStyle}
+                onClick={() => navigate('/create-listing')}
               >
-                Clear All Filters ({activeFilterCount})
+                Create Your First Listing
               </button>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* Desktop Filters */}
-      <div style={filtersStyle}>
-        <select
-          style={filterInputStyle}
-          value={filters.category}
-          onChange={(e) => handleFilterChange('category', e.target.value)}
-        >
-          <option value="">All Categories</option>
-          <option value="clothing">Clothing</option>
-          <option value="toys">Toys</option>
-          <option value="feeding">Feeding</option>
-          <option value="gear">Gear</option>
-          <option value="books">Books</option>
-        </select>
-
-        <select
-          style={filterInputStyle}
-          value={filters.condition}
-          onChange={(e) => handleFilterChange('condition', e.target.value)}
-        >
-          <option value="">All Conditions</option>
-          <option value="new">New</option>
-          <option value="like-new">Like New</option>
-          <option value="good">Good</option>
-          <option value="fair">Fair</option>
-        </select>
-
-        <input
-          type="number"
-          placeholder="Min Price"
-          style={filterInputStyle}
-          value={filters.minPrice}
-          onChange={(e) => handleFilterChange('minPrice', e.target.value)}
-        />
-
-        <input
-          type="number"
-          placeholder="Max Price"
-          style={filterInputStyle}
-          value={filters.maxPrice}
-          onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-        />
-
-        <select
-          style={filterInputStyle}
-          value={filters.sort}
-          onChange={(e) => handleFilterChange('sort', e.target.value)}
-        >
-          <option value="-createdAt">Newest First</option>
-          <option value="price">Price: Low to High</option>
-          <option value="-price">Price: High to Low</option>
-          <option value="-views">Most Popular</option>
-        </select>
-
-        {activeFilterCount > 0 && (
-          <button
-            style={{
-              ...filterInputStyle,
-              backgroundColor: '#EF4444',
-              color: 'white',
-              cursor: 'pointer',
-              fontWeight: '600',
-            }}
-            onClick={clearAllFilters}
-          >
-            Clear All ({activeFilterCount})
-          </button>
         )}
       </div>
-
-      {/* Results Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '24px',
-        color: themeColors.textSecondary,
-        fontSize: '14px'
-      }}>
-        <span>Showing {items.length} of {pagination.total} items</span>
-        {!isMobile && (
-          <select
-            style={filterInputStyle}
-            value={filters.sort}
-            onChange={(e) => handleFilterChange('sort', e.target.value)}
-          >
-            <option value="-createdAt">Newest First</option>
-            <option value="price">Price: Low to High</option>
-            <option value="-price">Price: High to Low</option>
-            <option value="-views">Most Popular</option>
-          </select>
-        )}
-      </div>
-
-      {/* Pinterest-style Masonry Grid - Original Layout */}
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: themeColors.textSecondary }}>
-          Loading items...
-        </div>
-      ) : error ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#EF4444' }}>
-          {error}
-        </div>
-      ) : (
-        <div style={masonryStyle}>
-          {itemsInColumns.map((columnItems, columnIndex) => (
-            <div key={columnIndex} style={{ display: 'flex', flexDirection: 'column' }}>
-              {columnItems.map((item, itemIndex) => {
-                // Dynamic heights for masonry effect
-                const heights = [250, 300, 350, 400, 450];
-                const randomHeight = heights[(columnIndex + itemIndex) % heights.length];
-
-                return (
-                  <div
-                    key={item._id || item.id}
-                    style={itemStyle}
-                    onClick={() => handleItemClick(item)}
-                    onMouseEnter={hoverEffect}
-                    onMouseLeave={removeHoverEffect}
-                  >
-                    {/* Image with overlays */}
-                    <div style={{ position: 'relative' }}>
-                      <img
-                        src={item.images?.[0] || item.image || item.thumbnail || '/api/placeholder/300/250'}
-                        alt={item.title || item.name}
-                        style={imageStyle(randomHeight)}
-                        loading="lazy"
-                        onError={(e) => {
-                          e.target.src = '/api/placeholder/300/250';
-                        }}
-                      />
-                      
-                      {/* Price tag overlay */}
-                      {item.price && (
-                        <div style={priceTagStyle}>
-                          ${typeof item.price === 'number' ? item.price.toFixed(2) : item.price}
-                        </div>
-                      )}
-                      
-                      {/* Condition tag overlay */}
-                      {item.condition && (
-                        <div style={conditionTagStyle}>
-                          {item.condition}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Card content */}
-                    <div style={cardContentStyle}>
-                      <h3 style={{
-                        fontSize: '16px',
-                        fontWeight: '600',
-                        margin: '0 0 8px 0',
-                        lineHeight: '1.3',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                      }}>
-                        {item.title || item.name}
-                      </h3>
-                      
-                      {/* Seller info */}
-                      {(item.seller || item.user) && (
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          color: themeColors.textSecondary,
-                          fontSize: '12px',
-                          marginBottom: '4px',
-                        }}>
-                          <User size={12} />
-                          <span>by {item.seller?.name || item.seller?.username || item.user?.name || item.user?.username}</span>
-                        </div>
-                      )}
-                      
-                      {/* Location */}
-                      {item.location && (
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          color: themeColors.textSecondary,
-                          fontSize: '12px',
-                        }}>
-                          <MapPin size={12} />
-                          <span>{item.location}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Load More Button */}
-      {pagination.page < pagination.pages && !loading && (
-        <button
-          style={loadMoreButtonStyle}
-          onClick={() => fetchItems(false)}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.05)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
-        >
-          Load More Items
-        </button>
-      )}
-
+      
       {/* Item Detail Modal */}
       {selectedItem && (
-        <ItemDetailModal
+        <ItemDetailModal 
           item={selectedItem}
           onClose={() => setSelectedItem(null)}
           onPurchase={handlePurchase}
