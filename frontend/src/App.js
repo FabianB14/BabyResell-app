@@ -86,7 +86,7 @@ function App() {
             display: 'flex', 
             flexDirection: 'column',
             minHeight: '100vh',
-            backgroundColor: '#121212' 
+            backgroundColor: 'background-color:121212' 
           }}>
             
             <Header />

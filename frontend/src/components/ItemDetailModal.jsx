@@ -151,7 +151,7 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
   };
   
   const modalContentStyle = {
-    backgroundColor: '#fff',
+    backgroundColor: themeColors.background, // Instead of '#fff'
     borderRadius: window.innerWidth < 768 ? '0' : '32px',
     maxWidth: '1100px',
     width: window.innerWidth < 768 ? '100%' : '95%',
@@ -189,29 +189,30 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
     maxHeight: window.innerWidth < 768 ? '50vh' : '90vh',
     display: 'flex',
     flexDirection: 'column',
-    backgroundColor: '#fff',
+    backgroundColor: themeColors.background, // Instead of '#fff'
+    color: themeColors.text, // Add text color
     minWidth: window.innerWidth >= 768 ? '420px' : '100%',
     borderRadius: window.innerWidth >= 768 ? '0 32px 32px 0' : '0'
   };
   
-  const closeButtonStyle = {
-    position: 'absolute',
-    top: '20px',
-    right: '20px',
-    backgroundColor: '#fff',
-    color: '#111',
-    border: 'none',
-    borderRadius: '50%',
-    width: '48px',
-    height: '48px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    zIndex: 10,
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-    transition: 'transform 0.2s'
-  };
+const closeButtonStyle = {
+  position: 'absolute',
+  top: '20px',
+  right: '20px',
+  backgroundColor: themeColors.background, // Instead of '#fff'
+  color: themeColors.text, // Instead of '#111'
+  border: `1px solid ${themeColors.border || 'transparent'}`,
+  borderRadius: '50%',
+  width: '48px',
+  height: '48px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  zIndex: 10,
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+  transition: 'transform 0.2s'
+};
   
   const navigationButtonStyle = (direction) => ({
     position: 'absolute',
@@ -233,8 +234,8 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
   
   // Update these style objects
   const buttonStyle = (primary = true) => ({
-    backgroundColor: primary ? '#e60023' : '#efefef',
-    color: primary ? '#fff' : '#111',
+    backgroundColor: primary ? themeColors.primary : themeColors.secondary,
+    color: primary ? '#fff' : themeColors.text,
     border: 'none',
     borderRadius: '24px',
     padding: '12px 24px',
@@ -249,8 +250,8 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
   });
   
   const tagStyle = {
-    backgroundColor: '#efefef',
-    color: '#111',
+    backgroundColor: themeColors.secondary,
+    color: themeColors.text,
     padding: '8px 16px',
     borderRadius: '16px',
     fontSize: '14px',
@@ -289,7 +290,8 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
     top: '50%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
-    backgroundColor: '#fff',
+    backgroundColor: themeColors.background,
+    color: themeColors.text,
     padding: '32px',
     borderRadius: '16px',
     textAlign: 'center',
@@ -399,27 +401,27 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
                       <ChevronLeft size={24} />
                     </button>
                     
-                    <button 
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        right: '16px',
-                        transform: 'translateY(-50%)',
-                        backgroundColor: '#fff',
-                        color: '#111',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '48px',
-                        height: '48px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                        transition: 'transform 0.2s',
-                        opacity: 0.9
-                      }}
-                      onClick={handleNextImage}
+                      <button 
+                        style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '16px',
+                          transform: 'translateY(-50%)',
+                          backgroundColor: themeColors.background,
+                          color: themeColors.text,
+                          border: `1px solid ${themeColors.border || 'transparent'}`,
+                          borderRadius: '50%',
+                          width: '48px',
+                          height: '48px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                          transition: 'transform 0.2s',
+                          opacity: 0.9
+                        }}
+                        onClick={handlePrevImage}
                       onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'}
                       onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(-50%) scale(1)'}
                     >
@@ -466,15 +468,15 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
                 {/* Price and Title Section */}
                 <div style={{ marginBottom: '24px' }}>
                   <div style={{ 
-                    color: '#e60023', 
-                    fontSize: '36px', 
-                    fontWeight: '700',
-                    marginBottom: '8px'
-                  }}>
+                      color: themeColors.primary, 
+                      fontSize: '36px', 
+                      fontWeight: '700',
+                      marginBottom: '8px'
+                    }}>
                     ${item.price?.toFixed(2)}
                   </div>
                   <h1 style={{ 
-                    color: '#111', 
+                    color: themeColors.text, 
                     fontSize: '20px', 
                     fontWeight: '600',
                     lineHeight: '1.4'
@@ -494,8 +496,8 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
                   <button 
                     style={{ ...buttonStyle(true), flex: 1 }}
                     onClick={handleBuyNow}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#ad081b'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e60023'}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.primaryHover || themeColors.primary}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = themeColors.primary}
                   >
                     Buy Now
                   </button>
@@ -567,7 +569,7 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
                       }}
                     />
                     <div>
-                      <div style={{ color: '#111', fontWeight: '600', fontSize: '16px' }}>
+                      <div style={{ color:  themeColors.text, fontWeight: '600', fontSize: '16px' }}>
                         {item.user?.username || 'Anonymous'}
                       </div>
                       {item.user?.location && (
@@ -616,7 +618,7 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
                     Details
                   </h3>
                   <div style={{ 
-                    backgroundColor: '#f8f8f8',
+                    backgroundColor: themeColors.secondary,
                     borderRadius: '16px',
                     padding: '16px',
                     display: 'grid',
@@ -665,7 +667,7 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
                 <div style={{ 
                   marginTop: '16px',
                   padding: '20px',
-                  backgroundColor: '#f8f8f8',
+                  backgroundColor: themeColors.secondary,
                   borderRadius: '16px'
                 }}>
                   {messageSent ? (
@@ -695,16 +697,13 @@ const ItemDetailModal = ({ item, onClose, onPurchase }) => {
                         </div>
                       )}
                       <textarea
-                        placeholder="Hi! Is this item still available?"
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
                         style={{
                           width: '100%',
                           padding: '12px',
                           borderRadius: '8px',
-                          backgroundColor: '#fff',
-                          color: '#111',
-                          border: '1px solid #ddd',
+                          backgroundColor: themeColors.background,
+                          color: themeColors.text,
+                          border: `1px solid ${themeColors.border || '#ddd'}`,
                           resize: 'vertical',
                           minHeight: '100px',
                           marginBottom: '12px',
