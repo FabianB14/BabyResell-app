@@ -1,4 +1,3 @@
-// Enhanced Home.jsx with collapsible marketplace filters
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +11,10 @@ import {
   ChevronDown, 
   ChevronUp, 
   X,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Heart,
+  MapPin,
+  User
 } from 'lucide-react';
 
 const Home = () => {
@@ -42,16 +44,33 @@ const Home = () => {
 
   // Responsive breakpoints
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [columns, setColumns] = useState(2);
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+      const width = window.innerWidth;
+      setIsMobile(width < 768);
+      
+      // Dynamic columns based on screen size
+      if (width < 480) {
+        setColumns(2);
+      } else if (width < 768) {
+        setColumns(2);
+      } else if (width < 1024) {
+        setColumns(3);
+      } else if (width < 1200) {
+        setColumns(4);
+      } else {
+        setColumns(5);
+      }
+      
       // Auto-close mobile filters when switching to desktop
-      if (window.innerWidth >= 768) {
+      if (width >= 768) {
         setShowMobileFilters(false);
       }
     };
 
+    handleResize(); // Set initial values
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -79,7 +98,7 @@ const Home = () => {
     });
   };
 
-  // Fetch items logic (existing from your code)
+  // Fetch items logic (your existing code)
   const fetchItems = async (resetItems = false) => {
     try {
       setLoading(true);
@@ -135,7 +154,7 @@ const Home = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  // Effects for fetching data (existing from your code)
+  // Effects for fetching data
   useEffect(() => {
     fetchItems(true);
   }, []);
@@ -148,6 +167,89 @@ const Home = () => {
   }, [searchQuery, filters]);
 
   const activeFilterCount = getActiveFilterCount();
+
+  // Pinterest-style item component
+  const PinterestItem = ({ item, onClick }) => {
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageError, setImageError] = useState(false);
+    
+    const getImageUrl = (item) => {
+      if (item.images && item.images.length > 0) {
+        return item.images[0];
+      }
+      if (item.image) {
+        return item.image;
+      }
+      return null;
+    };
+
+    const imageUrl = getImageUrl(item);
+
+    return (
+      <div
+        style={styles.pinterestItem}
+        onClick={onClick}
+      >
+        {/* Image Container */}
+        <div style={styles.imageContainer}>
+          {imageUrl && !imageError ? (
+            <img
+              src={imageUrl}
+              alt={item.title || item.name}
+              style={{
+                ...styles.itemImage,
+                opacity: imageLoaded ? 1 : 0,
+              }}
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div style={styles.placeholderImage}>
+              <div style={styles.placeholderText}>
+                {item.title?.charAt(0) || item.name?.charAt(0) || '?'}
+              </div>
+            </div>
+          )}
+          
+          {/* Price Badge */}
+          <div style={styles.priceTag}>
+            ${item.price}
+          </div>
+
+          {/* Condition Badge */}
+          <div style={styles.conditionBadge}>
+            {item.condition}
+          </div>
+
+          {/* Heart Icon */}
+          <button style={styles.heartButton}>
+            <Heart size={16} />
+          </button>
+        </div>
+
+        {/* Item Info */}
+        <div style={styles.itemInfo}>
+          <h3 style={styles.itemTitle}>
+            {item.title || item.name}
+          </h3>
+          
+          {item.seller && (
+            <div style={styles.sellerInfo}>
+              <User size={12} />
+              <span>by {item.seller.name || item.seller.username}</span>
+            </div>
+          )}
+          
+          {item.location && (
+            <div style={styles.locationInfo}>
+              <MapPin size={12} />
+              <span>{item.location}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const styles = {
     container: {
@@ -162,6 +264,7 @@ const Home = () => {
       position: 'sticky',
       top: 0,
       zIndex: 50,
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
     },
 
     searchContainer: {
@@ -176,10 +279,11 @@ const Home = () => {
       gap: '12px',
       backgroundColor: themeColors.secondary,
       padding: '12px 16px',
-      borderRadius: '12px',
+      borderRadius: '24px',
       border: `1px solid ${themeColors.secondary}`,
       marginBottom: isMobile ? '12px' : '0',
       transition: 'all 0.2s ease',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
     },
 
     searchInput: {
@@ -193,12 +297,12 @@ const Home = () => {
     },
 
     clearSearchButton: {
-      padding: '2px',
+      padding: '4px',
       backgroundColor: 'transparent',
       border: 'none',
       cursor: 'pointer',
       color: themeColors.textSecondary,
-      borderRadius: '4px',
+      borderRadius: '50%',
       transition: 'all 0.2s ease',
     },
 
@@ -212,12 +316,13 @@ const Home = () => {
       backgroundColor: showMobileFilters ? themeColors.primary : 'transparent',
       color: showMobileFilters ? 'white' : themeColors.text,
       border: `1px solid ${showMobileFilters ? themeColors.primary : themeColors.secondary}`,
-      borderRadius: '8px',
+      borderRadius: '12px',
       cursor: 'pointer',
       fontSize: '14px',
       fontWeight: '500',
       transition: 'all 0.3s ease',
       position: 'relative',
+      boxShadow: showMobileFilters ? '0 2px 8px rgba(245, 158, 11, 0.3)' : 'none',
     },
 
     mobileFilterContent: {
@@ -232,23 +337,23 @@ const Home = () => {
       right: '-6px',
       backgroundColor: '#EF4444',
       color: 'white',
-      borderRadius: '10px',
+      borderRadius: '12px',
       padding: '2px 6px',
       fontSize: '11px',
       fontWeight: '600',
-      minWidth: '18px',
+      minWidth: '20px',
       textAlign: 'center',
       display: activeFilterCount > 0 ? 'block' : 'none',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
     },
 
-    // Desktop filters
+    // Desktop filters - restored to original clean layout
     desktopFilters: {
       display: isMobile ? 'none' : 'flex',
       alignItems: 'center',
-      gap: '12px',
+      gap: '8px',
       padding: '16px 24px',
-      borderTop: `1px solid ${themeColors.secondary}`,
-      backgroundColor: themeColors.secondary,
+      backgroundColor: themeColors.cardBackground,
       maxWidth: '1200px',
       margin: '0 auto',
       flexWrap: 'wrap',
@@ -260,6 +365,7 @@ const Home = () => {
       backgroundColor: themeColors.cardBackground,
       borderTop: `1px solid ${themeColors.secondary}`,
       animation: showMobileFilters ? 'slideDown 0.3s ease-out' : 'slideUp 0.3s ease-out',
+      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
     },
 
     mobileFiltersHeader: {
@@ -282,12 +388,13 @@ const Home = () => {
       alignItems: 'center',
       gap: '4px',
       padding: '6px 12px',
-      backgroundColor: 'transparent',
-      color: themeColors.textSecondary,
-      border: `1px solid ${themeColors.secondary}`,
+      backgroundColor: '#EF4444',
+      color: 'white',
+      border: 'none',
       borderRadius: '6px',
       cursor: 'pointer',
       fontSize: '12px',
+      fontWeight: '600',
       transition: 'all 0.2s ease',
     },
 
@@ -336,6 +443,45 @@ const Home = () => {
       transition: 'all 0.2s ease',
     },
 
+    // Desktop-specific filter styles (cleaner, original design)
+    desktopFilterSelect: {
+      padding: '8px 12px',
+      backgroundColor: themeColors.secondary,
+      border: 'none',
+      borderRadius: '8px',
+      color: themeColors.text,
+      fontSize: '14px',
+      cursor: 'pointer',
+      minWidth: '120px',
+      fontFamily: 'inherit',
+    },
+
+    desktopFilterInput: {
+      padding: '8px 12px',
+      backgroundColor: themeColors.secondary,
+      border: 'none',
+      borderRadius: '8px',
+      color: themeColors.text,
+      fontSize: '14px',
+      width: '100px',
+      fontFamily: 'inherit',
+    },
+
+    clearDesktopFiltersButton: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px',
+      padding: '8px 12px',
+      backgroundColor: 'transparent',
+      color: themeColors.textSecondary,
+      border: `1px solid ${themeColors.secondary}`,
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '12px',
+      fontWeight: '500',
+      transition: 'all 0.2s ease',
+    },
+
     priceRange: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
@@ -353,7 +499,7 @@ const Home = () => {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: '20px',
+      marginBottom: '24px',
       flexWrap: 'wrap',
       gap: '12px',
     },
@@ -361,6 +507,7 @@ const Home = () => {
     resultsCount: {
       color: themeColors.textSecondary,
       fontSize: '14px',
+      fontWeight: '500',
     },
 
     sortSelect: {
@@ -373,24 +520,123 @@ const Home = () => {
       cursor: 'pointer',
     },
 
-    // Item grid
-    itemGrid: {
+    // Pinterest-style masonry grid
+    pinterestGrid: {
       display: 'grid',
-      gap: '16px',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+      gridTemplateColumns: `repeat(${columns}, 1fr)`,
+      gap: isMobile ? '12px' : '16px',
+      alignItems: 'start', // This is key for masonry effect
     },
 
-    '@media (min-width: 480px)': {
-      itemGrid: {
-        gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-      },
+    // Individual Pinterest item
+    pinterestItem: {
+      backgroundColor: themeColors.cardBackground,
+      borderRadius: '16px',
+      overflow: 'hidden',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      breakInside: 'avoid', // Prevent breaking across columns
+      marginBottom: '4px', // Small margin for spacing
     },
 
-    '@media (min-width: 768px)': {
-      itemGrid: {
-        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-        gap: '20px',
-      },
+    imageContainer: {
+      position: 'relative',
+      width: '100%',
+      backgroundColor: themeColors.secondary,
+    },
+
+    itemImage: {
+      width: '100%',
+      height: 'auto',
+      display: 'block',
+      transition: 'opacity 0.3s ease',
+    },
+
+    placeholderImage: {
+      width: '100%',
+      height: '200px',
+      backgroundColor: themeColors.secondary,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    placeholderText: {
+      fontSize: '48px',
+      fontWeight: 'bold',
+      color: themeColors.textSecondary,
+    },
+
+    priceTag: {
+      position: 'absolute',
+      top: '12px',
+      right: '12px',
+      backgroundColor: themeColors.primary,
+      color: 'white',
+      padding: '6px 12px',
+      borderRadius: '20px',
+      fontSize: '14px',
+      fontWeight: '600',
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+    },
+
+    conditionBadge: {
+      position: 'absolute',
+      bottom: '12px',
+      left: '12px',
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      color: 'white',
+      padding: '4px 8px',
+      borderRadius: '12px',
+      fontSize: '12px',
+      fontWeight: '500',
+    },
+
+    heartButton: {
+      position: 'absolute',
+      top: '12px',
+      left: '12px',
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      border: 'none',
+      borderRadius: '50%',
+      width: '32px',
+      height: '32px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      color: themeColors.textSecondary,
+    },
+
+    itemInfo: {
+      padding: '12px 16px 16px',
+    },
+
+    itemTitle: {
+      fontSize: '14px',
+      fontWeight: '600',
+      color: themeColors.text,
+      margin: '0 0 8px 0',
+      lineHeight: '1.3',
+    },
+
+    sellerInfo: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px',
+      color: themeColors.textSecondary,
+      fontSize: '12px',
+      marginBottom: '4px',
+    },
+
+    locationInfo: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px',
+      color: themeColors.textSecondary,
+      fontSize: '12px',
     },
 
     closeButton: {
@@ -401,6 +647,23 @@ const Home = () => {
       color: themeColors.textSecondary,
       borderRadius: '4px',
       transition: 'all 0.2s ease',
+    },
+
+    loadingState: {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '40px',
+      color: themeColors.textSecondary,
+    },
+
+    errorState: {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '40px',
+      color: '#EF4444',
+      textAlign: 'center',
     },
   };
 
@@ -432,17 +695,14 @@ const Home = () => {
       }
     }
 
-    @media (min-width: 480px) {
-      .item-grid {
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      }
+    .pinterest-item:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     }
 
-    @media (min-width: 768px) {
-      .item-grid {
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        gap: 20px;
-      }
+    .pinterest-item:hover .heart-button {
+      background-color: white;
+      color: #EF4444;
     }
   `;
 
@@ -487,10 +747,10 @@ const Home = () => {
           </button>
         </div>
 
-        {/* Desktop Filters */}
+        {/* Desktop Filters - Restored to original layout */}
         <div style={styles.desktopFilters}>
           <select
-            style={styles.filterSelect}
+            style={styles.desktopFilterSelect}
             value={filters.category}
             onChange={(e) => handleFilterChange('category', e.target.value)}
           >
@@ -503,7 +763,7 @@ const Home = () => {
           </select>
 
           <select
-            style={styles.filterSelect}
+            style={styles.desktopFilterSelect}
             value={filters.condition}
             onChange={(e) => handleFilterChange('condition', e.target.value)}
           >
@@ -517,7 +777,7 @@ const Home = () => {
           <input
             type="number"
             placeholder="Min Price"
-            style={styles.filterInput}
+            style={styles.desktopFilterInput}
             value={filters.minPrice}
             onChange={(e) => handleFilterChange('minPrice', e.target.value)}
           />
@@ -525,13 +785,13 @@ const Home = () => {
           <input
             type="number"
             placeholder="Max Price"
-            style={styles.filterInput}
+            style={styles.desktopFilterInput}
             value={filters.maxPrice}
             onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
           />
 
           <select
-            style={styles.filterSelect}
+            style={styles.desktopFilterSelect}
             value={filters.sort}
             onChange={(e) => handleFilterChange('sort', e.target.value)}
           >
@@ -543,7 +803,7 @@ const Home = () => {
 
           {activeFilterCount > 0 && (
             <button
-              style={styles.clearFiltersButton}
+              style={styles.clearDesktopFiltersButton}
               onClick={clearAllFilters}
             >
               Clear All ({activeFilterCount})
@@ -660,71 +920,24 @@ const Home = () => {
           )}
         </div>
 
-        {/* Items Grid */}
-        <div className="item-grid" style={styles.itemGrid}>
-          {items.map((item) => (
-            <div key={item._id} onClick={() => setSelectedItem(item)}>
-              {/* Your existing item card component */}
-              <div style={{
-                backgroundColor: themeColors.cardBackground,
-                borderRadius: '8px',
-                overflow: 'hidden',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}>
-                <div style={{
-                  height: '150px',
-                  backgroundColor: themeColors.secondary,
-                  position: 'relative',
-                  backgroundImage: item.images?.[0] ? `url(${item.images[0]})` : 'none',
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }}>
-                  <div style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '8px',
-                    backgroundColor: themeColors.primary,
-                    color: 'white',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                  }}>
-                    ${item.price}
-                  </div>
-                </div>
-                <div style={{ padding: '12px' }}>
-                  <div style={{
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    marginBottom: '4px',
-                    color: themeColors.text,
-                  }}>
-                    {item.title}
-                  </div>
-                  <div style={{
-                    fontSize: '12px',
-                    color: themeColors.textSecondary,
-                  }}>
-                    {item.condition}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {loading && (
-          <div style={{ textAlign: 'center', padding: '40px' }}>
+        {/* Pinterest-style Grid */}
+        {loading ? (
+          <div style={styles.loadingState}>
             <p>Loading items...</p>
           </div>
-        )}
-
-        {error && (
-          <div style={{ textAlign: 'center', padding: '40px' }}>
-            <p style={{ color: '#EF4444' }}>{error}</p>
+        ) : error ? (
+          <div style={styles.errorState}>
+            <p>{error}</p>
+          </div>
+        ) : (
+          <div style={styles.pinterestGrid}>
+            {items.map((item) => (
+              <PinterestItem
+                key={item._id}
+                item={item}
+                onClick={() => setSelectedItem(item)}
+              />
+            ))}
           </div>
         )}
       </section>
