@@ -4,7 +4,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { itemsAPI } from '../services/api';
 import ItemDetailModal from '../components/ItemDetailModal';
-import { Filter, Search, ChevronDown, ChevronUp } from 'lucide-react';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -16,7 +15,6 @@ const Home = () => {
   const [error, setError] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showMobileFilters, setShowMobileFilters] = useState(false); // NEW: Mobile filter toggle
   const [filters, setFilters] = useState({
     category: '',
     minPrice: '',
@@ -136,10 +134,6 @@ const Home = () => {
   useEffect(() => {
     const handleResize = () => {
       setColumns(getColumnCount());
-      // Close mobile filters when switching to desktop
-      if (window.innerWidth >= 768) {
-        setShowMobileFilters(false);
-      }
     };
 
     window.addEventListener('resize', handleResize);
@@ -163,9 +157,6 @@ const Home = () => {
     navigate('/checkout', { state: { item } });
   };
 
-  // Check if mobile view
-  const isMobile = window.innerWidth < 768;
-
   // CSS for Pinterest-style layout
   const containerStyle = {
     maxWidth: '1500px',
@@ -173,102 +164,23 @@ const Home = () => {
     padding: '20px'
   };
 
-  // UPDATED: Enhanced filters with mobile responsiveness
   const filtersStyle = {
     backgroundColor: themeColors.cardBackground,
     padding: '20px',
     borderRadius: '12px',
     marginBottom: '24px',
-    position: 'sticky',
-    top: 0,
-    zIndex: 10,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-  };
-
-  // NEW: Mobile search bar with filter toggle
-  const mobileSearchStyle = {
-    display: isMobile ? 'flex' : 'none',
-    alignItems: 'center',
-    gap: '12px',
-    marginBottom: '16px',
-  };
-
-  const searchBoxStyle = {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: themeColors.background,
-    border: `1px solid ${themeColors.secondary}`,
-    borderRadius: '12px',
-    padding: '12px 16px',
-    gap: '8px',
-  };
-
-  const searchInputStyle = {
-    flex: 1,
-    border: 'none',
-    background: 'transparent',
-    outline: 'none',
-    fontSize: '16px',
-    color: themeColors.text,
-  };
-
-  const mobileFilterToggleStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '12px 16px',
-    backgroundColor: themeColors.primary,
-    color: 'white',
-    border: 'none',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    transition: 'all 0.2s ease',
-  };
-
-  // UPDATED: Desktop filters (always visible)
-  const desktopFiltersStyle = {
-    display: isMobile ? 'none' : 'grid',
+    display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
     gap: '16px'
   };
 
-  // NEW: Mobile filters (collapsible)
-  const mobileFiltersContainerStyle = {
-    display: isMobile ? 'block' : 'none',
-    maxHeight: showMobileFilters ? '500px' : '0',
-    overflow: 'hidden',
-    transition: 'max-height 0.3s ease-in-out',
-  };
-
-  const mobileFiltersStyle = {
-    padding: showMobileFilters ? '16px 0 0 0' : '0',
-    transition: 'padding 0.3s ease-in-out',
-  };
-
-  const mobileFiltersGridStyle = {
-    display: 'grid',
-    gridTemplateColumns: '1fr',
-    gap: '12px',
-  };
-
   const filterInputStyle = {
-    padding: '12px 16px',
+    padding: '8px 12px',
     borderRadius: '8px',
-    border: `1px solid ${themeColors.secondary}`,
-    backgroundColor: themeColors.background,
+    border: 'none',
+    backgroundColor: themeColors.secondary,
     color: themeColors.text,
-    fontSize: '14px',
-    outline: 'none',
-    cursor: 'pointer',
-  };
-
-  const priceContainerStyle = {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '8px',
+    fontSize: '14px'
   };
 
   const masonryStyle = {
@@ -370,178 +282,79 @@ const Home = () => {
       <div style={containerStyle}>
         {/* Search and Filters */}
         <div style={filtersStyle}>
-          {/* Mobile Search Bar with Filter Toggle */}
-          <div style={mobileSearchStyle}>
-            <div style={searchBoxStyle}>
-              <Search size={20} color={themeColors.textSecondary} />
-              <input
-                type="text"
-                placeholder="Search for baby items..."
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                style={searchInputStyle}
-              />
-            </div>
-            <button
-              style={mobileFilterToggleStyle}
-              onClick={() => setShowMobileFilters(!showMobileFilters)}
-            >
-              <Filter size={16} />
-              Filters
-              {showMobileFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </button>
-          </div>
-
-          {/* Desktop Filters (Always Visible) */}
-          <div style={desktopFiltersStyle}>
-            <input
-              type="text"
-              placeholder="Search items..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              style={filterInputStyle}
-            />
-            
-            <select
-              value={filters.category}
-              onChange={(e) => handleFilterChange('category', e.target.value)}
-              style={filterInputStyle}
-            >
-              <option value="">All Categories</option>
-              <option value="Clothes & Shoes">Clothes & Shoes</option>
-              <option value="Toys & Games">Toys & Games</option>
-              <option value="Feeding">Feeding</option>
-              <option value="Diapering">Diapering</option>
-              <option value="Bathing & Skincare">Bathing & Skincare</option>
-              <option value="Health & Safety">Health & Safety</option>
-              <option value="Nursery">Nursery</option>
-              <option value="Strollers & Car Seats">Strollers & Car Seats</option>
-              <option value="Carriers & Wraps">Carriers & Wraps</option>
-              <option value="Activity & Entertainment">Activity & Entertainment</option>
-              <option value="Books">Books</option>
-              <option value="Other">Other</option>
-            </select>
-            
-            <select
-              value={filters.condition}
-              onChange={(e) => handleFilterChange('condition', e.target.value)}
-              style={filterInputStyle}
-            >
-              <option value="">All Conditions</option>
-              <option value="New">New</option>
-              <option value="Like New">Like New</option>
-              <option value="Good">Good</option>
-              <option value="Fair">Fair</option>
-              <option value="Poor">Poor</option>
-            </select>
-            
-            <input
-              type="number"
-              placeholder="Min Price"
-              value={filters.minPrice}
-              onChange={(e) => handleFilterChange('minPrice', e.target.value)}
-              style={filterInputStyle}
-              min="0"
-              step="0.01"
-            />
-            
-            <input
-              type="number"
-              placeholder="Max Price"
-              value={filters.maxPrice}
-              onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-              style={filterInputStyle}
-              min="0"
-              step="0.01"
-            />
-            
-            <select
-              value={filters.sort}
-              onChange={(e) => handleFilterChange('sort', e.target.value)}
-              style={filterInputStyle}
-            >
-              <option value="-createdAt">Newest First</option>
-              <option value="createdAt">Oldest First</option>
-              <option value="price">Price: Low to High</option>
-              <option value="-price">Price: High to Low</option>
-              <option value="title">Name: A to Z</option>
-              <option value="-title">Name: Z to A</option>
-            </select>
-          </div>
-
-          {/* Mobile Filters (Collapsible) */}
-          <div style={mobileFiltersContainerStyle}>
-            <div style={mobileFiltersStyle}>
-              <div style={mobileFiltersGridStyle}>
-                <select
-                  value={filters.category}
-                  onChange={(e) => handleFilterChange('category', e.target.value)}
-                  style={filterInputStyle}
-                >
-                  <option value="">All Categories</option>
-                  <option value="Clothes & Shoes">Clothes & Shoes</option>
-                  <option value="Toys & Games">Toys & Games</option>
-                  <option value="Feeding">Feeding</option>
-                  <option value="Diapering">Diapering</option>
-                  <option value="Bathing & Skincare">Bathing & Skincare</option>
-                  <option value="Health & Safety">Health & Safety</option>
-                  <option value="Nursery">Nursery</option>
-                  <option value="Strollers & Car Seats">Strollers & Car Seats</option>
-                  <option value="Carriers & Wraps">Carriers & Wraps</option>
-                  <option value="Activity & Entertainment">Activity & Entertainment</option>
-                  <option value="Books">Books</option>
-                  <option value="Other">Other</option>
-                </select>
-
-                <select
-                  value={filters.condition}
-                  onChange={(e) => handleFilterChange('condition', e.target.value)}
-                  style={filterInputStyle}
-                >
-                  <option value="">All Conditions</option>
-                  <option value="New">New</option>
-                  <option value="Like New">Like New</option>
-                  <option value="Good">Good</option>
-                  <option value="Fair">Fair</option>
-                  <option value="Poor">Poor</option>
-                </select>
-
-                <div style={priceContainerStyle}>
-                  <input
-                    type="number"
-                    placeholder="Min Price"
-                    value={filters.minPrice}
-                    onChange={(e) => handleFilterChange('minPrice', e.target.value)}
-                    style={filterInputStyle}
-                    min="0"
-                    step="0.01"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Max Price"
-                    value={filters.maxPrice}
-                    onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-                    style={filterInputStyle}
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-
-                <select
-                  value={filters.sort}
-                  onChange={(e) => handleFilterChange('sort', e.target.value)}
-                  style={filterInputStyle}
-                >
-                  <option value="-createdAt">Newest First</option>
-                  <option value="createdAt">Oldest First</option>
-                  <option value="price">Price: Low to High</option>
-                  <option value="-price">Price: High to Low</option>
-                  <option value="title">Name: A to Z</option>
-                  <option value="-title">Name: Z to A</option>
-                </select>
-              </div>
-            </div>
-          </div>
+          <input
+            type="text"
+            placeholder="Search items..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            style={filterInputStyle}
+          />
+          
+          <select
+            value={filters.category}
+            onChange={(e) => handleFilterChange('category', e.target.value)}
+            style={filterInputStyle}
+          >
+            <option value="">All Categories</option>
+            <option value="Clothes & Shoes">Clothes & Shoes</option>
+            <option value="Toys & Games">Toys & Games</option>
+            <option value="Feeding">Feeding</option>
+            <option value="Diapering">Diapering</option>
+            <option value="Bathing & Skincare">Bathing & Skincare</option>
+            <option value="Health & Safety">Health & Safety</option>
+            <option value="Nursery">Nursery</option>
+            <option value="Strollers & Car Seats">Strollers & Car Seats</option>
+            <option value="Carriers & Wraps">Carriers & Wraps</option>
+            <option value="Activity & Entertainment">Activity & Entertainment</option>
+            <option value="Books">Books</option>
+            <option value="Other">Other</option>
+          </select>
+          
+          <select
+            value={filters.condition}
+            onChange={(e) => handleFilterChange('condition', e.target.value)}
+            style={filterInputStyle}
+          >
+            <option value="">All Conditions</option>
+            <option value="New">New</option>
+            <option value="Like New">Like New</option>
+            <option value="Good">Good</option>
+            <option value="Fair">Fair</option>
+            <option value="Poor">Poor</option>
+          </select>
+          
+          <input
+            type="number"
+            placeholder="Min Price"
+            value={filters.minPrice}
+            onChange={(e) => handleFilterChange('minPrice', e.target.value)}
+            style={filterInputStyle}
+            min="0"
+            step="0.01"
+          />
+          
+          <input
+            type="number"
+            placeholder="Max Price"
+            value={filters.maxPrice}
+            onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
+            style={filterInputStyle}
+            min="0"
+            step="0.01"
+          />
+          
+          <select
+            value={filters.sort}
+            onChange={(e) => handleFilterChange('sort', e.target.value)}
+            style={filterInputStyle}
+          >
+            <option value="-createdAt">Newest First</option>
+            <option value="createdAt">Oldest First</option>
+            <option value="price">Price: Low to High</option>
+            <option value="-price">Price: High to Low</option>
+            <option value="title">Name: A to Z</option>
+            <option value="-title">Name: Z to A</option>
+          </select>
         </div>
 
         {/* Results Count */}
@@ -558,105 +371,100 @@ const Home = () => {
           </div>
         )}
 
-        {/* Loading state */}
+        {/* Loading State */}
         {loading && items.length === 0 && (
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '40px',
-            color: themeColors.textSecondary 
-          }}>
-            <h2>Loading items...</h2>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+            <div className="loader"></div>
           </div>
         )}
 
-        {/* Error state */}
-        {error && items.length === 0 && (
+        {/* Error State */}
+        {error && !loading && (
           <div style={{ 
-            textAlign: 'center', 
-            padding: '40px',
-            color: themeColors.primary 
+            padding: '20px', 
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            borderRadius: '8px',
+            color: '#ef4444',
+            textAlign: 'center',
+            marginBottom: '20px'
           }}>
-            <h2>Failed to load items</h2>
-            <p>{error}</p>
+            <h3>Error: {error}</h3>
+            <p>Please try again or check your connection.</p>
             <button 
-              onClick={() => fetchItems(true)}
               style={loadMoreButtonStyle}
+              onClick={() => fetchItems(true)}
             >
-              Try Again
+              Retry
             </button>
           </div>
         )}
 
-        {/* Masonry Grid */}
-        {items.length > 0 && (
+        {/* Items Grid */}
+        {!loading && items.length > 0 && (
           <div style={masonryStyle}>
             {columnsOfItems.map((column, columnIndex) => (
               <div key={columnIndex}>
-                {column.map((item, index) => {
-                  // Calculate random height for masonry effect
-                  const baseHeight = 200;
-                  const randomHeight = baseHeight + (Math.random() * 200);
+                {column.map(item => {
+                  // Get the best image URL
+                  const imageUrl = item.images && item.images.length > 0
+                    ? (item.images.find(img => img.isPrimary)?.thumbnail || item.images[0].thumbnail)
+                    : item.thumbnail || item.image || `https://via.placeholder.com/300x300?text=${encodeURIComponent(item.title || 'No Image')}`;
+                  
+                  // Calculate dynamic height based on image aspect ratio or random
+                  const height = item.height || (250 + Math.floor(Math.random() * 150));
                   
                   return (
-                    <div
-                      key={item._id || item.id}
+                    <div 
+                      key={item._id || item.id} 
                       style={itemStyle(item)}
                       onClick={() => handleItemClick(item)}
                       onMouseEnter={hoverEffect}
                       onMouseLeave={removeHoverEffect}
                     >
-                      {/* Price Tag */}
-                      <div style={priceTagStyle}>
-                        ${item.price}
-                      </div>
-                      
-                      {/* Condition Tag */}
-                      <div style={conditionTagStyle}>
-                        {item.condition}
-                      </div>
-                      
-                      {/* Item Image */}
-                      {item.images && item.images.length > 0 && (
-                        <img
-                          src={item.images[0].thumbnail || item.images[0].fullSize || '/placeholder-image.png'}
-                          alt={item.title}
-                          style={imageStyle(randomHeight)}
-                          loading="lazy"
+                      {/* Image Container - This wraps the image and its overlays */}
+                      <div style={{
+                        position: 'relative',
+                        width: '100%',
+                        overflow: 'hidden'
+                      }}>
+                        {/* Price Tag - now inside image container */}
+                        {item.price && (
+                          <div style={priceTagStyle}>
+                            ${typeof item.price === 'number' ? item.price.toFixed(2) : item.price}
+                          </div>
+                        )}
+                        
+                        {/* Item Image */}
+                        <img 
+                          src={imageUrl}
+                          alt={item.title || 'Baby item'} 
+                          style={imageStyle(height)}
+                          onError={(e) => {
+                            e.target.src = `https://via.placeholder.com/300x${height}?text=${encodeURIComponent(item.title || 'Image Error')}`;
+                          }}
                         />
-                      )}
+                        
+                        {/* Condition Tag - now inside image container */}
+                        {item.condition && (
+                          <div style={conditionTagStyle}>
+                            {item.condition}
+                          </div>
+                        )}
+                      </div>
                       
-                      {/* Item Details */}
+                      {/* Item Details - separate from image container */}
                       <div style={cardContentStyle}>
-                        <h3 style={{ 
-                          margin: '0 0 8px 0', 
-                          fontSize: '16px',
-                          lineHeight: '1.3',
-                          color: themeColors.text
-                        }}>
-                          {item.title}
+                        <h3 style={{ fontSize: '16px', marginBottom: '4px', fontWeight: '600' }}>
+                          {item.title || 'Untitled Item'}
                         </h3>
-                        
-                        <p style={{ 
-                          margin: 0, 
-                          fontSize: '14px',
-                          color: themeColors.textSecondary,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical'
-                        }}>
-                          {item.description}
-                        </p>
-                        
-                        {item.category && (
-                          <div style={{
-                            marginTop: '8px',
-                            fontSize: '12px',
-                            color: themeColors.primary,
-                            fontWeight: '500'
-                          }}>
-                            {item.category}
+                        {item.user && (
+                          <div style={{ fontSize: '12px', color: themeColors.textSecondary }}>
+                            by {item.user.username || 'Anonymous'}
+                          </div>
+                        )}
+                        {item.location && (
+                          <div style={{ fontSize: '12px', color: themeColors.textSecondary }}>
+                            📍 {item.location}
                           </div>
                         )}
                       </div>
@@ -669,40 +477,55 @@ const Home = () => {
         )}
 
         {/* Load More Button */}
-        {pagination.page < pagination.pages && items.length > 0 && (
-          <button
-            onClick={loadMore}
+        {!loading && items.length > 0 && pagination.page < pagination.pages && (
+          <button 
             style={loadMoreButtonStyle}
-            disabled={loading}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'scale(1.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'scale(1)';
-            }}
+            onClick={loadMore}
+            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
           >
-            {loading ? 'Loading...' : 'Load More Items'}
+            Load More Items ({pagination.total - items.length} remaining)
           </button>
         )}
 
-        {/* No more items message */}
-        {pagination.page >= pagination.pages && items.length > 0 && (
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '20px',
-            color: themeColors.textSecondary,
-            fontSize: '14px'
+        {/* Empty State */}
+        {!loading && items.length === 0 && !error && (
+          <div style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            color: themeColors.textSecondary
           }}>
-            You've reached the end! ✨
+            <div style={{
+              fontSize: '48px',
+              marginBottom: '20px'
+            }}>
+              🍼
+            </div>
+            <h3 style={{ color: themeColors.text, marginBottom: '12px' }}>
+              No items found
+            </h3>
+            <p style={{ marginBottom: '24px' }}>
+              {searchQuery || Object.values(filters).some(f => f) 
+                ? 'Try adjusting your search or filters'
+                : 'Be the first to list an item!'
+              }
+            </p>
+            {isAuthenticated && (
+              <button 
+                style={loadMoreButtonStyle}
+                onClick={() => navigate('/create-listing')}
+              >
+                Create Your First Listing
+              </button>
+            )}
           </div>
         )}
       </div>
-
+      
       {/* Item Detail Modal */}
       {selectedItem && (
-        <ItemDetailModal
+        <ItemDetailModal 
           item={selectedItem}
-          isOpen={!!selectedItem}
           onClose={() => setSelectedItem(null)}
           onPurchase={handlePurchase}
         />
