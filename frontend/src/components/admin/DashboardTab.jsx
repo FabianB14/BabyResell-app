@@ -334,39 +334,98 @@ const DashboardTab = ({ stats }) => {
   };
 
   const quickActions = [
-    {
-      id: 1,
-      title: 'View All Users',
-      description: 'Manage user accounts',
-      icon: Users,
-      color: '#3b82f6',
-      action: () => console.log('Navigate to users')
-    },
-    {
-      id: 2,
-      title: 'Review Items',
-      description: 'Moderate new listings',
-      icon: Package,
-      color: '#10b981',
-      action: () => console.log('Navigate to items')
-    },
-    {
-      id: 3,
-      title: 'Check Transactions',
-      description: 'Monitor payments',
-      icon: CreditCard,
-      color: '#f59e0b',
-      action: () => console.log('Navigate to transactions')
-    },
-    {
-      id: 4,
-      title: 'System Health',
-      description: 'API status & performance',
-      icon: Activity,
-      color: '#8b5cf6',
-      action: () => console.log('Navigate to API tools')
+  {
+    id: 1,
+    title: 'View All Users',
+    description: 'Manage user accounts',
+    icon: Users,
+    color: '#3b82f6',
+    action: () => {
+      // Navigate to users tab
+      const usersTab = document.querySelector('[data-tab="users"]');
+      if (usersTab) usersTab.click();
+      // Or navigate to users page
+      // window.location.href = '/admin/users';
     }
-  ];
+  },
+  {
+    id: 2,
+    title: 'Review Items',
+    description: 'Moderate new listings',
+    icon: Package,
+    color: '#10b981',
+    action: () => {
+      // Navigate to items tab with pending filter
+      const itemsTab = document.querySelector('[data-tab="items"]');
+      if (itemsTab) itemsTab.click();
+      // Set filter to pending items
+      setTimeout(() => {
+        const statusFilter = document.querySelector('[data-filter="status"]');
+        if (statusFilter) {
+          statusFilter.value = 'pending';
+          statusFilter.dispatchEvent(new Event('change'));
+        }
+      }, 100);
+    }
+  },
+  {
+    id: 3,
+    title: 'Check Transactions',
+    description: 'Monitor payments',
+    icon: CreditCard,
+    color: '#f59e0b',
+    action: () => {
+      const transactionsTab = document.querySelector('[data-tab="transactions"]');
+      if (transactionsTab) transactionsTab.click();
+    }
+  },
+  {
+    id: 4,
+    title: 'System Health',
+    description: 'API status & performance',
+    icon: Activity,
+    color: '#8b5cf6',
+    action: () => {
+      const apiTab = document.querySelector('[data-tab="api"]');
+      if (apiTab) apiTab.click();
+    }
+  }
+];
+
+const handleExportDashboard = () => {
+  const dashboardData = {
+    generatedAt: new Date().toISOString(),
+    timeRange: timeRange,
+    stats: {
+      users: stats.users,
+      items: stats.items,
+      transactions: stats.transactions,
+      revenue: stats.revenue
+    },
+    recentActivity: recentActivity.map(activity => ({
+      type: activity.type,
+      message: activity.message,
+      timestamp: activity.timestamp
+    }))
+  };
+  
+  const json = JSON.stringify(dashboardData, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `dashboard-export-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  window.URL.revokeObjectURL(url);
+};
+
+// Refresh handler
+const handleRefreshDashboard = async () => {
+  loadRecentActivity();
+  // In a real app, you'd also refresh the stats
+  // await loadStats();
+  alert('Dashboard refreshed!');
+};
 
   return (
     <div style={styles.container}>

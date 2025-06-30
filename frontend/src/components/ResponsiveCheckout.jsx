@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CreditCard, MapPin, Shield, AlertCircle } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const ResponsiveCheckout = ({ item, onBack, onComplete }) => {
   const [shippingInfo, setShippingInfo] = useState({

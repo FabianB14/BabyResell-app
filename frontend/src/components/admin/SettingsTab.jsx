@@ -108,16 +108,99 @@ const SettingsTab = () => {
 
   const handleSave = async () => {
     setSaving(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setSaving(false);
-    setUnsavedChanges(false);
-    console.log('Settings saved:', settings);
+    
+    try {
+      // Save each section to the appropriate API endpoint
+      const promises = [];
+      
+      // Save general settings
+      promises.push(
+        fetch('/api/admin/settings/general', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(settings.general)
+        })
+      );
+      
+      // Save notification settings
+      promises.push(
+        fetch('/api/admin/settings/notifications', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(settings.notifications)
+        })
+      );
+      
+      // Save other settings...
+      
+      await Promise.all(promises);
+      
+      // Save to localStorage as backup
+      localStorage.setItem('adminSettings', JSON.stringify(settings));
+      
+      setUnsavedChanges(false);
+      alert('Settings saved successfully!');
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      alert('Failed to save settings. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleReset = () => {
-    // Reset to original values (would typically fetch from API)
-    setUnsavedChanges(false);
+    if (window.confirm('Are you sure you want to reset all settings to defaults? This cannot be undone.')) {
+      const defaultSettings = {
+        general: {
+          siteName: 'BabyResell',
+          siteDescription: 'A marketplace for parents to buy and sell pre-loved baby items',
+          supportEmail: 'support@babyresell.com',
+          timezone: 'America/Los_Angeles',
+          language: 'en',
+          maintenanceMode: false
+        },
+        notifications: {
+          emailNotifications: true,
+          pushNotifications: true,
+          smsNotifications: false,
+          transactionAlerts: true,
+          securityAlerts: true,
+          marketingEmails: false
+        },
+        payments: {
+          stripePublicKey: 'pk_test_...',
+          stripeSecretKey: '••••••••••••••••',
+          paypalClientId: 'AYSq3RDGsmBLJi...',
+          transactionFeePercent: 5.0,
+          minimumPayout: 25.00,
+          payoutSchedule: 'weekly'
+        },
+        security: {
+          twoFactorRequired: false,
+          sessionTimeout: 30,
+          passwordMinLength: 8,
+          maxLoginAttempts: 5,
+          accountLockoutDuration: 15
+        },
+        content: {
+          autoModeratePosts: true,
+          requirePostApproval: false,
+          maxImagesPerListing: 8,
+          maxDescriptionLength: 1000,
+          allowGuestBrowsing: true
+        }
+      };
+      
+      setSettings(defaultSettings);
+      setUnsavedChanges(false);
+      alert('Settings reset to defaults.');
+    }
   };
 
   const toggleSecretVisibility = (key) => {

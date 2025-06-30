@@ -133,69 +133,169 @@ const UsersTab = () => {
   });
 
   const handleUserAction = async (action, userId) => {
-    console.log(`${action} user ${userId}`);
-    try {
-      switch (action) {
-        case 'view':
-          // Navigate to user detail or open modal
-          console.log('View user:', userId);
-          break;
-        case 'edit':
-          // Open edit modal or navigate to edit page
-          console.log('Edit user:', userId);
-          break;
-        case 'delete':
-          if (window.confirm('Are you sure you want to delete this user?')) {
-            // TODO: Implement user deletion
-            // await userAPI.deleteUser(userId);
+  console.log(`${action} user ${userId}`);
+  try {
+    switch (action) {
+      case 'view':
+        // Open user profile in new tab
+        window.open(`/user/${userId}`, '_blank');
+        break;
+        
+      case 'edit':
+        // Navigate to edit user page
+        window.location.href = `/admin/users/edit/${userId}`;
+        break;
+        
+      case 'delete':
+        if (window.confirm('Are you sure you want to delete this user? This will also delete all their listings.')) {
+          const response = await userAPI.deleteUser(userId);
+          if (response.data.success) {
+            alert('User deleted successfully!');
             await loadUsers(pagination.page);
           }
-          break;
-        case 'suspend':
-          // TODO: Implement user suspension
-          console.log('Suspend user:', userId);
-          break;
-        case 'activate':
-          // TODO: Implement user activation
-          console.log('Activate user:', userId);
-          break;
-        default:
-          console.log('Unknown action:', action);
-      }
-    } catch (error) {
-      console.error(`Error performing ${action} on user ${userId}:`, error);
-      setError(`Failed to ${action} user. Please try again.`);
+        }
+        break;
+        
+      case 'suspend':
+        if (window.confirm('Suspend this user account?')) {
+          const response = await userAPI.updateUser(userId, { isActive: false, status: 'suspended' });
+          if (response.data.success) {
+            alert('User suspended successfully!');
+            await loadUsers(pagination.page);
+          }
+        }
+        break;
+        
+      case 'activate':
+        const response = await userAPI.updateUser(userId, { isActive: true, status: 'active' });
+        if (response.data.success) {
+          alert('User activated successfully!');
+          await loadUsers(pagination.page);
+        }
+        break;
+        
+      default:
+        console.log('Unknown action:', action);
     }
-  };
+  } catch (error) {
+    console.error(`Error performing ${action} on user ${userId}:`, error);
+    setError(`Failed to ${action} user. Please try again.`);
+  }
+};
 
   const handleBulkAction = async (action) => {
-    console.log(`${action} users:`, selectedUsers);
-    try {
-      switch (action) {
-        case 'activate':
-          // TODO: Implement bulk activation
-          console.log('Bulk activate users:', selectedUsers);
-          break;
-        case 'suspend':
-          // TODO: Implement bulk suspension
-          console.log('Bulk suspend users:', selectedUsers);
-          break;
-        case 'export':
-          // TODO: Implement user export
-          console.log('Export users:', selectedUsers);
-          break;
-        default:
-          console.log('Unknown bulk action:', action);
-      }
+  if (selectedUsers.length === 0) {
+    alert('Please select users first');
+    return;
+  }
+  
+  console.log(`${action} users:`, selectedUsers);
+  try {
+    switch (action) {
+      case 'activate':
+        if (window.confirm(`Activate ${selectedUsers.length} users?`)) {
+          const promises = selectedUsers.map(userId => 
+            userAPI.updateUser(userId, { isActive: true, status: 'active' })
+          );
+          await Promise.all(promises);
+          alert(`${selectedUsers.length} users activated successfully!`);
+        }
+        break;
+        
+      case 'suspend':
+        if (window.confirm(`Suspend ${selectedUsers.length} users?`)) {
+          const promises = selectedUsers.map(userId => 
+            userAPI.updateUser(userId, { isActive: false, status: 'suspended' })
+          );
+          await Promise.all(promises);
+          alert(`${selectedUsers.length} users suspended successfully!`);
+        }
+        break;
+        
+      case 'export':
+        // Export users to CSV
+        const usersToExport = users.filter(user => selectedUsers.includes(user.id));
+        const csv = convertUsersToCSV(usersToExport);
+        downloadCSV(csv, 'users-export.csv');
+        break;
+        
+      default:
+        console.log('Unknown bulk action:', action);
+    }
+    
+    // Refresh and clear selection
+    await loadUsers(pagination.page);
+    setSelectedUsers([]);
+  } catch (error) {
+    console.error(`Error performing bulk ${action}:`, error);
+    setError(`Failed to ${action} users. Please try again.`);
+  }
+};
+
+const convertUsersToCSV = (users) => {
+  const headers = ['ID', 'Name', 'Email', 'Username', 'Status', 'Join Date', 'Location'];
+  const rows = users.map(user => [
+    user.id,
+    user.name,
+    user.email,
+    user.username,
+    user.status,
+    new Date(user.joinDate).toLocaleDateString(),
+    user.location
+  ]);
+  
+  return [headers, ...rows].map(row => row.join(',')).join('\n');
+};
+
+// Utility function to trigger CSV download
+const downloadCSV = (csv, filename) => {
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+};
+
+const handleImportUsers = () => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.csv';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const formData = new FormData();
+      formData.append('file', file);
       
-      // Refresh data after bulk action
-      await loadUsers(pagination.page);
-      setSelectedUsers([]);
-    } catch (error) {
-      console.error(`Error performing bulk ${action}:`, error);
-      setError(`Failed to ${action} users. Please try again.`);
+      try {
+        const response = await fetch('/api/admin/users/import', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: formData
+        });
+        
+        if (response.ok) {
+          alert('Users imported successfully!');
+          await loadUsers(1);
+        } else {
+          throw new Error('Import failed');
+        }
+      } catch (error) {
+        alert('Failed to import users. Please check the file format.');
+      }
     }
   };
+  input.click();
+};
+
+const handleAddUser = () => {
+  window.location.href = '/admin/users/create';
+};
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {

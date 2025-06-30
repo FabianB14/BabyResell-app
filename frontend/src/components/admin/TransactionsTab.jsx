@@ -191,9 +191,117 @@ const TransactionsTab = () => {
   });
 
   const handleTransactionAction = (action, transactionId) => {
-    console.log(`${action} transaction ${transactionId}`);
-    // Implement transaction actions here
-  };
+  console.log(`${action} transaction ${transactionId}`);
+  
+  switch (action) {
+    case 'view':
+      // Open transaction details modal or page
+      window.open(`/admin/transactions/${transactionId}`, '_blank');
+      break;
+      
+    case 'download':
+      // Download transaction receipt
+      downloadTransactionReceipt(transactionId);
+      break;
+      
+    case 'refund':
+      handleRefundTransaction(transactionId);
+      break;
+      
+    default:
+      console.log('Unknown action:', action);
+  }
+};
+
+const downloadTransactionReceipt = async (transactionId) => {
+  try {
+    const response = await fetch(`/api/transactions/${transactionId}/receipt`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `receipt-${transactionId}.pdf`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    }
+  } catch (error) {
+    alert('Failed to download receipt');
+  }
+};
+
+const handleRefundTransaction = async (transactionId) => {
+  const reason = prompt('Please provide a reason for the refund:');
+  if (!reason) return;
+  
+  if (window.confirm('Are you sure you want to process this refund?')) {
+    try {
+      const response = await fetch(`/api/transactions/${transactionId}/refund`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ reason })
+      });
+      
+      if (response.ok) {
+        alert('Refund processed successfully!');
+        // Reload transactions
+        window.location.reload();
+      } else {
+        throw new Error('Refund failed');
+      }
+    } catch (error) {
+      alert('Failed to process refund. Please try again.');
+    }
+  }
+};
+
+// Export transactions handler
+const handleExportTransactions = () => {
+  const csv = convertTransactionsToCSV(filteredTransactions);
+  downloadCSV(csv, `transactions-${dateRange}-${new Date().toISOString().split('T')[0]}.csv`);
+};
+
+// Utility to trigger CSV download
+const downloadCSV = (csv, filename) => {
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  window.URL.revokeObjectURL(url);
+};
+
+const convertTransactionsToCSV = (transactions) => {
+  const headers = ['ID', 'Type', 'Amount', 'Fee', 'Net Amount', 'Status', 'Date', 'Item', 'Buyer', 'Seller'];
+  const rows = transactions.map(tx => [
+    tx.id,
+    tx.type,
+    tx.amount,
+    tx.fee,
+    tx.netAmount,
+    tx.status,
+    formatDate(tx.date),
+    tx.item.title,
+    tx.buyer.name,
+    tx.seller.name
+  ]);
+  
+  return [headers, ...rows].map(row => row.join(',')).join('\n');
+};
+
+// Refresh handler
+const handleRefreshTransactions = () => {
+  window.location.reload();
+};
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {

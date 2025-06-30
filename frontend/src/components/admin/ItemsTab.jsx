@@ -171,27 +171,45 @@ const ItemsTab = () => {
     try {
       switch (action) {
         case 'view':
-          // Navigate to item detail or open modal
-          console.log('View item:', itemId);
+          // Open item in new tab
+          window.open(`/item/${itemId}`, '_blank');
           break;
+          
         case 'edit':
-          // Open edit modal or navigate to edit page
-          console.log('Edit item:', itemId);
+          // Navigate to edit page or open edit modal
+          window.location.href = `/admin/items/edit/${itemId}`;
           break;
+          
         case 'delete':
           if (window.confirm('Are you sure you want to delete this item?')) {
-            await itemsAPI.deleteItem(itemId);
+            const response = await itemsAPI.deleteItem(itemId);
+            if (response.data.success) {
+              alert('Item deleted successfully!');
+              await loadItems(pagination.page);
+            } else {
+              throw new Error(response.data.message || 'Failed to delete item');
+            }
+          }
+          break;
+          
+        case 'feature':
+          // Toggle featured status
+          const featuredResponse = await itemsAPI.updateItem(itemId, { featured: true });
+          if (featuredResponse.data.success) {
+            alert('Item featured successfully!');
             await loadItems(pagination.page);
           }
           break;
-        case 'feature':
-          // TODO: Implement item featuring
-          console.log('Feature item:', itemId);
-          break;
+          
         case 'approve':
-          // TODO: Implement item approval
-          console.log('Approve item:', itemId);
+          // Approve pending item
+          const approveResponse = await itemsAPI.updateItem(itemId, { approved: true, active: true });
+          if (approveResponse.data.success) {
+            alert('Item approved successfully!');
+            await loadItems(pagination.page);
+          }
           break;
+          
         default:
           console.log('Unknown action:', action);
       }
@@ -203,31 +221,56 @@ const ItemsTab = () => {
 
   const handleBulkAction = async (action) => {
     console.log(`${action} items:`, selectedItems);
+    
+    if (selectedItems.length === 0) {
+      alert('Please select items first');
+      return;
+    }
+    
     try {
       switch (action) {
         case 'feature':
-          // TODO: Implement bulk featuring
-          console.log('Bulk feature items:', selectedItems);
-          break;
-        case 'archive':
-          // TODO: Implement bulk archiving
-          console.log('Bulk archive items:', selectedItems);
-          break;
-        case 'delete':
-          if (window.confirm(`Are you sure you want to delete ${selectedItems.length} items?`)) {
-            // TODO: Implement bulk deletion
-            console.log('Bulk delete items:', selectedItems);
+          if (window.confirm(`Feature ${selectedItems.length} items?`)) {
+            // Feature multiple items
+            const promises = selectedItems.map(itemId => 
+              itemsAPI.updateItem(itemId, { featured: true })
+            );
+            await Promise.all(promises);
+            alert(`${selectedItems.length} items featured successfully!`);
           }
           break;
-        case 'export':
-          // TODO: Implement item export
-          console.log('Export items:', selectedItems);
+          
+        case 'archive':
+          if (window.confirm(`Archive ${selectedItems.length} items?`)) {
+            // Archive multiple items
+            const promises = selectedItems.map(itemId => 
+              itemsAPI.updateItem(itemId, { active: false, archived: true })
+            );
+            await Promise.all(promises);
+            alert(`${selectedItems.length} items archived successfully!`);
+          }
           break;
+          
+        case 'delete':
+          if (window.confirm(`Are you sure you want to delete ${selectedItems.length} items? This cannot be undone.`)) {
+            const promises = selectedItems.map(itemId => itemsAPI.deleteItem(itemId));
+            await Promise.all(promises);
+            alert(`${selectedItems.length} items deleted successfully!`);
+          }
+          break;
+          
+        case 'export':
+          // Export selected items to CSV
+          const itemsToExport = items.filter(item => selectedItems.includes(item.id));
+          const csv = convertToCSV(itemsToExport);
+          downloadCSV(csv, 'items-export.csv');
+          break;
+          
         default:
           console.log('Unknown bulk action:', action);
       }
       
-      // Refresh data after bulk action
+      // Refresh data and clear selection
       await loadItems(pagination.page);
       setSelectedItems([]);
     } catch (error) {
@@ -244,6 +287,39 @@ const ItemsTab = () => {
     });
   };
 
+  const convertToCSV = (items) => {
+    const headers = ['ID', 'Title', 'Category', 'Price', 'Condition', 'Status', 'Seller', 'Views', 'Saves'];
+    const rows = items.map(item => [
+      item.id,
+      item.title,
+      item.category,
+      item.price,
+      item.condition,
+      item.status,
+      item.seller,
+      item.views,
+      item.saves
+    ]);
+    
+    return [headers, ...rows].map(row => row.join(',')).join('\n');
+  };
+
+  // Helper to trigger CSV download
+  const downloadCSV = (csv, filename) => {
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleAddItem = () => {
+    // Navigate to create item page
+    window.location.href = '/admin/items/create';
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'active': return '#10b981';
@@ -253,6 +329,11 @@ const ItemsTab = () => {
       case 'rejected': return '#ef4444';
       default: return '#6b7280';
     }
+  };
+
+  const handleExportAll = () => {
+    const csv = convertToCSV(items);
+    downloadCSV(csv, `all-items-${new Date().toISOString().split('T')[0]}.csv`);
   };
 
   const getStatusIcon = (status) => {
