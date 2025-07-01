@@ -663,11 +663,13 @@ const handleAddUser = () => {
           </button>
 
           <button style={{ ...styles.button, ...styles.secondaryButton }}>
+            onClick={handleImportUsers}
             <Upload size={16} />
             {!isMobile && 'Import'}
           </button>
 
           <button style={styles.button}>
+            onClick={handleAddUser}
             <Plus size={16} />
             {!isMobile && 'Add User'}
           </button>
