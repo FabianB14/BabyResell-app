@@ -188,6 +188,24 @@ router.get('/', asyncHandler(async (req, res, next) => {
     const transformedItems = babyItems.map(item => {
       const itemObj = item.toObject();
       
+      // Extract thumbnail URL from images array
+      let thumbnailUrl = null;
+      if (itemObj.images && Array.isArray(itemObj.images) && itemObj.images.length > 0) {
+        // Check if images are objects with thumbnail/fullSize properties
+        if (typeof itemObj.images[0] === 'object' && itemObj.images[0] !== null) {
+          // Find primary image or use first image
+          const primaryImage = itemObj.images.find(img => img.isPrimary) || itemObj.images[0];
+          thumbnailUrl = primaryImage.thumbnail || primaryImage.fullSize;
+        }
+        // If images are strings (legacy format)
+        else if (typeof itemObj.images[0] === 'string') {
+          thumbnailUrl = itemObj.images[0];
+        }
+      }
+      
+      // Fallback to thumbnail field if it exists
+      thumbnailUrl = thumbnailUrl || itemObj.thumbnail || null;
+      
       return {
         _id: itemObj._id,
         id: itemObj._id, // Include both for compatibility
@@ -200,6 +218,7 @@ router.get('/', asyncHandler(async (req, res, next) => {
         listedDate: itemObj.createdAt,
         createdAt: itemObj.createdAt,
         images: itemObj.images || [],
+        thumbnail: thumbnailUrl,
         ageGroup: itemObj.ageGroup,
         brand: itemObj.brand,
         seller: itemObj.user?.username || itemObj.user?.firstName || 'Unknown',
@@ -209,7 +228,6 @@ router.get('/', asyncHandler(async (req, res, next) => {
         saves: itemObj.saves?.length || itemObj.saveCount || 0,
         likes: itemObj.likes?.length || itemObj.likeCount || 0,
         featured: itemObj.featured || false,
-        thumbnail: itemObj.thumbnail || itemObj.images?.[0] || null,
         active: itemObj.active,
         approved: itemObj.approved,
         sold: itemObj.sold,
@@ -269,13 +287,38 @@ router.get('/:id', asyncHandler(async (req, res, next) => {
       ]
     })
     .limit(6)
-    .select('title thumbnail price condition status')
+    .select('title images price condition status')
     .populate('user', 'username');
+    
+    // Transform similar items to include thumbnail
+    const transformedSimilarItems = similarItems.map(item => {
+      const itemObj = item.toObject();
+      
+      // Extract thumbnail from images
+      let thumbnailUrl = null;
+      if (itemObj.images && Array.isArray(itemObj.images) && itemObj.images.length > 0) {
+        if (typeof itemObj.images[0] === 'object' && itemObj.images[0] !== null) {
+          const firstImage = itemObj.images[0];
+          thumbnailUrl = firstImage.thumbnail || firstImage.fullSize;
+        } else if (typeof itemObj.images[0] === 'string') {
+          thumbnailUrl = itemObj.images[0];
+        }
+      }
+      
+      return {
+        _id: itemObj._id,
+        title: itemObj.title,
+        price: itemObj.price,
+        condition: itemObj.condition,
+        images: itemObj.images,
+        thumbnail: thumbnailUrl
+      };
+    });
     
     res.status(200).json({
       success: true,
       data: babyItem,
-      similarItems
+      similarItems: transformedSimilarItems
     });
   } catch (error) {
     next(error);
