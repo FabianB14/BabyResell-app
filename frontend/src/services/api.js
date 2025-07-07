@@ -1,3 +1,4 @@
+// frontend/src/services/api.js
 import axios from 'axios';
 
 // Determine if we're in production
@@ -70,6 +71,35 @@ export const authAPI = {
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   resetPassword: (token, password) => api.put(`/auth/reset-password/${token}`, { password }),
   testConnection: () => api.get('/health'),
+};
+
+// Settings API endpoints
+export const settingsAPI = {
+  // Get all settings
+  getSettings: () => api.get('/admin/settings'),
+  
+  // Update all settings at once
+  updateSettings: (settings) => api.put('/admin/settings', settings),
+  
+  // Get specific section
+  getGeneralSettings: () => api.get('/admin/settings/general'),
+  getNotificationSettings: () => api.get('/admin/settings/notifications'),
+  getPaymentSettings: () => api.get('/admin/settings/payments'),
+  getSecuritySettings: () => api.get('/admin/settings/security'),
+  getContentSettings: () => api.get('/admin/settings/content'),
+  
+  // Update specific section
+  updateGeneralSettings: (settings) => api.put('/admin/settings/general', settings),
+  updateNotificationSettings: (settings) => api.put('/admin/settings/notifications', settings),
+  updatePaymentSettings: (settings) => api.put('/admin/settings/payments', settings),
+  updateSecuritySettings: (settings) => api.put('/admin/settings/security', settings),
+  updateContentSettings: (settings) => api.put('/admin/settings/content', settings),
+  
+  // Special settings operations
+  testEmailSettings: (email) => api.post('/admin/settings/test-email', { email }),
+  testPaymentSettings: (provider) => api.post('/admin/settings/test-payment', { provider }),
+  getMaintenanceStatus: () => api.get('/admin/settings/maintenance'),
+  setMaintenanceMode: (enabled, message) => api.post('/admin/settings/maintenance', { enabled, message }),
 };
 
 // Items/Pins endpoints
@@ -219,6 +249,12 @@ export const userAPI = {
 
 // Admin-specific API endpoints
 export const adminAPI = {
+
+  getSettings: () => settingsAPI.getSettings(),
+  updateSettings: (settings) => settingsAPI.updateSettings(settings),
+  getSettingsSection: (section) => settingsAPI[`get${section.charAt(0).toUpperCase() + section.slice(1)}Settings`](),
+  updateSettingsSection: (section, data) => settingsAPI[`update${section.charAt(0).toUpperCase() + section.slice(1)}Settings`](data),
+  
   // Dashboard Statistics
   getDashboardStats: async () => {
     try {
