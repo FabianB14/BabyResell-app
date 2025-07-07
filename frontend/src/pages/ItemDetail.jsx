@@ -31,33 +31,21 @@ const ItemDetail = () => {
       try {
         setLoading(true);
         
-        // Try to get item from API
-        try {
-          const res = await itemsAPI.getItem(id);
+        const res = await itemsAPI.getItem(id);
+        
+        if (res.data.success) {
+          setItem(res.data.data);
+          setSimilarItems(res.data.similarItems || []);
           
-          if (res.data.success) {
-            setItem(res.data.data);
-            setSimilarItems(res.data.similarItems || []);
-            
-            // Check if user has saved this item
-            if (isAuthenticated && res.data.data.saves) {
-              setSaved(res.data.data.saves.includes(user?._id));
-            }
-          } else {
-            // Use sample data if API returns unsuccessful response
-            const sampleItem = getSampleItem(id);
-            setItem(sampleItem);
-            setSimilarItems(getSampleSimilarItems(sampleItem));
+          // Check if user has saved this item
+          if (isAuthenticated && res.data.data.saves) {
+            setSaved(res.data.data.saves.some(saveId => saveId === user?._id || saveId._id === user?._id));
           }
-        } catch (err) {
-          console.error('Error fetching from API:', err);
-          // Use sample data if API call fails
-          const sampleItem = getSampleItem(id);
-          setItem(sampleItem);
-          setSimilarItems(getSampleSimilarItems(sampleItem));
+        } else {
+          setError('Item not found');
         }
       } catch (err) {
-        console.error('Failed to load item details:', err);
+        console.error('Error fetching item:', err);
         setError('Unable to load item details. Please try again later.');
       } finally {
         setLoading(false);
@@ -66,82 +54,6 @@ const ItemDetail = () => {
     
     fetchItemDetails();
   }, [id, isAuthenticated, user]);
-
-  // Sample data generator function (for development/testing)
-  const getSampleItem = (itemId) => {
-    return {
-      id: itemId,
-      title: 'Baby Carrier - Like New',
-      price: 45.00,
-      description: 'High-quality baby carrier in excellent condition. Used only a few times. This premium carrier offers multiple carrying positions and is suitable for babies from 3 months to toddlers up to 3 years old. The padding is still in great shape and all buckles and straps work perfectly. Machine washable for easy cleaning. Pick up in Seattle area or shipping available for an additional fee.',
-      condition: 'Like New',
-      category: 'Carriers & Wraps',
-      ageGroup: 'Infant (3-12 months)',
-      brand: 'BabyBjörn',
-      color: 'Grey',
-      tags: ['carrier', 'baby', 'bjorn'],
-      images: [
-        {
-          fullSize: 'https://via.placeholder.com/800x600?text=Baby+Carrier',
-          thumbnail: 'https://via.placeholder.com/300x300?text=Baby+Carrier',
-          isPrimary: true
-        },
-        {
-          fullSize: 'https://via.placeholder.com/800x600?text=Baby+Carrier+Side',
-          thumbnail: 'https://via.placeholder.com/300x300?text=Baby+Carrier+Side',
-          isPrimary: false
-        },
-        {
-          fullSize: 'https://via.placeholder.com/800x600?text=Baby+Carrier+Back',
-          thumbnail: 'https://via.placeholder.com/300x300?text=Baby+Carrier+Back',
-          isPrimary: false
-        }
-      ],
-      user: {
-        _id: '123456',
-        username: 'parent123',
-        profileImage: 'https://via.placeholder.com/40?text=User',
-        location: 'Seattle, WA'
-      },
-      createdAt: new Date().toISOString(),
-      saves: [],
-      views: 42
-    };
-  };
-
-  // Sample similar items generator
-  const getSampleSimilarItems = (item) => {
-    return [
-      {
-        _id: '101',
-        title: 'Infant Wrap Carrier',
-        price: 30.00,
-        thumbnail: 'https://via.placeholder.com/300x300?text=Infant+Wrap',
-        condition: 'New'
-      },
-      {
-        _id: '102',
-        title: 'Baby Sling - Cotton',
-        price: 25.00,
-        thumbnail: 'https://via.placeholder.com/300x300?text=Baby+Sling',
-        condition: 'Good'
-      },
-      {
-        _id: '103',
-        title: 'Toddler Backpack Carrier',
-        price: 65.00,
-        thumbnail: 'https://via.placeholder.com/300x300?text=Backpack+Carrier',
-        condition: 'Like New'
-      },
-      {
-        _id: '104',
-        title: 'Baby Hiking Carrier',
-        price: 80.00,
-        thumbnail: 'https://via.placeholder.com/300x300?text=Hiking+Carrier',
-        condition: 'Good'
-      }
-    ];
-  };
 
   // Handle image navigation
   const handlePrevImage = () => {
@@ -195,30 +107,18 @@ const ItemDetail = () => {
       setSendingMessage(true);
       setErrorMessage('');
       
-      // Attempt to send message via API
-      try {
-        await messageAPI.sendMessage({
-          recipientId: item.user._id,
-          content: message,
-          pinId: item._id || item.id
-        });
-        
-        setMessage('');
-        setMessageSent(true);
-        setTimeout(() => {
-          setShowContactForm(false);
-          setMessageSent(false);
-        }, 3000);
-      } catch (err) {
-        console.error('API error:', err);
-        // Just show success in development mode without API
-        setMessage('');
-        setMessageSent(true);
-        setTimeout(() => {
-          setShowContactForm(false);
-          setMessageSent(false);
-        }, 3000);
-      }
+      await messageAPI.sendMessage({
+        recipientId: item.user._id || item.user.id,
+        content: message,
+        pinId: item._id || item.id
+      });
+      
+      setMessage('');
+      setMessageSent(true);
+      setTimeout(() => {
+        setShowContactForm(false);
+        setMessageSent(false);
+      }, 3000);
     } catch (error) {
       console.error('Error sending message:', error);
       setErrorMessage('Failed to send message. Please try again.');
@@ -234,8 +134,8 @@ const ItemDetail = () => {
       return;
     }
     
-    // In a real app, navigate to checkout
-    alert(`Purchase initiated for: ${item.title}`);
+    // Navigate to checkout with item data
+    navigate('/checkout', { state: { item } });
   };
 
   // Handle share
@@ -251,6 +151,27 @@ const ItemDetail = () => {
       navigator.clipboard.writeText(window.location.href);
       alert('Link copied to clipboard!');
     }
+  };
+
+  // Get proper image URLs from item data
+  const getItemImages = () => {
+    if (!item) return [];
+    
+    // If images is an array of strings (URLs)
+    if (item.images && item.images.length > 0 && typeof item.images[0] === 'string') {
+      return item.images;
+    }
+    
+    // If images is an array of objects (legacy format)
+    if (item.images && item.images.length > 0 && typeof item.images[0] === 'object') {
+      return item.images.map(img => img.fullSize || img.url || img.thumbnail);
+    }
+    
+    // Fallback to thumbnail or single image field
+    if (item.thumbnail) return [item.thumbnail];
+    if (item.image) return [item.image];
+    
+    return [];
   };
 
   if (loading) {
@@ -309,14 +230,8 @@ const ItemDetail = () => {
     );
   }
 
-  // Format item images for display
-  const itemImages = item.images && item.images.length > 0 
-    ? item.images 
-    : [{ 
-        fullSize: item.image || item.thumbnail || 'https://via.placeholder.com/800x600?text=No+Image', 
-        thumbnail: item.image || item.thumbnail || 'https://via.placeholder.com/300x300?text=No+Image',
-        isPrimary: true 
-      }];
+  const itemImages = getItemImages();
+  const hasImages = itemImages.length > 0;
 
   return (
     <div style={{ backgroundColor: themeColors.background, minHeight: 'calc(100vh - 120px)' }}>
@@ -359,15 +274,58 @@ const ItemDetail = () => {
               height: '500px'
             }
           }}>
-            <img 
-              src={itemImages[currentImageIndex].fullSize} 
-              alt={item.title} 
-              style={{
+            {hasImages ? (
+              <>
+                <img 
+                  src={itemImages[currentImageIndex]} 
+                  alt={item.title} 
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain'
+                  }}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'none',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: themeColors.secondary,
+                  color: themeColors.textSecondary,
+                  fontSize: '16px',
+                  textAlign: 'center',
+                  padding: '20px'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '48px', marginBottom: '8px' }}>🍼</div>
+                    <div>Image not available</div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div style={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'contain'
-              }}
-            />
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: themeColors.secondary,
+                color: themeColors.textSecondary,
+                fontSize: '16px',
+                textAlign: 'center',
+                padding: '20px'
+              }}>
+                <div>
+                  <div style={{ fontSize: '48px', marginBottom: '8px' }}>🍼</div>
+                  <div>{item.title || 'No image available'}</div>
+                </div>
+              </div>
+            )}
             
             {/* Navigation arrows */}
             {itemImages.length > 1 && (
@@ -442,7 +400,7 @@ const ItemDetail = () => {
             {itemImages.length > 1 && (
               <div style={{
                 position: 'absolute',
-                bottom: '16px',
+                bottom: '60px',
                 left: '16px',
                 right: '16px',
                 display: 'flex',
@@ -460,18 +418,26 @@ const ItemDetail = () => {
                       borderRadius: '8px',
                       padding: '0',
                       overflow: 'hidden',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      backgroundColor: themeColors.secondary
                     }}
                     onClick={() => setCurrentImageIndex(index)}
                     aria-label={`View image ${index + 1}`}
                   >
                     <img
-                      src={image.thumbnail}
+                      src={image}
                       alt={`Thumbnail ${index + 1}`}
                       style={{
                         width: '100%',
                         height: '100%',
                         objectFit: 'cover'
+                      }}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = '🍼';
+                        e.target.parentElement.style.display = 'flex';
+                        e.target.parentElement.style.alignItems = 'center';
+                        e.target.parentElement.style.justifyContent = 'center';
                       }}
                     />
                   </button>
@@ -509,7 +475,7 @@ const ItemDetail = () => {
                   fontSize: '24px', 
                   fontWeight: 'bold' 
                 }}>
-                  ${item.price?.toFixed(2)}
+                  ${item.price?.toFixed(2) || '0.00'}
                 </div>
               </div>
               
@@ -519,7 +485,8 @@ const ItemDetail = () => {
                 marginBottom: '24px'
               }}>
                 Posted {formatDate(item.createdAt)}
-                {item.location && ` • ${item.location}`}
+                {(item.location?.city || item.user?.location) && 
+                  ` • ${item.location?.city || item.user?.location}`}
               </div>
               
               {/* Description */}
@@ -536,7 +503,7 @@ const ItemDetail = () => {
                   color: themeColors.text, 
                   lineHeight: '1.6'
                 }}>
-                  {item.description}
+                  {item.description || 'No description provided.'}
                 </p>
               </div>
               
@@ -584,6 +551,12 @@ const ItemDetail = () => {
                       <div>{item.color}</div>
                     </div>
                   )}
+                  {item.size && (
+                    <div>
+                      <span style={{ color: themeColors.textSecondary }}>Size:</span>
+                      <div>{item.size}</div>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -628,24 +601,45 @@ const ItemDetail = () => {
                   Seller
                 </h2>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <img 
-                    src={item.user?.profileImage || 'https://via.placeholder.com/48?text=User'} 
-                    alt={item.user?.username || 'Seller'} 
+                  <div 
                     style={{
                       width: '48px',
                       height: '48px',
                       borderRadius: '50%',
-                      objectFit: 'cover',
-                      marginRight: '16px'
+                      backgroundColor: themeColors.secondary,
+                      marginRight: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px',
+                      overflow: 'hidden'
                     }}
-                  />
+                  >
+                    {item.user?.profileImage ? (
+                      <img 
+                        src={item.user.profileImage} 
+                        alt={item.user?.username || 'Seller'} 
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.parentElement.innerHTML = '👤';
+                        }}
+                      />
+                    ) : (
+                      '👤'
+                    )}
+                  </div>
                   <div>
                     <div style={{ 
                       color: themeColors.text, 
                       fontWeight: '600',
                       fontSize: '16px'
                     }}>
-                      {item.user?.username || 'Anonymous'}
+                      {item.user?.username || item.user?.firstName || 'Anonymous'}
                     </div>
                     {item.user?.location && (
                       <div style={{ color: themeColors.textSecondary, fontSize: '14px' }}>
@@ -768,7 +762,7 @@ const ItemDetail = () => {
                 onClick={handleBuyNow}
               >
                 <DollarSign size={20} style={{ marginRight: '8px' }} />
-                Buy Now - ${item.price?.toFixed(2)}
+                Buy Now - ${item.price?.toFixed(2) || '0.00'}
               </button>
               
               <button 
@@ -876,16 +870,32 @@ const ItemDetail = () => {
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
-                  <div style={{ position: 'relative' }}>
-                    <img 
-                      src={similarItem.thumbnail || `https://via.placeholder.com/300x300?text=${encodeURIComponent(similarItem.title)}`} 
-                      alt={similarItem.title}
-                      style={{
-                        width: '100%',
-                        height: '180px',
-                        objectFit: 'cover'
-                      }}
-                    />
+                  <div style={{ position: 'relative', height: '180px', backgroundColor: themeColors.secondary }}>
+                    {similarItem.thumbnail || similarItem.images?.[0] ? (
+                      <img 
+                        src={similarItem.thumbnail || similarItem.images[0]} 
+                        alt={similarItem.title}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div style={{
+                      width: '100%',
+                      height: '100%',
+                      display: similarItem.thumbnail || similarItem.images?.[0] ? 'none' : 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '48px'
+                    }}>
+                      🍼
+                    </div>
                     <div style={{ 
                       position: 'absolute', 
                       top: '8px', 
@@ -897,7 +907,7 @@ const ItemDetail = () => {
                       fontSize: '12px',
                       fontWeight: '600'
                     }}>
-                      ${similarItem.price?.toFixed(2)}
+                      ${similarItem.price?.toFixed(2) || '0.00'}
                     </div>
                   </div>
                   <div style={{ padding: '12px' }}>
@@ -916,7 +926,7 @@ const ItemDetail = () => {
                       color: themeColors.textSecondary,
                       fontSize: '14px'
                     }}>
-                      {similarItem.condition}
+                      {similarItem.condition || 'Good'}
                     </div>
                   </div>
                 </div>
