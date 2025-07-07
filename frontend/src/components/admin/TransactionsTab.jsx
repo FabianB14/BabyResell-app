@@ -24,7 +24,7 @@ import {
   Loader,
   AlertCircle
 } from 'lucide-react';
-import { formatCurrency, formatDate, showNotification, downloadCSV, convertToCSV } from '../../utils/adminUtils';
+import { formatCurrency, formatDate, showNotification, downloadCSV, convertToCSV } from './adminUtils';
 
 const TransactionsTab = () => {
   const { themeColors } = useTheme();
