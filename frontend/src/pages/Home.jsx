@@ -69,6 +69,13 @@ const Home = () => {
         const newItems = response.data.data || [];
         const paginationData = response.data.pagination || {};
         
+        // DEBUG: Log the first item to see its structure
+        if (newItems.length > 0) {
+          console.log('First item structure:', newItems[0]);
+          console.log('Images field:', newItems[0].images);
+          console.log('Thumbnail field:', newItems[0].thumbnail);
+        }
+        
         // If resetting (new search/filter), replace items; otherwise append for pagination
         setItems(resetItems ? newItems : [...items, ...newItems]);
         setPagination({
@@ -173,22 +180,31 @@ const Home = () => {
 
   // Get the proper image URL from item data
   const getItemImageUrl = (item) => {
+    // DEBUG: Log what we're working with
+    console.log('Getting image for item:', item.title);
+    console.log('Item images:', item.images);
+    console.log('Item thumbnail:', item.thumbnail);
+    
     // Check if item has images array with URLs
-    if (item.images && item.images.length > 0 && typeof item.images[0] === 'string') {
-      return item.images[0];
+    if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+      const imageUrl = item.images[0];
+      console.log('Using image URL from images array:', imageUrl);
+      return imageUrl;
     }
     
     // Check for thumbnail field
     if (item.thumbnail) {
+      console.log('Using thumbnail URL:', item.thumbnail);
       return item.thumbnail;
     }
     
     // Check for single image field
     if (item.image) {
+      console.log('Using image URL:', item.image);
       return item.image;
     }
     
-    // Return a local placeholder or empty string to avoid external dependency
+    console.log('No image found for item:', item.title);
     return '';
   };
 
@@ -630,10 +646,17 @@ const Home = () => {
                             alt={item.title || 'Baby item'} 
                             style={imageStyle(height)}
                             onError={(e) => {
+                              console.error('Image failed to load:', imageUrl);
+                              console.error('Error:', e);
                               // Hide broken image
                               e.target.style.display = 'none';
                               // Show placeholder div instead
-                              e.target.nextSibling.style.display = 'flex';
+                              if (e.target.nextSibling) {
+                                e.target.nextSibling.style.display = 'flex';
+                              }
+                            }}
+                            onLoad={(e) => {
+                              console.log('Image loaded successfully:', imageUrl);
                             }}
                           />
                         ) : null}
