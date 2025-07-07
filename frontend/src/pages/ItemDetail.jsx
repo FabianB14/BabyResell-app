@@ -157,14 +157,16 @@ const ItemDetail = () => {
   const getItemImages = () => {
     if (!item) return [];
     
-    // If images is an array of strings (URLs)
-    if (item.images && item.images.length > 0 && typeof item.images[0] === 'string') {
-      return item.images;
-    }
-    
-    // If images is an array of objects (legacy format)
-    if (item.images && item.images.length > 0 && typeof item.images[0] === 'object') {
-      return item.images.map(img => img.fullSize || img.url || img.thumbnail);
+    // If images is an array
+    if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+      // If images are objects with fullSize property - use fullSize for detail view
+      if (typeof item.images[0] === 'object' && item.images[0].fullSize) {
+        return item.images.map(img => img.fullSize); // Use fullSize for better quality in detail view
+      }
+      // If images are strings
+      else if (typeof item.images[0] === 'string') {
+        return item.images;
+      }
     }
     
     // Fallback to thumbnail or single image field
@@ -172,6 +174,21 @@ const ItemDetail = () => {
     if (item.image) return [item.image];
     
     return [];
+  };
+  
+  // Get thumbnail URLs for the thumbnail navigation
+  const getItemThumbnails = () => {
+    if (!item) return [];
+    
+    // If images is an array with thumbnail URLs
+    if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+      if (typeof item.images[0] === 'object' && item.images[0].thumbnail) {
+        return item.images.map(img => img.thumbnail || img.fullSize);
+      }
+    }
+    
+    // Otherwise return the same as main images
+    return getItemImages();
   };
 
   if (loading) {
@@ -231,6 +248,7 @@ const ItemDetail = () => {
   }
 
   const itemImages = getItemImages();
+  const itemThumbnails = getItemThumbnails();
   const hasImages = itemImages.length > 0;
 
   return (
@@ -408,7 +426,7 @@ const ItemDetail = () => {
                 gap: '8px',
                 zIndex: 5
               }}>
-                {itemImages.map((image, index) => (
+                {itemThumbnails.map((image, index) => (
                   <button
                     key={index}
                     style={{
@@ -871,25 +889,47 @@ const ItemDetail = () => {
                   }}
                 >
                   <div style={{ position: 'relative', height: '180px', backgroundColor: themeColors.secondary }}>
-                    {similarItem.thumbnail || similarItem.images?.[0] ? (
-                      <img 
-                        src={similarItem.thumbnail || similarItem.images[0]} 
-                        alt={similarItem.title}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover'
-                        }}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                    ) : null}
+                    {(() => {
+                      let imageUrl = null;
+                      
+                      // Check for images array with objects
+                      if (similarItem.images && Array.isArray(similarItem.images) && similarItem.images.length > 0) {
+                        const firstImage = similarItem.images[0];
+                        imageUrl = firstImage.thumbnail || firstImage.fullSize || firstImage;
+                      }
+                      // Check for thumbnail field
+                      else if (similarItem.thumbnail) {
+                        imageUrl = similarItem.thumbnail;
+                      }
+                      
+                      return imageUrl ? (
+                        <img 
+                          src={imageUrl} 
+                          alt={similarItem.title}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null;
+                    })()}
                     <div style={{
                       width: '100%',
                       height: '100%',
-                      display: similarItem.thumbnail || similarItem.images?.[0] ? 'none' : 'flex',
+                      display: (() => {
+                        let hasImage = false;
+                        if (similarItem.images && Array.isArray(similarItem.images) && similarItem.images.length > 0) {
+                          hasImage = true;
+                        } else if (similarItem.thumbnail) {
+                          hasImage = true;
+                        }
+                        return hasImage ? 'none' : 'flex';
+                      })(),
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '48px'

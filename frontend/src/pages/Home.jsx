@@ -180,31 +180,29 @@ const Home = () => {
 
   // Get the proper image URL from item data
   const getItemImageUrl = (item) => {
-    // DEBUG: Log what we're working with
-    console.log('Getting image for item:', item.title);
-    console.log('Item images:', item.images);
-    console.log('Item thumbnail:', item.thumbnail);
-    
-    // Check if item has images array with URLs
+    // Check if item has images array
     if (item.images && Array.isArray(item.images) && item.images.length > 0) {
-      const imageUrl = item.images[0];
-      console.log('Using image URL from images array:', imageUrl);
-      return imageUrl;
+      // If images are objects with thumbnail property, use thumbnail for list view
+      if (typeof item.images[0] === 'object' && item.images[0].thumbnail) {
+        const primaryImage = item.images.find(img => img.isPrimary) || item.images[0];
+        return primaryImage.thumbnail; // Use thumbnail for better performance in list view
+      }
+      // If images are just URL strings
+      else if (typeof item.images[0] === 'string') {
+        return item.images[0];
+      }
     }
     
     // Check for thumbnail field
     if (item.thumbnail) {
-      console.log('Using thumbnail URL:', item.thumbnail);
       return item.thumbnail;
     }
     
     // Check for single image field
     if (item.image) {
-      console.log('Using image URL:', item.image);
       return item.image;
     }
     
-    console.log('No image found for item:', item.title);
     return '';
   };
 
