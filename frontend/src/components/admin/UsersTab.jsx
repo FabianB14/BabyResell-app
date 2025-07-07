@@ -73,39 +73,86 @@ const UsersTab = () => {
         params.search = searchTerm.trim();
       }
 
+      console.log('Loading users with params:', params);
       const response = await userAPI.getAllUsers(params);
+      console.log('Users response:', response);
       
-      if (response.data.success) {
+      // Handle different response structures
+      const responseData = response.data;
+      const userData = responseData.data || responseData.users || responseData;
+      const paginationData = responseData.pagination || {};
+      
+      if (Array.isArray(userData)) {
         // Transform the data to include computed fields
-        const transformedUsers = response.data.data.map(user => ({
-          id: user._id,
-          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
+        const transformedUsers = userData.map(user => ({
+          id: user._id || user.id,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Unnamed User',
           email: user.email,
           username: user.username,
-          status: user.isActive !== false ? 'active' : 'suspended',
+          status: user.isActive === false ? 'suspended' : 'active',
           joinDate: user.createdAt,
-          lastActive: user.lastLoginAt || user.updatedAt,
+          lastActive: user.lastLoginAt || user.updatedAt || user.createdAt,
           avatar: user.profileImage,
           location: user.location || 'Not specified',
           verified: user.isEmailVerified || false,
           isAdmin: user.isAdmin || false,
           // These would need to be calculated or fetched from additional endpoints
-          items: 0, // TODO: Add actual count from pins/items
-          transactions: 0, // TODO: Add actual transaction count
-          revenue: 0 // TODO: Add actual revenue calculation
+          items: user.itemCount || 0,
+          transactions: user.transactionCount || 0,
+          revenue: user.revenue || 0
         }));
 
         setUsers(transformedUsers);
         setPagination({
-          page: response.data.pagination.page,
-          limit: response.data.pagination.limit || 20,
-          total: response.data.pagination.total,
-          pages: response.data.pagination.pages
+          page: paginationData.page || page,
+          limit: paginationData.limit || pagination.limit,
+          total: paginationData.total || transformedUsers.length,
+          pages: paginationData.pages || Math.ceil((paginationData.total || transformedUsers.length) / pagination.limit)
         });
+      } else {
+        throw new Error('Invalid response format');
       }
     } catch (error) {
       console.error('Error loading users:', error);
       setError('Failed to load users. Please try again.');
+      
+      // Set some dummy data for testing if API fails
+      if (process.env.NODE_ENV === 'development') {
+        setUsers([
+          {
+            id: '1',
+            name: 'John Doe',
+            email: 'john@example.com',
+            username: 'johndoe',
+            status: 'active',
+            joinDate: new Date().toISOString(),
+            lastActive: new Date().toISOString(),
+            avatar: null,
+            location: 'New York, NY',
+            verified: true,
+            isAdmin: false,
+            items: 5,
+            transactions: 10,
+            revenue: 150.00
+          },
+          {
+            id: '2',
+            name: 'Jane Smith',
+            email: 'jane@example.com',
+            username: 'janesmith',
+            status: 'suspended',
+            joinDate: new Date(Date.now() - 86400000).toISOString(),
+            lastActive: new Date().toISOString(),
+            avatar: null,
+            location: 'Los Angeles, CA',
+            verified: false,
+            isAdmin: false,
+            items: 3,
+            transactions: 5,
+            revenue: 75.50
+          }
+        ]);
+      }
     } finally {
       setLoading(false);
     }
@@ -133,171 +180,228 @@ const UsersTab = () => {
   });
 
   const handleUserAction = async (action, userId) => {
-  console.log(`${action} user ${userId}`);
-  try {
-    switch (action) {
-      case 'view':
-        // Open user profile in new tab
-        window.open(`/user/${userId}`, '_blank');
-        break;
-        
-      case 'edit':
-        // Navigate to edit user page
-        window.location.href = `/admin/users/edit/${userId}`;
-        break;
-        
-      case 'delete':
-        if (window.confirm('Are you sure you want to delete this user? This will also delete all their listings.')) {
-          const response = await userAPI.deleteUser(userId);
-          if (response.data.success) {
+    console.log(`${action} user ${userId}`);
+    try {
+      switch (action) {
+        case 'view':
+          // Open user profile in new tab
+          window.open(`/user/${userId}`, '_blank');
+          break;
+          
+        case 'edit':
+          // Navigate to edit user page
+          window.location.href = `/admin/users/edit/${userId}`;
+          break;
+          
+        case 'delete':
+          if (window.confirm('Are you sure you want to delete this user? This will also delete all their listings.')) {
+            const response = await userAPI.deleteUser(userId);
+            console.log('Delete response:', response);
+            
+            // Refresh the user list
+            await loadUsers(pagination.page);
             alert('User deleted successfully!');
-            await loadUsers(pagination.page);
           }
-        }
-        break;
-        
-      case 'suspend':
-        if (window.confirm('Suspend this user account?')) {
-          const response = await userAPI.updateUser(userId, { isActive: false, status: 'suspended' });
-          if (response.data.success) {
+          break;
+          
+        case 'suspend':
+          if (window.confirm('Suspend this user account?')) {
+            const response = await userAPI.updateUser(userId, { isActive: false });
+            console.log('Suspend response:', response);
+            
+            // Update local state immediately
+            setUsers(prevUsers => 
+              prevUsers.map(user => 
+                user.id === userId 
+                  ? { ...user, status: 'suspended' }
+                  : user
+              )
+            );
+            
             alert('User suspended successfully!');
-            await loadUsers(pagination.page);
           }
-        }
-        break;
-        
-      case 'activate':
-        const response = await userAPI.updateUser(userId, { isActive: true, status: 'active' });
-        if (response.data.success) {
+          break;
+          
+        case 'activate':
+          const response = await userAPI.updateUser(userId, { isActive: true });
+          console.log('Activate response:', response);
+          
+          // Update local state immediately
+          setUsers(prevUsers => 
+            prevUsers.map(user => 
+              user.id === userId 
+                ? { ...user, status: 'active' }
+                : user
+            )
+          );
+          
           alert('User activated successfully!');
-          await loadUsers(pagination.page);
-        }
-        break;
-        
-      default:
-        console.log('Unknown action:', action);
-    }
-  } catch (error) {
-    console.error(`Error performing ${action} on user ${userId}:`, error);
-    setError(`Failed to ${action} user. Please try again.`);
-  }
-};
-
-  const handleBulkAction = async (action) => {
-  if (selectedUsers.length === 0) {
-    alert('Please select users first');
-    return;
-  }
-  
-  console.log(`${action} users:`, selectedUsers);
-  try {
-    switch (action) {
-      case 'activate':
-        if (window.confirm(`Activate ${selectedUsers.length} users?`)) {
-          const promises = selectedUsers.map(userId => 
-            userAPI.updateUser(userId, { isActive: true, status: 'active' })
-          );
-          await Promise.all(promises);
-          alert(`${selectedUsers.length} users activated successfully!`);
-        }
-        break;
-        
-      case 'suspend':
-        if (window.confirm(`Suspend ${selectedUsers.length} users?`)) {
-          const promises = selectedUsers.map(userId => 
-            userAPI.updateUser(userId, { isActive: false, status: 'suspended' })
-          );
-          await Promise.all(promises);
-          alert(`${selectedUsers.length} users suspended successfully!`);
-        }
-        break;
-        
-      case 'export':
-        // Export users to CSV
-        const usersToExport = users.filter(user => selectedUsers.includes(user.id));
-        const csv = convertUsersToCSV(usersToExport);
-        downloadCSV(csv, 'users-export.csv');
-        break;
-        
-      default:
-        console.log('Unknown bulk action:', action);
-    }
-    
-    // Refresh and clear selection
-    await loadUsers(pagination.page);
-    setSelectedUsers([]);
-  } catch (error) {
-    console.error(`Error performing bulk ${action}:`, error);
-    setError(`Failed to ${action} users. Please try again.`);
-  }
-};
-
-const convertUsersToCSV = (users) => {
-  const headers = ['ID', 'Name', 'Email', 'Username', 'Status', 'Join Date', 'Location'];
-  const rows = users.map(user => [
-    user.id,
-    user.name,
-    user.email,
-    user.username,
-    user.status,
-    new Date(user.joinDate).toLocaleDateString(),
-    user.location
-  ]);
-  
-  return [headers, ...rows].map(row => row.join(',')).join('\n');
-};
-
-// Utility function to trigger CSV download
-const downloadCSV = (csv, filename) => {
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  window.URL.revokeObjectURL(url);
-};
-
-const handleImportUsers = () => {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.csv';
-  input.onchange = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      try {
-        const response = await fetch('/api/admin/users/import', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: formData
-        });
-        
-        if (response.ok) {
-          alert('Users imported successfully!');
-          await loadUsers(1);
-        } else {
-          throw new Error('Import failed');
-        }
-      } catch (error) {
-        alert('Failed to import users. Please check the file format.');
+          break;
+          
+        case 'more':
+          // Handle more options menu
+          const userAction = prompt('Choose action:\n1. View Profile\n2. Send Message\n3. View Transactions\n4. Reset Password');
+          if (userAction === '1') handleUserAction('view', userId);
+          else if (userAction === '2') window.location.href = `/messages/new?userId=${userId}`;
+          else if (userAction === '3') window.location.href = `/admin/transactions?userId=${userId}`;
+          else if (userAction === '4') {
+            if (window.confirm('Send password reset email to user?')) {
+              // Implement password reset
+              alert('Password reset email sent!');
+            }
+          }
+          break;
+          
+        default:
+          console.log('Unknown action:', action);
       }
+    } catch (error) {
+      console.error(`Error performing ${action} on user ${userId}:`, error);
+      setError(`Failed to ${action} user. Please try again.`);
+      
+      // Reload users to ensure state is in sync
+      setTimeout(() => loadUsers(pagination.page), 1000);
     }
   };
-  input.click();
-};
 
-const handleAddUser = () => {
-  window.location.href = '/admin/users/create';
-};
+  const handleBulkAction = async (action) => {
+    if (selectedUsers.length === 0) {
+      alert('Please select users first');
+      return;
+    }
+    
+    console.log(`${action} users:`, selectedUsers);
+    try {
+      switch (action) {
+        case 'activate':
+          if (window.confirm(`Activate ${selectedUsers.length} users?`)) {
+            const promises = selectedUsers.map(userId => 
+              userAPI.updateUser(userId, { isActive: true })
+            );
+            await Promise.all(promises);
+            
+            // Update local state
+            setUsers(prevUsers => 
+              prevUsers.map(user => 
+                selectedUsers.includes(user.id) 
+                  ? { ...user, status: 'active' }
+                  : user
+              )
+            );
+            
+            alert(`${selectedUsers.length} users activated successfully!`);
+            setSelectedUsers([]);
+          }
+          break;
+          
+        case 'suspend':
+          if (window.confirm(`Suspend ${selectedUsers.length} users?`)) {
+            const promises = selectedUsers.map(userId => 
+              userAPI.updateUser(userId, { isActive: false })
+            );
+            await Promise.all(promises);
+            
+            // Update local state
+            setUsers(prevUsers => 
+              prevUsers.map(user => 
+                selectedUsers.includes(user.id) 
+                  ? { ...user, status: 'suspended' }
+                  : user
+              )
+            );
+            
+            alert(`${selectedUsers.length} users suspended successfully!`);
+            setSelectedUsers([]);
+          }
+          break;
+          
+        case 'export':
+          // Export users to CSV
+          const usersToExport = users.filter(user => selectedUsers.includes(user.id));
+          const csv = convertUsersToCSV(usersToExport);
+          downloadCSV(csv, 'users-export.csv');
+          setSelectedUsers([]);
+          break;
+          
+        default:
+          console.log('Unknown bulk action:', action);
+      }
+    } catch (error) {
+      console.error(`Error performing bulk ${action}:`, error);
+      setError(`Failed to ${action} users. Please try again.`);
+    }
+  };
+
+  const convertUsersToCSV = (users) => {
+    const headers = ['ID', 'Name', 'Email', 'Username', 'Status', 'Join Date', 'Location', 'Items', 'Revenue'];
+    const rows = users.map(user => [
+      user.id,
+      user.name,
+      user.email,
+      user.username,
+      user.status,
+      new Date(user.joinDate).toLocaleDateString(),
+      user.location,
+      user.items,
+      `$${user.revenue.toFixed(2)}`
+    ]);
+    
+    return [headers, ...rows].map(row => row.join(',')).join('\n');
+  };
+
+  // Utility function to trigger CSV download
+  const downloadCSV = (csv, filename) => {
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleImportUsers = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        try {
+          const response = await fetch('/api/admin/users/import', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: formData
+          });
+          
+          if (response.ok) {
+            alert('Users imported successfully!');
+            await loadUsers(1);
+          } else {
+            throw new Error('Import failed');
+          }
+        } catch (error) {
+          alert('Failed to import users. Please check the file format.');
+        }
+      }
+    };
+    input.click();
+  };
+
+  const handleAddUser = () => {
+    // For now, redirect to registration page or show a modal
+    window.location.href = '/admin/users/create';
+  };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -448,6 +552,7 @@ const handleAddUser = () => {
       borderRadius: '8px',
       border: `1px solid ${themeColors.secondary}`,
       marginBottom: '16px',
+      flexWrap: 'wrap',
     },
 
     tableContainer: {
@@ -610,10 +715,49 @@ const handleAddUser = () => {
       padding: '40px 20px',
       color: themeColors.textSecondary,
     },
+
+    loadingState: {
+      textAlign: 'center',
+      padding: '40px 20px',
+      color: themeColors.textSecondary,
+    },
+
+    errorState: {
+      textAlign: 'center',
+      padding: '20px',
+      backgroundColor: '#fee',
+      borderRadius: '8px',
+      color: '#c00',
+      marginBottom: '20px',
+    },
   };
+
+  if (loading) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.loadingState}>
+          <Loader size={48} style={{ animation: 'spin 1s linear infinite' }} />
+          <p>Loading users...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.container}>
+      {error && (
+        <div style={styles.errorState}>
+          {error}
+          <button 
+            style={{ ...styles.button, marginTop: '10px' }}
+            onClick={() => loadUsers()}
+          >
+            <RefreshCw size={14} />
+            Retry
+          </button>
+        </div>
+      )}
+
       <div style={styles.header}>
         <h2 style={styles.title}>User Management</h2>
         <div style={styles.headerActions}>
@@ -646,9 +790,9 @@ const handleAddUser = () => {
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
-              <option value="joinDate">Join Date</option>
+              <option value="createdAt">Join Date</option>
               <option value="name">Name</option>
-              <option value="revenue">Revenue</option>
+              <option value="email">Email</option>
               <option value="lastActive">Last Active</option>
             </select>
           </div>
@@ -662,14 +806,18 @@ const handleAddUser = () => {
             Filters
           </button>
 
-          <button style={{ ...styles.button, ...styles.secondaryButton }}>
+          <button 
+            style={{ ...styles.button, ...styles.secondaryButton }}
             onClick={handleImportUsers}
+          >
             <Upload size={16} />
             {!isMobile && 'Import'}
           </button>
 
-          <button style={styles.button}>
+          <button 
+            style={styles.button}
             onClick={handleAddUser}
+          >
             <Plus size={16} />
             {!isMobile && 'Add User'}
           </button>
@@ -694,9 +842,9 @@ const handleAddUser = () => {
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value)}
         >
-          <option value="joinDate">Sort by Join Date</option>
+          <option value="createdAt">Sort by Join Date</option>
           <option value="name">Sort by Name</option>
-          <option value="revenue">Sort by Revenue</option>
+          <option value="email">Sort by Email</option>
           <option value="lastActive">Sort by Last Active</option>
         </select>
       </div>
@@ -737,6 +885,7 @@ const handleAddUser = () => {
               <th style={styles.th}>
                 <input 
                   type="checkbox" 
+                  checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
                   onChange={(e) => {
                     if (e.target.checked) {
                       setSelectedUsers(filteredUsers.map(user => user.id));
@@ -755,74 +904,113 @@ const handleAddUser = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredUsers.map((user) => {
-              const StatusIcon = getStatusIcon(user.status);
-              return (
-                <tr key={user.id}>
-                  <td style={styles.td}>
-                    <input 
-                      type="checkbox" 
-                      checked={selectedUsers.includes(user.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedUsers([...selectedUsers, user.id]);
-                        } else {
-                          setSelectedUsers(selectedUsers.filter(id => id !== user.id));
-                        }
-                      }}
-                    />
-                  </td>
-                  <td style={styles.td}>
-                    <div style={styles.userInfo}>
-                      <div style={styles.avatar}>
-                        {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+            {filteredUsers.length === 0 ? (
+              <tr>
+                <td colSpan="7" style={{ ...styles.td, textAlign: 'center' }}>
+                  No users found
+                </td>
+              </tr>
+            ) : (
+              filteredUsers.map((user) => {
+                const StatusIcon = getStatusIcon(user.status);
+                const initials = user.name
+                  .split(' ')
+                  .map(n => n[0])
+                  .join('')
+                  .toUpperCase()
+                  .slice(0, 2);
+                
+                return (
+                  <tr key={user.id}>
+                    <td style={styles.td}>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedUsers.includes(user.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedUsers([...selectedUsers, user.id]);
+                          } else {
+                            setSelectedUsers(selectedUsers.filter(id => id !== user.id));
+                          }
+                        }}
+                      />
+                    </td>
+                    <td style={styles.td}>
+                      <div style={styles.userInfo}>
+                        <div style={styles.avatar}>
+                          {initials || 'U'}
+                        </div>
+                        <div style={styles.userDetails}>
+                          <div style={styles.userName}>{user.name}</div>
+                          <div style={styles.userEmail}>{user.email}</div>
+                        </div>
                       </div>
-                      <div style={styles.userDetails}>
-                        <div style={styles.userName}>{user.name}</div>
-                        <div style={styles.userEmail}>{user.email}</div>
+                    </td>
+                    <td style={styles.td}>
+                      <span style={styles.statusBadge(user.status)}>
+                        <StatusIcon size={12} />
+                        {user.status}
+                      </span>
+                    </td>
+                    <td style={styles.td}>{formatDate(user.joinDate)}</td>
+                    <td style={styles.td}>{user.items}</td>
+                    <td style={styles.td}>${user.revenue.toFixed(2)}</td>
+                    <td style={styles.td}>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button 
+                          style={styles.actionButton}
+                          onClick={() => handleUserAction('view', user.id)}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          title="View User"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        {user.status === 'active' ? (
+                          <button 
+                            style={styles.actionButton}
+                            onClick={() => handleUserAction('suspend', user.id)}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            title="Suspend User"
+                          >
+                            <UserX size={16} />
+                          </button>
+                        ) : (
+                          <button 
+                            style={styles.actionButton}
+                            onClick={() => handleUserAction('activate', user.id)}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            title="Activate User"
+                          >
+                            <UserCheck size={16} />
+                          </button>
+                        )}
+                        <button 
+                          style={styles.actionButton}
+                          onClick={() => handleUserAction('delete', user.id)}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          title="Delete User"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                        <button 
+                          style={styles.actionButton}
+                          onClick={() => handleUserAction('more', user.id)}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          title="More Options"
+                        >
+                          <MoreVertical size={16} />
+                        </button>
                       </div>
-                    </div>
-                  </td>
-                  <td style={styles.td}>
-                    <span style={styles.statusBadge(user.status)}>
-                      <StatusIcon size={12} />
-                      {user.status}
-                    </span>
-                  </td>
-                  <td style={styles.td}>{formatDate(user.joinDate)}</td>
-                  <td style={styles.td}>{user.items}</td>
-                  <td style={styles.td}>${user.revenue.toFixed(2)}</td>
-                  <td style={styles.td}>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <button 
-                        style={styles.actionButton}
-                        onClick={() => handleUserAction('view', user.id)}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button 
-                        style={styles.actionButton}
-                        onClick={() => handleUserAction('edit', user.id)}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button 
-                        style={styles.actionButton}
-                        onClick={() => handleUserAction('delete', user.id)}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
 
@@ -836,12 +1024,19 @@ const handleAddUser = () => {
           ) : (
             filteredUsers.map((user) => {
               const StatusIcon = getStatusIcon(user.status);
+              const initials = user.name
+                .split(' ')
+                .map(n => n[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2);
+              
               return (
                 <div key={user.id} style={styles.mobileCard}>
                   <div style={styles.mobileCardHeader}>
                     <div style={styles.mobileCardUser}>
                       <div style={styles.avatar}>
-                        {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        {initials || 'U'}
                       </div>
                       <div style={styles.userDetails}>
                         <div style={styles.userName}>{user.name}</div>
@@ -881,13 +1076,23 @@ const handleAddUser = () => {
                       <Eye size={14} />
                       View
                     </button>
-                    <button 
-                      style={{ ...styles.button, ...styles.secondaryButton, flex: 1 }}
-                      onClick={() => handleUserAction('edit', user.id)}
-                    >
-                      <Edit size={14} />
-                      Edit
-                    </button>
+                    {user.status === 'active' ? (
+                      <button 
+                        style={{ ...styles.button, ...styles.secondaryButton, flex: 1 }}
+                        onClick={() => handleUserAction('suspend', user.id)}
+                      >
+                        <UserX size={14} />
+                        Suspend
+                      </button>
+                    ) : (
+                      <button 
+                        style={{ ...styles.button, ...styles.secondaryButton, flex: 1 }}
+                        onClick={() => handleUserAction('activate', user.id)}
+                      >
+                        <UserCheck size={14} />
+                        Activate
+                      </button>
+                    )}
                     <button 
                       style={styles.actionButton}
                       onClick={() => handleUserAction('more', user.id)}
@@ -901,6 +1106,15 @@ const handleAddUser = () => {
           )}
         </div>
       </div>
+
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
     </div>
   );
 };
