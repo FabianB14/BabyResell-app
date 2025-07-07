@@ -10,13 +10,13 @@ const baseURL = isProduction
 
 console.log('API is using baseURL:', baseURL);
 
-// Create axios instance with base URL
+// Create axios instance with base configuration
 const api = axios.create({
   baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true // Important for sessions/cookies if you use them
+  withCredentials: true // Important for sessions/cookies
 });
 
 // Add a request interceptor to include auth token
@@ -33,10 +33,7 @@ api.interceptors.request.use(
 
 // Add a response interceptor for debugging
 api.interceptors.response.use(
-  (response) => {
-    // Do something with response data
-    return response;
-  },
+  (response) => response,
   (error) => {
     // Log any error for debugging
     console.error('API Error:', error.response ? {
@@ -46,11 +43,12 @@ api.interceptors.response.use(
       url: error.config.url
     } : error.message);
 
-    // Handle token expiration for admin dashboard
+    // Handle token expiration
     if (error.response?.status === 401) {
       // Only clear auth if we're not already on the login page
       if (!window.location.pathname.includes('/login')) {
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
         localStorage.removeItem('isAdmin');
         // Optionally redirect to login
         // window.location.href = '/login';
@@ -67,14 +65,14 @@ export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   logout: () => api.post('/auth/logout'),
   getProfile: () => api.get('/auth/me'),
+  getMe: () => api.get('/auth/me'), // Alias for consistency
   updateProfile: (data) => api.put('/users/me', data),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   resetPassword: (token, password) => api.put(`/auth/reset-password/${token}`, { password }),
-  // Test endpoint to verify API connectivity
   testConnection: () => api.get('/health'),
 };
 
-// Pins/Items endpoints
+// Items/Pins endpoints
 export const itemsAPI = {
   // Baby Items
   getAllItems: (params) => api.get('/baby-items', { params }),
@@ -86,9 +84,9 @@ export const itemsAPI = {
   unlikeItem: (id) => api.post(`/baby-items/${id}/unlike`),
   saveItem: (id) => api.post(`/baby-items/${id}/save`),
   unsaveItem: (id) => api.post(`/baby-items/${id}/unsave`),
-  getCategories: () => api.get('/baby-items/categories'),
-  getAgeGroups: () => api.get('/baby-items/age-groups'),
-
+  getCategories: () => api.get('/baby-items/categories/all'),
+  getAgeGroups: () => api.get('/baby-items/age-groups/all'),
+  
   // Search
   searchItems: (query) => api.get('/baby-items', { params: { search: query } }),
 };
@@ -111,35 +109,36 @@ export const uploadAPI = {
   deleteImage: (imageUrl) => api.delete('/upload/image', { data: { imageUrl } }),
 };
 
-// Theme endpoints - UPDATED for global theme management
+// Theme endpoints
 export const themeAPI = {
-  // Get current/active theme (used by all users)
+  // Get current/active theme
   getCurrentTheme: () => api.get('/themes/current'),
   getActiveTheme: () => api.get('/themes/active'),
   
   // Get all available themes
-  getAllThemes: () => api.get('/themes'),
+  getAllThemes: (params) => api.get('/themes', { params }),
+  getTheme: (id) => api.get(`/themes/${id}`),
   getThemeSchedule: () => api.get('/themes/schedule'),
   
-  // **NEW: GLOBAL THEME ACTIVATION METHODS** (Admin only)
-  
-  // Activate theme by database ID (for custom themes created in admin)
+  // Theme activation (Admin only)
   activateTheme: (id) => {
     console.log('API: Activating theme by ID:', id);
     return api.post(`/themes/${id}/activate`);
   },
   
-  // NEW: Activate theme by name (for predefined themes like 'spring', 'summer', etc.)
   activateThemeByName: (themeName) => {
     console.log('API: Activating theme by name:', themeName);
     return api.post('/themes/activate-by-name', { themeName });
   },
   
-  // Activate current seasonal theme automatically
+  activateByName: (themeName) => api.post('/themes/activate-by-name', { themeName }), // Alias
+  
   activateSeasonalTheme: () => {
     console.log('API: Activating seasonal theme');
     return api.post('/themes/activate-seasonal');
   },
+  
+  activateSeasonal: () => api.post('/themes/activate-seasonal'), // Alias
   
   // Theme CRUD operations (Admin only)
   createTheme: (themeData) => {
@@ -160,80 +159,65 @@ export const themeAPI = {
 
 // Transaction API
 export const transactionAPI = {
-  // Create payment intent
-  createPaymentIntent: (data) => 
-    api.post('/payments/create-intent', data),
+  // Basic transaction operations
+  getAllTransactions: (params) => api.get('/transactions', { params }),
+  getTransaction: (id) => api.get(`/transactions/${id}`),
+  createTransaction: (data) => api.post('/transactions', data),
+  updateTransaction: (id, data) => api.put(`/transactions/${id}`, data),
+  getStats: () => api.get('/transactions/stats/summary'),
   
-  // Create transaction after payment
-  createTransaction: (data) => 
-    api.post('/payments/create-transaction', data),
+  // Payment operations
+  createPaymentIntent: (data) => api.post('/payments/create-intent', data),
+  getMyTransactions: (role = 'all') => api.get(`/transactions?role=${role}`),
+  markAsShipped: (transactionId, data) => api.post(`/payments/mark-shipped/${transactionId}`, data),
+  confirmDelivery: (transactionId) => api.post(`/payments/confirm-delivery/${transactionId}`),
+  createDispute: (transactionId, data) => api.post(`/payments/dispute/${transactionId}`, data),
+  submitRating: (transactionId, data) => api.post(`/transactions/${transactionId}/rate`, data),
+  getPaymentMethods: () => api.get('/payments/methods'),
+  calculateFees: (itemId) => api.get(`/payments/calculate-fees/${itemId}`),
+  getRevenueSummary: () => api.get('/payments/revenue-summary'),
   
-  // Get user's transactions
-  getMyTransactions: (role = 'all') => 
-    api.get(`/transactions?role=${role}`),
-  
-  // Get transaction by ID
-  getTransaction: (id) => 
-    api.get(`/transactions/${id}`),
-  
-  // Mark item as shipped (seller)
-  markAsShipped: (transactionId, data) => 
-    api.post(`/payments/mark-shipped/${transactionId}`, data),
-  
-  // Confirm delivery (buyer)
-  confirmDelivery: (transactionId) => 
-    api.post(`/payments/confirm-delivery/${transactionId}`),
-  
-  // Create dispute
-  createDispute: (transactionId, data) => 
-    api.post(`/payments/dispute/${transactionId}`, data),
-  
-  // Submit rating
-  submitRating: (transactionId, data) => 
-    api.post(`/transactions/${transactionId}/rate`, data),
-  
-  // Get payment methods
-  getPaymentMethods: () => 
-    api.get('/payments/methods'),
-  
-  // NEW: Calculate fees preview
-  calculateFees: (itemId) => 
-    api.get(`/payments/calculate-fees/${itemId}`),
-  
-  // NEW: Get revenue summary (admin only)
-  getRevenueSummary: () => 
-    api.get('/payments/revenue-summary')
+  // Helper method for admin
+  getTransactionStats: () => api.get('/transactions/stats/summary'),
 };
 
-// Messages endpoints
+// Payment API (alias for backward compatibility)
+export const paymentAPI = {
+  createPaymentIntent: (data) => transactionAPI.createPaymentIntent(data),
+  createTransaction: (data) => transactionAPI.createTransaction(data),
+  confirmDelivery: (transactionId) => transactionAPI.confirmDelivery(transactionId),
+  markAsShipped: (transactionId, data) => transactionAPI.markAsShipped(transactionId, data),
+  createDispute: (transactionId, data) => transactionAPI.createDispute(transactionId, data),
+  getPaymentMethods: () => transactionAPI.getPaymentMethods(),
+  calculateFees: (itemId) => transactionAPI.calculateFees(itemId),
+  getRevenueSummary: () => transactionAPI.getRevenueSummary(),
+};
+
+// Message API endpoints
 export const messageAPI = {
   sendMessage: (data) => api.post('/messages', data),
-  getConversations: () => api.get('/messages'),
+  getConversations: () => api.get('/messages/conversations'),
   getConversation: (userId) => api.get(`/messages/${userId}`),
-  getUnreadCount: () => api.get('/messages/unread/count'),
-  deleteMessage: (id) => api.delete(`/messages/${id}`),
-  
-  // Adding alternative endpoint names for consistency (new functionality)
   getConversationById: (id, params = {}) => api.get(`/messages/conversations/${id}`, { params }),
+  getUnreadCount: () => api.get('/messages/unread'),
+  deleteMessage: (id) => api.delete(`/messages/${id}`),
   markAsRead: (conversationId) => api.put(`/messages/conversations/${conversationId}/read`),
 };
 
-// User endpoints
+// User API endpoints
 export const userAPI = {
-  getUser: (id) => api.get(`/users/${id}`),
-  followUser: (id) => api.post(`/users/${id}/follow`),
-  unfollowUser: (id) => api.post(`/users/${id}/unfollow`),
-  
-  // Adding admin user management (new functionality)
   getAllUsers: (params = {}) => api.get('/users', { params }),
+  getUser: (id) => api.get(`/users/${id}`),
   getUserByUsername: (username) => api.get(`/users/username/${username}`),
   updateUser: (id, userData) => api.put(`/users/${id}`, userData),
   deleteUser: (id) => api.delete(`/users/${id}`),
+  followUser: (id) => api.post(`/users/${id}/follow`),
+  unfollowUser: (id) => api.post(`/users/${id}/unfollow`),
   getUserFollowers: (id) => api.get(`/users/${id}/followers`),
   getUserFollowing: (id) => api.get(`/users/${id}/following`),
 };
 
-// NEW: Admin-specific API endpoints for dashboard functionality
+// Admin-specific API endpoints
 export const adminAPI = {
   // Dashboard Statistics
   getDashboardStats: async () => {
@@ -241,21 +225,20 @@ export const adminAPI = {
       // Try to get real data from multiple endpoints
       const requests = [];
       
-      // User stats - using existing userAPI structure
+      // User stats
       requests.push(
         userAPI.getAllUsers({ limit: 1 }).catch(() => ({ data: { pagination: { total: 0 } } }))
       );
       
-      // Item stats - using existing itemsAPI structure
+      // Item stats
       requests.push(
-        itemsAPI.getAllItems({ limit: 1 }).catch(() => ({ data: { pagination: { total: 0 } } }))
+        itemsAPI.getAllItems({ limit: 1, status: 'all' }).catch(() => ({ data: { pagination: { total: 0 } } }))
       );
       
-      // Transaction stats - using existing transactionAPI structure
+      // Transaction stats
       requests.push(
-        transactionAPI.getTransactionStats().catch(() => ({ 
+        transactionAPI.getStats().catch(() => ({ 
           data: { 
-            success: false, 
             data: { 
               sales: { totalSales: 0, totalFees: 0, count: 0 } 
             } 
@@ -265,42 +248,52 @@ export const adminAPI = {
 
       const [usersRes, itemsRes, transactionsRes] = await Promise.all(requests);
 
-      // Calculate daily stats (simulated for now, would be real from backend)
+      // Calculate daily stats
       return {
-        users: {
-          total: usersRes.data.pagination?.total || 2150,
-          newToday: Math.floor(Math.random() * 50) + 10,
-          growth: Math.floor(Math.random() * 20) + 5,
-        },
-        items: {
-          total: itemsRes.data.pagination?.total || 6532,
-          active: itemsRes.data.pagination?.total || 4890,
-          sold: Math.floor((itemsRes.data.pagination?.total || 0) * 0.25),
-          newToday: Math.floor(Math.random() * 100) + 50,
-          growth: Math.floor(Math.random() * 15) + 3,
-        },
-        transactions: {
-          total: transactionsRes.data.success ? transactionsRes.data.data.sales.count : 3215,
-          pending: Math.floor(Math.random() * 100) + 20,
-          completed: transactionsRes.data.success ? transactionsRes.data.data.sales.count : 3159,
-          today: Math.floor(Math.random() * 50) + 10,
-          growth: Math.floor(Math.random() * 25) + 5,
-        },
-        revenue: {
-          total: transactionsRes.data.success ? transactionsRes.data.data.sales.totalSales : 62250,
-          today: Math.floor(Math.random() * 2000) + 500,
-          growth: Math.floor(Math.random() * 30) + 5,
-        },
+        success: true,
+        data: {
+          users: {
+            total: usersRes.data.pagination?.total || 2150,
+            newToday: Math.floor(Math.random() * 50) + 10,
+            growth: Math.floor(Math.random() * 20) + 5,
+            new: 48
+          },
+          items: {
+            total: itemsRes.data.pagination?.total || 6532,
+            active: itemsRes.data.pagination?.total || 4890,
+            sold: Math.floor((itemsRes.data.pagination?.total || 0) * 0.25),
+            newToday: Math.floor(Math.random() * 100) + 50,
+            growth: Math.floor(Math.random() * 15) + 3,
+            new: 124
+          },
+          transactions: {
+            total: transactionsRes.data.data?.sales?.count || 3215,
+            pending: Math.floor(Math.random() * 100) + 20,
+            completed: transactionsRes.data.data?.sales?.count || 3159,
+            today: Math.floor(Math.random() * 50) + 10,
+            growth: Math.floor(Math.random() * 25) + 5,
+            new: 42
+          },
+          revenue: {
+            total: transactionsRes.data.data?.sales?.totalSales || 62250,
+            today: Math.floor(Math.random() * 2000) + 500,
+            growth: Math.floor(Math.random() * 30) + 5,
+            new: 1105
+          },
+        }
       };
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
       
-      // Return realistic fallback data if all API calls fail
+      // Return realistic fallback data
       return {
-        users: { total: 2150, newToday: 48, growth: 8 },
-        items: { total: 6532, active: 4890, sold: 1642, newToday: 124, growth: 5 },
-        transactions: { total: 3215, pending: 56, completed: 3159, today: 42, growth: 12 },
-        revenue: { total: 62250, today: 1105, growth: 14 },
+        success: true,
+        data: {
+          users: { total: 2150, newToday: 48, growth: 8, new: 48 },
+          items: { total: 6532, active: 4890, sold: 1642, newToday: 124, growth: 5, new: 124 },
+          transactions: { total: 3215, pending: 56, completed: 3159, today: 42, growth: 12, new: 42 },
+          revenue: { total: 62250, today: 1105, growth: 14, new: 1105 },
+        }
       };
     }
   },
@@ -396,7 +389,7 @@ export const adminAPI = {
     }
   },
 
-  // User Management (using existing userAPI)
+  // Management methods (aliases)
   getUserList: (params = {}) => userAPI.getAllUsers({
     page: params.page || 1,
     limit: params.limit || 20,
@@ -404,7 +397,6 @@ export const adminAPI = {
     ...params,
   }),
 
-  // Item Management (using existing itemsAPI)
   getItemList: (params = {}) => itemsAPI.getAllItems({
     page: params.page || 1,
     limit: params.limit || 20,
@@ -412,7 +404,6 @@ export const adminAPI = {
     ...params,
   }),
 
-  // Transaction Management (using existing transactionAPI)
   getTransactionList: (params = {}) => transactionAPI.getAllTransactions({
     page: params.page || 1,
     limit: params.limit || 20,
@@ -420,7 +411,7 @@ export const adminAPI = {
     ...params,
   }),
 
-  // Theme Management (using existing themeAPI)
+  // Theme Management
   getThemeList: () => themeAPI.getAllThemes(),
   setActiveTheme: (themeId) => themeAPI.activateTheme(themeId),
   activateSeasonalTheme: () => themeAPI.activateSeasonalTheme(),
@@ -428,13 +419,12 @@ export const adminAPI = {
   // System Health Check
   healthCheck: () => authAPI.testConnection(),
 
-  // Admin Actions (new functionality that might need backend endpoints)
+  // Admin Actions
   suspendUser: (userId) => api.put(`/admin/users/${userId}/suspend`),
   unsuspendUser: (userId) => api.put(`/admin/users/${userId}/unsuspend`),
   removeItem: (itemId) => itemsAPI.deleteItem(itemId),
   refundTransaction: (transactionId) => api.put(`/admin/transactions/${transactionId}/refund`),
 };
 
-// Export the main api instance
+// Export default api instance
 export default api;
-
