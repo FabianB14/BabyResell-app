@@ -171,6 +171,27 @@ const Home = () => {
     navigate('/checkout', { state: { item } });
   };
 
+  // Get the proper image URL from item data
+  const getItemImageUrl = (item) => {
+    // Check if item has images array with URLs
+    if (item.images && item.images.length > 0 && typeof item.images[0] === 'string') {
+      return item.images[0];
+    }
+    
+    // Check for thumbnail field
+    if (item.thumbnail) {
+      return item.thumbnail;
+    }
+    
+    // Check for single image field
+    if (item.image) {
+      return item.image;
+    }
+    
+    // Return a local placeholder or empty string to avoid external dependency
+    return '';
+  };
+
   // CSS for Pinterest-style layout
   const containerStyle = {
     maxWidth: '1500px',
@@ -268,8 +289,22 @@ const Home = () => {
     width: '100%',
     height: `${height}px`,
     objectFit: 'cover',
-    pointerEvents: 'none' // This ensures clicks pass through to the parent div
+    pointerEvents: 'none', // This ensures clicks pass through to the parent div
+    backgroundColor: themeColors.secondary // Background color while loading
   });
+
+  const placeholderImageStyle = {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors.secondary,
+    color: themeColors.textSecondary,
+    fontSize: '14px',
+    textAlign: 'center',
+    padding: '20px'
+  };
 
   const cardContentStyle = {
     padding: '12px',
@@ -371,17 +406,17 @@ const Home = () => {
               style={filterInputStyle}
             >
               <option value="">All Categories</option>
-              <option value="Clothes & Shoes">Clothes & Shoes</option>
-              <option value="Toys & Games">Toys & Games</option>
+              <option value="Strollers">Strollers</option>
+              <option value="Car Seats">Car Seats</option>
+              <option value="Furniture">Furniture</option>
+              <option value="Clothing">Clothing</option>
               <option value="Feeding">Feeding</option>
-              <option value="Diapering">Diapering</option>
-              <option value="Bathing & Skincare">Bathing & Skincare</option>
-              <option value="Health & Safety">Health & Safety</option>
+              <option value="Carriers">Carriers</option>
+              <option value="Toys">Toys</option>
+              <option value="Safety">Safety</option>
+              <option value="Bath & Care">Bath & Care</option>
               <option value="Nursery">Nursery</option>
-              <option value="Strollers & Car Seats">Strollers & Car Seats</option>
-              <option value="Carriers & Wraps">Carriers & Wraps</option>
-              <option value="Activity & Entertainment">Activity & Entertainment</option>
-              <option value="Books">Books</option>
+              <option value="Diapering">Diapering</option>
               <option value="Other">Other</option>
             </select>
             
@@ -393,6 +428,7 @@ const Home = () => {
               <option value="">All Conditions</option>
               <option value="New">New</option>
               <option value="Like New">Like New</option>
+              <option value="Excellent">Excellent</option>
               <option value="Good">Good</option>
               <option value="Fair">Fair</option>
               <option value="Poor">Poor</option>
@@ -449,17 +485,17 @@ const Home = () => {
             style={filterInputStyle}
           >
             <option value="">All Categories</option>
-            <option value="Clothes & Shoes">Clothes & Shoes</option>
-            <option value="Toys & Games">Toys & Games</option>
+            <option value="Strollers">Strollers</option>
+            <option value="Car Seats">Car Seats</option>
+            <option value="Furniture">Furniture</option>
+            <option value="Clothing">Clothing</option>
             <option value="Feeding">Feeding</option>
-            <option value="Diapering">Diapering</option>
-            <option value="Bathing & Skincare">Bathing & Skincare</option>
-            <option value="Health & Safety">Health & Safety</option>
+            <option value="Carriers">Carriers</option>
+            <option value="Toys">Toys</option>
+            <option value="Safety">Safety</option>
+            <option value="Bath & Care">Bath & Care</option>
             <option value="Nursery">Nursery</option>
-            <option value="Strollers & Car Seats">Strollers & Car Seats</option>
-            <option value="Carriers & Wraps">Carriers & Wraps</option>
-            <option value="Activity & Entertainment">Activity & Entertainment</option>
-            <option value="Books">Books</option>
+            <option value="Diapering">Diapering</option>
             <option value="Other">Other</option>
           </select>
           
@@ -471,6 +507,7 @@ const Home = () => {
             <option value="">All Conditions</option>
             <option value="New">New</option>
             <option value="Like New">Like New</option>
+            <option value="Excellent">Excellent</option>
             <option value="Good">Good</option>
             <option value="Fair">Fair</option>
             <option value="Poor">Poor</option>
@@ -558,10 +595,8 @@ const Home = () => {
             {columnsOfItems.map((column, columnIndex) => (
               <div key={columnIndex}>
                 {column.map(item => {
-                  // Get the best image URL
-                  const imageUrl = item.images && item.images.length > 0
-                    ? (item.images.find(img => img.isPrimary)?.thumbnail || item.images[0].thumbnail)
-                    : item.thumbnail || item.image || `https://via.placeholder.com/300x300?text=${encodeURIComponent(item.title || 'No Image')}`;
+                  // Get the proper image URL
+                  const imageUrl = getItemImageUrl(item);
                   
                   // Calculate dynamic height based on image aspect ratio or random
                   const height = item.height || (250 + Math.floor(Math.random() * 150));
@@ -578,6 +613,7 @@ const Home = () => {
                       <div style={{
                         position: 'relative',
                         width: '100%',
+                        height: `${height}px`,
                         overflow: 'hidden'
                       }}>
                         {/* Price Tag - now inside image container */}
@@ -587,15 +623,32 @@ const Home = () => {
                           </div>
                         )}
                         
-                        {/* Item Image */}
-                        <img 
-                          src={imageUrl}
-                          alt={item.title || 'Baby item'} 
-                          style={imageStyle(height)}
-                          onError={(e) => {
-                            e.target.src = `https://via.placeholder.com/300x${height}?text=${encodeURIComponent(item.title || 'Image Error')}`;
-                          }}
-                        />
+                        {/* Item Image or Placeholder */}
+                        {imageUrl ? (
+                          <img 
+                            src={imageUrl}
+                            alt={item.title || 'Baby item'} 
+                            style={imageStyle(height)}
+                            onError={(e) => {
+                              // Hide broken image
+                              e.target.style.display = 'none';
+                              // Show placeholder div instead
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        
+                        {/* Placeholder div - shown when no image or image fails to load */}
+                        <div style={{
+                          ...placeholderImageStyle,
+                          height: `${height}px`,
+                          display: imageUrl ? 'none' : 'flex'
+                        }}>
+                          <div>
+                            <div style={{ fontSize: '48px', marginBottom: '8px' }}>🍼</div>
+                            <div>{item.title || 'Baby Item'}</div>
+                          </div>
+                        </div>
                         
                         {/* Condition Tag - now inside image container */}
                         {item.condition && (
@@ -612,12 +665,23 @@ const Home = () => {
                         </h3>
                         {item.user && (
                           <div style={{ fontSize: '12px', color: themeColors.textSecondary }}>
-                            by {item.user.username || 'Anonymous'}
+                            by {item.user.username || item.user.firstName || 'Anonymous'}
                           </div>
                         )}
-                        {item.location && (
+                        {(item.location?.city || item.user?.location) && (
                           <div style={{ fontSize: '12px', color: themeColors.textSecondary }}>
-                            📍 {item.location}
+                            📍 {item.location?.city || item.user?.location || 'Unknown'}
+                          </div>
+                        )}
+                        {item.category && (
+                          <div style={{ 
+                            fontSize: '11px', 
+                            color: themeColors.textSecondary,
+                            marginTop: '4px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}>
+                            {item.category}
                           </div>
                         )}
                       </div>
