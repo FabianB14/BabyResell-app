@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { transactionAPI } from '../../utils/api';
 import { 
   CreditCard, 
   Search, 
@@ -19,16 +20,34 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   Wallet,
-  TrendingUp
+  TrendingUp,
+  Loader,
+  AlertCircle
 } from 'lucide-react';
+import { formatCurrency, formatDate, showNotification, downloadCSV, convertToCSV } from '../../utils/adminUtils';
 
 const TransactionsTab = () => {
   const { themeColors } = useTheme();
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [dateRange, setDateRange] = useState('30d');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [stats, setStats] = useState({
+    totalTransactions: 0,
+    totalRevenue: 0,
+    totalFees: 0,
+    pendingAmount: 0
+  });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    pages: 0
+  });
 
   // Responsive breakpoints
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -44,287 +63,294 @@ const TransactionsTab = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mock transaction data
-  const [transactions] = useState([
-    {
-      id: 'TXN-001',
-      type: 'sale',
-      amount: 89.99,
-      fee: 4.50,
-      netAmount: 85.49,
-      status: 'completed',
-      date: '2024-06-13T10:30:00Z',
-      item: {
-        id: 1,
-        title: 'Baby Stroller - Graco Modes',
-        image: 'stroller.jpg'
-      },
-      buyer: {
-        id: 2,
-        name: 'Michael Brown',
-        email: 'michael@email.com'
-      },
-      seller: {
-        id: 1,
-        name: 'Emma Johnson',
-        email: 'emma@email.com'
-      },
-      paymentMethod: 'Credit Card',
-      transactionId: 'ch_3N7Q2L2eZvKYlo2C1k3h7Gf5'
-    },
-    {
-      id: 'TXN-002',
-      type: 'purchase',
-      amount: 125.00,
-      fee: 6.25,
-      netAmount: 118.75,
-      status: 'completed',
-      date: '2024-06-12T15:45:00Z',
-      item: {
-        id: 2,
-        title: 'Toddler Bed with Rails',
-        image: 'bed.jpg'
-      },
-      buyer: {
-        id: 3,
-        name: 'Sarah Wilson',
-        email: 'sarah@email.com'
-      },
-      seller: {
-        id: 2,
-        name: 'Michael Brown',
-        email: 'michael@email.com'
-      },
-      paymentMethod: 'PayPal',
-      transactionId: 'paypal_3N7Q2L2eZvKYlo2C1k3h7Gf5'
-    },
-    {
-      id: 'TXN-003',
-      type: 'refund',
-      amount: -45.50,
-      fee: -2.28,
-      netAmount: -43.22,
-      status: 'completed',
-      date: '2024-06-11T09:15:00Z',
-      item: {
-        id: 3,
-        title: 'Baby Clothes Bundle',
-        image: 'clothes.jpg'
-      },
-      buyer: {
-        id: 4,
-        name: 'David Clark',
-        email: 'david@email.com'
-      },
-      seller: {
-        id: 3,
-        name: 'Sarah Wilson',
-        email: 'sarah@email.com'
-      },
-      paymentMethod: 'Credit Card',
-      transactionId: 're_3N7Q2L2eZvKYlo2C1k3h7Gf5',
-      refundReason: 'Item not as described'
-    },
-    {
-      id: 'TXN-004',
-      type: 'sale',
-      amount: 75.99,
-      fee: 3.80,
-      netAmount: 72.19,
-      status: 'pending',
-      date: '2024-06-13T14:20:00Z',
-      item: {
-        id: 4,
-        title: 'High Chair - Chicco Polly',
-        image: 'chair.jpg'
-      },
-      buyer: {
-        id: 5,
-        name: 'Lisa Garcia',
-        email: 'lisa@email.com'
-      },
-      seller: {
-        id: 4,
-        name: 'David Clark',
-        email: 'david@email.com'
-      },
-      paymentMethod: 'Apple Pay',
-      transactionId: 'pi_3N7Q2L2eZvKYlo2C1k3h7Gf5'
-    },
-    {
-      id: 'TXN-005',
-      type: 'sale',
-      amount: 65.00,
-      fee: 3.25,
-      netAmount: 61.75,
-      status: 'failed',
-      date: '2024-06-10T11:30:00Z',
-      item: {
-        id: 5,
-        title: 'Baby Carrier - Ergobaby',
-        image: 'carrier.jpg'
-      },
-      buyer: {
-        id: 1,
-        name: 'Emma Johnson',
-        email: 'emma@email.com'
-      },
-      seller: {
-        id: 5,
-        name: 'Lisa Garcia',
-        email: 'lisa@email.com'
-      },
-      paymentMethod: 'Credit Card',
-      transactionId: 'pi_3N7Q2L2eZvKYlo2C1k3h7Gf5',
-      failureReason: 'Insufficient funds'
+  // Fetch transactions
+  const fetchTransactions = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Build query params
+      const params = {
+        page: pagination.page,
+        limit: pagination.limit,
+        sort: '-createdAt'
+      };
+      
+      if (filterStatus !== 'all') {
+        params.status = filterStatus;
+      }
+      
+      // Add date range filter
+      const now = new Date();
+      let dateFrom;
+      
+      switch (dateRange) {
+        case '7d':
+          dateFrom = new Date(now.setDate(now.getDate() - 7));
+          break;
+        case '30d':
+          dateFrom = new Date(now.setDate(now.getDate() - 30));
+          break;
+        case '90d':
+          dateFrom = new Date(now.setDate(now.getDate() - 90));
+          break;
+        case '1y':
+          dateFrom = new Date(now.setFullYear(now.getFullYear() - 1));
+          break;
+        default:
+          dateFrom = new Date(now.setDate(now.getDate() - 30));
+      }
+      
+      params.dateFrom = dateFrom.toISOString();
+      
+      // Fetch transactions
+      const response = await transactionAPI.getAllTransactions(params);
+      
+      // Transform the data to match our UI structure
+      const transformedTransactions = response.data.data.map(tx => ({
+        id: tx._id,
+        type: determineTransactionType(tx),
+        amount: tx.amount,
+        fee: tx.platformFee || (tx.amount * 0.08), // 8% fee if not specified
+        netAmount: tx.sellerPayout || (tx.amount - (tx.platformFee || tx.amount * 0.08)),
+        status: tx.status,
+        date: tx.createdAt,
+        item: {
+          id: tx.pin?._id || tx.pin,
+          title: tx.pin?.title || 'Item #' + (tx.pin?._id || tx.pin)?.slice(-6),
+          image: tx.pin?.thumbnail || tx.pin?.images?.[0] || 'placeholder.jpg'
+        },
+        buyer: {
+          id: tx.buyer?._id || tx.buyer,
+          name: tx.buyer?.username || 'User',
+          email: tx.buyer?.email || 'user@example.com'
+        },
+        seller: {
+          id: tx.seller?._id || tx.seller,
+          name: tx.seller?.username || 'User',
+          email: tx.seller?.email || 'user@example.com'
+        },
+        paymentMethod: tx.paymentMethod || 'Credit Card',
+        transactionId: tx.paymentId || tx._id,
+        trackingNumber: tx.trackingNumber,
+        shippingAddress: tx.shippingAddress,
+        dispute: tx.dispute
+      }));
+      
+      setTransactions(transformedTransactions);
+      setPagination({
+        page: response.data.pagination?.page || 1,
+        limit: response.data.pagination?.limit || 20,
+        total: response.data.pagination?.total || response.data.count,
+        pages: response.data.pagination?.pages || Math.ceil(response.data.count / 20)
+      });
+      
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      showNotification('Failed to fetch transactions', 'error');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  }, [pagination.page, pagination.limit, filterStatus, dateRange]);
 
+  // Fetch transaction statistics
+  const fetchStats = useCallback(async () => {
+    try {
+      const response = await transactionAPI.getStats();
+      const data = response.data.data;
+      
+      // Calculate totals from the response
+      const totalTransactions = data.sales?.count || 0;
+      const totalRevenue = data.sales?.totalSales || 0;
+      const totalFees = data.sales?.totalFees || 0;
+      
+      // Calculate pending amount from status stats
+      const pendingStats = data.status?.find(s => s._id === 'pending');
+      const pendingCount = pendingStats?.count || 0;
+      
+      // Estimate pending amount (you might want to fetch this separately)
+      const avgTransactionAmount = totalRevenue / (totalTransactions || 1);
+      const pendingAmount = pendingCount * avgTransactionAmount;
+      
+      setStats({
+        totalTransactions,
+        totalRevenue,
+        totalFees,
+        pendingAmount
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  }, []);
+
+  // Determine transaction type based on the data
+  const determineTransactionType = (tx) => {
+    if (tx.status === 'refunded') return 'refund';
+    if (tx.escrowStatus === 'released') return 'sale';
+    return 'sale'; // default to sale
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchTransactions();
+    fetchStats();
+  }, [fetchTransactions, fetchStats]);
+
+  // Filter transactions locally
   const filteredTransactions = transactions.filter(transaction => {
-    const matchesSearch = transaction.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.buyer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.seller.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || transaction.status === filterStatus;
+    const matchesSearch = 
+      transaction.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.buyer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.seller.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.transactionId.toLowerCase().includes(searchTerm.toLowerCase());
+    
     const matchesType = filterType === 'all' || transaction.type === filterType;
-    return matchesSearch && matchesStatus && matchesType;
+    
+    return matchesSearch && matchesType;
   });
 
-  const handleTransactionAction = (action, transactionId) => {
-  console.log(`${action} transaction ${transactionId}`);
-  
-  switch (action) {
-    case 'view':
-      // Open transaction details modal or page
-      window.open(`/admin/transactions/${transactionId}`, '_blank');
-      break;
-      
-    case 'download':
-      // Download transaction receipt
-      downloadTransactionReceipt(transactionId);
-      break;
-      
-    case 'refund':
-      handleRefundTransaction(transactionId);
-      break;
-      
-    default:
-      console.log('Unknown action:', action);
-  }
-};
-
-const downloadTransactionReceipt = async (transactionId) => {
-  try {
-    const response = await fetch(`/api/transactions/${transactionId}/receipt`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
+  // Transaction action handlers
+  const handleTransactionAction = async (action, transactionId) => {
+    const transaction = transactions.find(tx => tx.id === transactionId);
     
-    if (response.ok) {
-      const blob = await response.blob();
+    switch (action) {
+      case 'view':
+        // Open transaction details (you can implement a modal or navigate to detail page)
+        window.open(`/admin/transactions/${transactionId}`, '_blank');
+        break;
+        
+      case 'download':
+        // Download transaction receipt
+        await downloadTransactionReceipt(transactionId);
+        break;
+        
+      case 'refund':
+        if (transaction.status === 'completed') {
+          await handleRefundTransaction(transactionId);
+        } else {
+          showNotification('Only completed transactions can be refunded', 'warning');
+        }
+        break;
+        
+      case 'more':
+        // Show more options menu (you can implement a dropdown menu)
+        console.log('More options for:', transactionId);
+        break;
+        
+      default:
+        console.log('Unknown action:', action);
+    }
+  };
+
+  const downloadTransactionReceipt = async (transactionId) => {
+    try {
+      // Since we don't have a receipt endpoint, create a simple receipt
+      const transaction = transactions.find(tx => tx.id === transactionId);
+      if (!transaction) return;
+      
+      const receiptContent = `
+BABYRESELL TRANSACTION RECEIPT
+==============================
+Transaction ID: ${transaction.id}
+Date: ${formatDate(transaction.date)}
+Status: ${transaction.status.toUpperCase()}
+
+Item: ${transaction.item.title}
+Amount: ${formatCurrency(transaction.amount)}
+Platform Fee: ${formatCurrency(transaction.fee)}
+Net Amount: ${formatCurrency(transaction.netAmount)}
+
+Buyer: ${transaction.buyer.name}
+Seller: ${transaction.seller.name}
+Payment Method: ${transaction.paymentMethod}
+
+${transaction.trackingNumber ? `Tracking Number: ${transaction.trackingNumber}` : ''}
+==============================
+      `;
+      
+      const blob = new Blob([receiptContent], { type: 'text/plain' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `receipt-${transactionId}.pdf`;
+      a.download = `receipt-${transactionId}.txt`;
       a.click();
       window.URL.revokeObjectURL(url);
-    }
-  } catch (error) {
-    alert('Failed to download receipt');
-  }
-};
-
-const handleRefundTransaction = async (transactionId) => {
-  const reason = prompt('Please provide a reason for the refund:');
-  if (!reason) return;
-  
-  if (window.confirm('Are you sure you want to process this refund?')) {
-    try {
-      const response = await fetch(`/api/transactions/${transactionId}/refund`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ reason })
-      });
       
-      if (response.ok) {
-        alert('Refund processed successfully!');
-        // Reload transactions
-        window.location.reload();
-      } else {
-        throw new Error('Refund failed');
-      }
+      showNotification('Receipt downloaded successfully', 'success');
     } catch (error) {
-      alert('Failed to process refund. Please try again.');
+      console.error('Failed to download receipt:', error);
+      showNotification('Failed to download receipt', 'error');
     }
-  }
-};
-
-// Export transactions handler
-const handleExportTransactions = () => {
-  const csv = convertTransactionsToCSV(filteredTransactions);
-  downloadCSV(csv, `transactions-${dateRange}-${new Date().toISOString().split('T')[0]}.csv`);
-};
-
-// Utility to trigger CSV download
-const downloadCSV = (csv, filename) => {
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  window.URL.revokeObjectURL(url);
-};
-
-const convertTransactionsToCSV = (transactions) => {
-  const headers = ['ID', 'Type', 'Amount', 'Fee', 'Net Amount', 'Status', 'Date', 'Item', 'Buyer', 'Seller'];
-  const rows = transactions.map(tx => [
-    tx.id,
-    tx.type,
-    tx.amount,
-    tx.fee,
-    tx.netAmount,
-    tx.status,
-    formatDate(tx.date),
-    tx.item.title,
-    tx.buyer.name,
-    tx.seller.name
-  ]);
-  
-  return [headers, ...rows].map(row => row.join(',')).join('\n');
-};
-
-// Refresh handler
-const handleRefreshTransactions = () => {
-  window.location.reload();
-};
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
-  const formatAmount = (amount) => {
-    const isNegative = amount < 0;
-    const absAmount = Math.abs(amount);
-    return `${isNegative ? '-' : ''}$${absAmount.toFixed(2)}`;
+  const handleRefundTransaction = async (transactionId) => {
+    const reason = prompt('Please provide a reason for the refund:');
+    if (!reason) return;
+    
+    if (window.confirm('Are you sure you want to process this refund?')) {
+      try {
+        // Update transaction status to refunded
+        await transactionAPI.updateTransaction(transactionId, {
+          status: 'refunded',
+          notes: `Refund reason: ${reason}`
+        });
+        
+        showNotification('Refund processed successfully!', 'success');
+        
+        // Refresh transactions
+        await fetchTransactions();
+        await fetchStats();
+      } catch (error) {
+        console.error('Failed to process refund:', error);
+        showNotification('Failed to process refund. Please try again.', 'error');
+      }
+    }
+  };
+
+  // Export transactions handler
+  const handleExportTransactions = () => {
+    const headers = ['ID', 'Type', 'Amount', 'Fee', 'Net Amount', 'Status', 'Date', 'Item', 'Buyer', 'Seller', 'Payment Method'];
+    
+    const data = filteredTransactions.map(tx => ({
+      'ID': tx.id,
+      'Type': tx.type,
+      'Amount': formatCurrency(tx.amount),
+      'Fee': formatCurrency(tx.fee),
+      'Net Amount': formatCurrency(tx.netAmount),
+      'Status': tx.status,
+      'Date': formatDate(tx.date),
+      'Item': tx.item.title,
+      'Buyer': tx.buyer.name,
+      'Seller': tx.seller.name,
+      'Payment Method': tx.paymentMethod
+    }));
+    
+    const csv = convertToCSV(data, headers);
+    const filename = `transactions-${dateRange}-${new Date().toISOString().split('T')[0]}.csv`;
+    downloadCSV(csv, filename);
+    
+    showNotification(`Exported ${filteredTransactions.length} transactions`, 'success');
+  };
+
+  // Refresh handler
+  const handleRefreshTransactions = async () => {
+    setRefreshing(true);
+    await fetchTransactions();
+    await fetchStats();
+    setRefreshing(false);
+    showNotification('Transactions refreshed', 'success');
   };
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed': return '#10b981';
       case 'pending': return '#f59e0b';
+      case 'payment_held': return '#f59e0b';
+      case 'shipped': return '#3b82f6';
       case 'failed': return '#ef4444';
       case 'cancelled': return '#6b7280';
+      case 'refunded': return '#ef4444';
+      case 'disputed': return '#dc2626';
       default: return '#6b7280';
     }
   };
@@ -333,8 +359,12 @@ const handleRefreshTransactions = () => {
     switch (status) {
       case 'completed': return CheckCircle;
       case 'pending': return Clock;
+      case 'payment_held': return Clock;
+      case 'shipped': return Package;
       case 'failed': return XCircle;
       case 'cancelled': return XCircle;
+      case 'refunded': return ArrowDownLeft;
+      case 'disputed': return AlertTriangle;
       default: return AlertTriangle;
     }
   };
@@ -355,20 +385,6 @@ const handleRefreshTransactions = () => {
       case 'refund': return '#ef4444';
       default: return '#6b7280';
     }
-  };
-
-  // Calculate summary stats
-  const stats = {
-    totalTransactions: transactions.length,
-    totalRevenue: transactions
-      .filter(t => t.status === 'completed' && t.type === 'sale')
-      .reduce((sum, t) => sum + t.amount, 0),
-    totalFees: transactions
-      .filter(t => t.status === 'completed')
-      .reduce((sum, t) => sum + t.fee, 0),
-    pendingAmount: transactions
-      .filter(t => t.status === 'pending')
-      .reduce((sum, t) => sum + t.amount, 0)
   };
 
   const styles = {
@@ -421,7 +437,9 @@ const handleRefreshTransactions = () => {
       fontSize: '14px',
       color: themeColors.text,
       width: '100%',
-      placeholder: themeColors.textSecondary,
+      '::placeholder': {
+        color: themeColors.textSecondary,
+      }
     },
 
     filtersContainer: {
@@ -479,6 +497,7 @@ const handleRefreshTransactions = () => {
       fontSize: '14px',
       fontWeight: '500',
       whiteSpace: 'nowrap',
+      transition: 'all 0.2s',
     },
 
     secondaryButton: {
@@ -535,6 +554,7 @@ const handleRefreshTransactions = () => {
       borderRadius: '12px',
       border: `1px solid ${themeColors.secondary}`,
       overflow: 'hidden',
+      minHeight: '400px',
     },
 
     table: {
@@ -759,7 +779,56 @@ const handleRefreshTransactions = () => {
       padding: '40px 20px',
       color: themeColors.textSecondary,
     },
+
+    loadingState: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '60px 20px',
+      gap: '16px',
+    },
+
+    loadingText: {
+      color: themeColors.textSecondary,
+      fontSize: '14px',
+    },
+
+    paginationContainer: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: '24px',
+      flexWrap: 'wrap',
+      gap: '16px',
+    },
+
+    paginationInfo: {
+      color: themeColors.textSecondary,
+      fontSize: '14px',
+    },
+
+    paginationButtons: {
+      display: 'flex',
+      gap: '8px',
+    },
   };
+
+  if (loading) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <h2 style={styles.title}>Transaction Management</h2>
+        </div>
+        <div style={styles.tableContainer}>
+          <div style={styles.loadingState}>
+            <Loader size={32} className="animate-spin" color={themeColors.primary} />
+            <span style={styles.loadingText}>Loading transactions...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.container}>
@@ -787,8 +856,12 @@ const handleRefreshTransactions = () => {
               <option value="all">All Status</option>
               <option value="completed">Completed</option>
               <option value="pending">Pending</option>
+              <option value="payment_held">Payment Held</option>
+              <option value="shipped">Shipped</option>
               <option value="failed">Failed</option>
               <option value="cancelled">Cancelled</option>
+              <option value="refunded">Refunded</option>
+              <option value="disputed">Disputed</option>
             </select>
 
             <select 
@@ -823,13 +896,20 @@ const handleRefreshTransactions = () => {
             Filters
           </button>
 
-          <button style={{ ...styles.button, ...styles.secondaryButton }}>
+          <button 
+            style={{ ...styles.button, ...styles.secondaryButton }}
+            onClick={handleExportTransactions}
+          >
             <Download size={16} />
             {!isMobile && 'Export'}
           </button>
 
-          <button style={styles.button}>
-            <RefreshCw size={16} />
+          <button 
+            style={styles.button}
+            onClick={handleRefreshTransactions}
+            disabled={refreshing}
+          >
+            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
             {!isMobile && 'Refresh'}
           </button>
         </div>
@@ -845,8 +925,12 @@ const handleRefreshTransactions = () => {
           <option value="all">All Status</option>
           <option value="completed">Completed</option>
           <option value="pending">Pending</option>
+          <option value="payment_held">Payment Held</option>
+          <option value="shipped">Shipped</option>
           <option value="failed">Failed</option>
           <option value="cancelled">Cancelled</option>
+          <option value="refunded">Refunded</option>
+          <option value="disputed">Disputed</option>
         </select>
 
         <select 
@@ -886,7 +970,7 @@ const handleRefreshTransactions = () => {
           <div style={{ ...styles.statIcon, backgroundColor: '#10b981' }}>
             <DollarSign size={isMobile ? 16 : 20} color="#10b981" />
           </div>
-          <div style={styles.statValue}>${stats.totalRevenue.toFixed(2)}</div>
+          <div style={styles.statValue}>{formatCurrency(stats.totalRevenue)}</div>
           <div style={styles.statLabel}>Total Revenue</div>
         </div>
 
@@ -894,7 +978,7 @@ const handleRefreshTransactions = () => {
           <div style={{ ...styles.statIcon, backgroundColor: '#f59e0b' }}>
             <Wallet size={isMobile ? 16 : 20} color="#f59e0b" />
           </div>
-          <div style={styles.statValue}>${stats.totalFees.toFixed(2)}</div>
+          <div style={styles.statValue}>{formatCurrency(stats.totalFees)}</div>
           <div style={styles.statLabel}>Total Fees</div>
         </div>
 
@@ -902,7 +986,7 @@ const handleRefreshTransactions = () => {
           <div style={{ ...styles.statIcon, backgroundColor: '#8b5cf6' }}>
             <Clock size={isMobile ? 16 : 20} color="#8b5cf6" />
           </div>
-          <div style={styles.statValue}>${stats.pendingAmount.toFixed(2)}</div>
+          <div style={styles.statValue}>{formatCurrency(stats.pendingAmount)}</div>
           <div style={styles.statLabel}>Pending Amount</div>
         </div>
       </div>
@@ -921,72 +1005,83 @@ const handleRefreshTransactions = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredTransactions.map((transaction) => {
-              const StatusIcon = getStatusIcon(transaction.status);
-              const TypeIcon = getTypeIcon(transaction.type);
-              return (
-                <tr key={transaction.id}>
-                  <td style={styles.td}>
-                    <div style={styles.transactionInfo}>
-                      <div style={styles.transactionIcon(transaction.type)}>
-                        <TypeIcon size={16} color={getTypeColor(transaction.type)} />
+            {filteredTransactions.length === 0 ? (
+              <tr>
+                <td colSpan="6" style={styles.emptyState}>
+                  <AlertCircle size={48} color={themeColors.textSecondary} />
+                  <p>No transactions found matching your criteria.</p>
+                </td>
+              </tr>
+            ) : (
+              filteredTransactions.map((transaction) => {
+                const StatusIcon = getStatusIcon(transaction.status);
+                const TypeIcon = getTypeIcon(transaction.type);
+                return (
+                  <tr key={transaction.id}>
+                    <td style={styles.td}>
+                      <div style={styles.transactionInfo}>
+                        <div style={styles.transactionIcon(transaction.type)}>
+                          <TypeIcon size={16} color={getTypeColor(transaction.type)} />
+                        </div>
+                        <div style={styles.transactionDetails}>
+                          <div style={styles.transactionId}>
+                            {transaction.id.slice(-8).toUpperCase()}
+                          </div>
+                          <div style={styles.transactionItem}>{transaction.item.title}</div>
+                        </div>
                       </div>
-                      <div style={styles.transactionDetails}>
-                        <div style={styles.transactionId}>{transaction.id}</div>
-                        <div style={styles.transactionItem}>{transaction.item.title}</div>
+                    </td>
+                    <td style={styles.td}>
+                      <span style={styles.typeBadge(transaction.type)}>
+                        {transaction.type}
+                      </span>
+                    </td>
+                    <td style={styles.td}>
+                      <div style={styles.amountContainer}>
+                        <div style={styles.amount(transaction.amount)}>
+                          {formatCurrency(transaction.amount)}
+                        </div>
+                        <div style={styles.fee}>
+                          Fee: {formatCurrency(transaction.fee)}
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td style={styles.td}>
-                    <span style={styles.typeBadge(transaction.type)}>
-                      {transaction.type}
-                    </span>
-                  </td>
-                  <td style={styles.td}>
-                    <div style={styles.amountContainer}>
-                      <div style={styles.amount(transaction.amount)}>
-                        {formatAmount(transaction.amount)}
+                    </td>
+                    <td style={styles.td}>
+                      <span style={styles.statusBadge(transaction.status)}>
+                        <StatusIcon size={12} />
+                        {transaction.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td style={styles.td}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Calendar size={14} color={themeColors.textSecondary} />
+                        {formatDate(transaction.date)}
                       </div>
-                      <div style={styles.fee}>
-                        Fee: {formatAmount(transaction.fee)}
+                    </td>
+                    <td style={styles.td}>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button 
+                          style={styles.actionButton}
+                          onClick={() => handleTransactionAction('view', transaction.id)}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button 
+                          style={styles.actionButton}
+                          onClick={() => handleTransactionAction('download', transaction.id)}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                        >
+                          <Download size={16} />
+                        </button>
                       </div>
-                    </div>
-                  </td>
-                  <td style={styles.td}>
-                    <span style={styles.statusBadge(transaction.status)}>
-                      <StatusIcon size={12} />
-                      {transaction.status}
-                    </span>
-                  </td>
-                  <td style={styles.td}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Calendar size={14} color={themeColors.textSecondary} />
-                      {formatDate(transaction.date)}
-                    </div>
-                  </td>
-                  <td style={styles.td}>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <button 
-                        style={styles.actionButton}
-                        onClick={() => handleTransactionAction('view', transaction.id)}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button 
-                        style={styles.actionButton}
-                        onClick={() => handleTransactionAction('download', transaction.id)}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        <Download size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
 
@@ -1009,15 +1104,17 @@ const handleRefreshTransactions = () => {
                         <TypeIcon size={16} color={getTypeColor(transaction.type)} />
                       </div>
                       <div style={styles.mobileCardContent}>
-                        <div style={styles.mobileCardId}>{transaction.id}</div>
+                        <div style={styles.mobileCardId}>
+                          {transaction.id.slice(-8).toUpperCase()}
+                        </div>
                         <div style={styles.mobileCardItem}>{transaction.item.title}</div>
                         <div style={styles.mobileCardAmount(transaction.amount)}>
-                          {formatAmount(transaction.amount)}
+                          {formatCurrency(transaction.amount)}
                         </div>
                         <div style={styles.mobileCardMeta}>
                           <span style={styles.statusBadge(transaction.status)}>
                             <StatusIcon size={10} />
-                            {transaction.status}
+                            {transaction.status.replace('_', ' ')}
                           </span>
                           <span style={styles.typeBadge(transaction.type)}>
                             {transaction.type}
@@ -1030,15 +1127,15 @@ const handleRefreshTransactions = () => {
                   <div style={styles.mobileCardDetails}>
                     <div style={styles.mobileCardStat}>
                       <div style={styles.mobileCardLabel}>Date</div>
-                      <div style={styles.mobileCardValue}>{formatDate(transaction.date)}</div>
+                      <div style={styles.mobileCardValue}>{formatDate(transaction.date, 'short')}</div>
                     </div>
                     <div style={styles.mobileCardStat}>
                       <div style={styles.mobileCardLabel}>Fee</div>
-                      <div style={styles.mobileCardValue}>{formatAmount(transaction.fee)}</div>
+                      <div style={styles.mobileCardValue}>{formatCurrency(transaction.fee)}</div>
                     </div>
                     <div style={styles.mobileCardStat}>
                       <div style={styles.mobileCardLabel}>Net Amount</div>
-                      <div style={styles.mobileCardValue}>{formatAmount(transaction.netAmount)}</div>
+                      <div style={styles.mobileCardValue}>{formatCurrency(transaction.netAmount)}</div>
                     </div>
                     <div style={styles.mobileCardStat}>
                       <div style={styles.mobileCardLabel}>Payment Method</div>
@@ -1067,6 +1164,34 @@ const handleRefreshTransactions = () => {
           )}
         </div>
       </div>
+
+      {/* Pagination */}
+      {pagination.pages > 1 && (
+        <div style={styles.paginationContainer}>
+          <div style={styles.paginationInfo}>
+            Showing {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} transactions
+          </div>
+          <div style={styles.paginationButtons}>
+            <button
+              style={{ ...styles.button, ...styles.secondaryButton }}
+              onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+              disabled={pagination.page === 1}
+            >
+              Previous
+            </button>
+            <span style={{ ...styles.paginationInfo, margin: '0 16px' }}>
+              Page {pagination.page} of {pagination.pages}
+            </span>
+            <button
+              style={{ ...styles.button, ...styles.secondaryButton }}
+              onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+              disabled={pagination.page === pagination.pages}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
