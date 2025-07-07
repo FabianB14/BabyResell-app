@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
-import { transactionAPI } from '../../utils/api';
+import { transactionAPI } from '../../services/api';
 import { 
   CreditCard, 
   Search, 
