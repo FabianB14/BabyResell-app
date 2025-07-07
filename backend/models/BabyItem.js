@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const BabyItemSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   title: {
     type: String,
     required: [true, 'Please add a title'],
@@ -15,124 +20,101 @@ const BabyItemSchema = new mongoose.Schema({
   price: {
     type: Number,
     required: [true, 'Please add a price'],
-    min: [0, 'Price must be positive']
+    min: [0, 'Price cannot be negative']
   },
-  currency: {
-    type: String,
-    enum: ['USD', 'EUR', 'GBP', 'CAD', 'AUD'],
-    default: 'USD'
+  originalPrice: {
+    type: Number,
+    min: [0, 'Original price cannot be negative']
   },
-  images: [
-    {
-      fullSize: {
-        type: String,
-        required: true
-      },
-      thumbnail: {
-        type: String,
-        required: true
-      },
-      isPrimary: {
-        type: Boolean,
-        default: false
-      }
-    }
-  ],
   category: {
     type: String,
-    required: [true, 'Please select a category'],
+    required: [true, 'Please add a category'],
     enum: [
-      'Clothes & Shoes',
-      'Toys & Games',
+      'Strollers',
+      'Car Seats',
+      'Furniture',
+      'Clothing',
       'Feeding',
-      'Diapering',
-      'Bathing & Skincare',
-      'Health & Safety',
+      'Carriers',
+      'Toys',
+      'Safety',
+      'Bath & Care',
       'Nursery',
-      'Strollers & Car Seats',
-      'Carriers & Wraps',
-      'Activity & Entertainment',
-      'Books',
+      'Diapering',
       'Other'
-    ]
-  },
-  subcategory: {
-    type: String,
-    trim: true
-  },
-  ageGroup: {
-    type: String,
-    required: [true, 'Please select an age group'],
-    enum: [
-      'Newborn (0-3 months)',
-      'Infant (3-12 months)',
-      'Toddler (1-3 years)',
-      'Preschool (3-5 years)',
-      'All Ages'
     ]
   },
   condition: {
     type: String,
-    required: [true, 'Please select a condition'],
-    enum: ['New', 'Like New', 'Good', 'Fair', 'Poor'],
+    required: [true, 'Please specify condition'],
+    enum: ['New', 'Like New', 'Excellent', 'Good', 'Fair', 'Poor'],
     default: 'Good'
+  },
+  ageGroup: {
+    type: String,
+    required: true,
+    enum: [
+      '0-3 months',
+      '3-6 months',
+      '6-12 months',
+      '1-2 years',
+      '2-3 years',
+      '3-5 years',
+      '5+ years',
+      'All Ages'
+    ],
+    default: 'All Ages'
   },
   brand: {
     type: String,
     trim: true
   },
-  color: {
+  images: [{
     type: String,
-    trim: true
-  },
-  size: {
-    type: String,
-    trim: true
-  },
-  gender: {
-    type: String,
-    enum: ['Boy', 'Girl', 'Unisex'],
-    default: 'Unisex'
-  },
-  safetyNotes: {
-    type: String,
-    maxlength: [500, 'Safety notes cannot be more than 500 characters']
-  },
-  tags: [{
-    type: String,
-    trim: true
+    required: true
   }],
-  status: {
-    type: String,
-    enum: ['active', 'pending', 'sold', 'inactive'],
-    default: 'active'
+  thumbnail: {
+    type: String
   },
   location: {
-    type: String,
-    trim: true
-  },
-  zipCode: {
-    type: String,
-    trim: true
-  },
-  shippingOptions: {
-    localPickup: {
-      type: Boolean,
-      default: true
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point'
     },
-    shipping: {
-      type: Boolean,
-      default: false
+    coordinates: {
+      type: [Number],
+      index: '2dsphere'
     },
-    shippingCost: {
-      type: Number,
-      default: 0
-    }
+    formattedAddress: String,
+    city: String,
+    state: String,
+    zipcode: String,
+    country: String
   },
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'sold', 'pending', 'draft', 'rejected'],
+    default: 'active'
+  },
+  active: {
+    type: Boolean,
+    default: true
+  },
+  approved: {
+    type: Boolean,
+    default: true
+  },
+  sold: {
+    type: Boolean,
+    default: false
+  },
+  soldDate: {
+    type: Date
+  },
+  featured: {
+    type: Boolean,
+    default: false
   },
   views: {
     type: Number,
@@ -146,44 +128,184 @@ const BabyItemSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
+  tags: [{
+    type: String,
+    trim: true
+  }],
+  size: {
+    type: String
+  },
+  color: {
+    type: String
+  },
+  material: {
+    type: String
+  },
+  weight: {
+    value: Number,
+    unit: {
+      type: String,
+      enum: ['lbs', 'kg', 'oz', 'g']
+    }
+  },
+  dimensions: {
+    length: Number,
+    width: Number,
+    height: Number,
+    unit: {
+      type: String,
+      enum: ['in', 'cm', 'ft', 'm']
+    }
+  },
+  quantity: {
+    type: Number,
+    default: 1,
+    min: [1, 'Quantity must be at least 1']
+  },
+  shipping: {
+    available: {
+      type: Boolean,
+      default: true
+    },
+    price: {
+      type: Number,
+      default: 0
+    },
+    estimatedDays: {
+      type: Number,
+      default: 5
+    }
+  },
+  pickup: {
+    available: {
+      type: Boolean,
+      default: true
+    },
+    preferredDays: [String],
+    preferredTimes: [String]
+  },
+  negotiable: {
+    type: Boolean,
+    default: true
+  },
+  reported: {
+    type: Boolean,
+    default: false
+  },
+  reportCount: {
+    type: Number,
+    default: 0
+  },
+  reports: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    reason: String,
+    description: String,
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }]
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
 
-// Create index for search
-BabyItemSchema.index({ 
-  title: 'text', 
-  description: 'text', 
-  brand: 'text',
-  tags: 'text'
+// Indexes for better query performance
+BabyItemSchema.index({ title: 'text', description: 'text', brand: 'text' });
+BabyItemSchema.index({ category: 1, status: 1 });
+BabyItemSchema.index({ user: 1, status: 1 });
+BabyItemSchema.index({ price: 1 });
+BabyItemSchema.index({ createdAt: -1 });
+BabyItemSchema.index({ featured: 1, status: 1 });
+BabyItemSchema.index({ 'location.coordinates': '2dsphere' });
+
+// Virtual for like count
+BabyItemSchema.virtual('likeCount').get(function() {
+  return this.likes ? this.likes.length : 0;
 });
 
-// Get thumbnail image virtual
-BabyItemSchema.virtual('thumbnail').get(function() {
-  const primaryImage = this.images.find(img => img.isPrimary);
-  if (primaryImage) {
-    return primaryImage.thumbnail;
-  } else if (this.images.length > 0) {
-    return this.images[0].thumbnail;
-  }
-  return null;
+// Virtual for save count
+BabyItemSchema.virtual('saveCount').get(function() {
+  return this.saves ? this.saves.length : 0;
 });
 
-// Get main image virtual
-BabyItemSchema.virtual('image').get(function() {
-  const primaryImage = this.images.find(img => img.isPrimary);
-  if (primaryImage) {
-    return primaryImage.fullSize;
-  } else if (this.images.length > 0) {
-    return this.images[0].fullSize;
+// Pre-save middleware to update status based on other fields
+BabyItemSchema.pre('save', function(next) {
+  // Auto-update status based on other fields
+  if (this.sold && this.status !== 'sold') {
+    this.status = 'sold';
+    this.soldDate = new Date();
+  } else if (!this.approved && this.status === 'active') {
+    this.status = 'pending';
+  } else if (!this.active && this.status === 'active') {
+    this.status = 'inactive';
   }
-  return null;
+  
+  // Set thumbnail as first image if not set
+  if (!this.thumbnail && this.images && this.images.length > 0) {
+    this.thumbnail = this.images[0];
+  }
+  
+  next();
 });
+
+// Method to mark item as sold
+BabyItemSchema.methods.markAsSold = async function() {
+  this.sold = true;
+  this.status = 'sold';
+  this.soldDate = new Date();
+  this.active = false;
+  return await this.save();
+};
+
+// Method to approve item
+BabyItemSchema.methods.approve = async function() {
+  this.approved = true;
+  this.status = 'active';
+  this.active = true;
+  return await this.save();
+};
+
+// Method to reject item
+BabyItemSchema.methods.reject = async function() {
+  this.approved = false;
+  this.status = 'rejected';
+  this.active = false;
+  return await this.save();
+};
+
+// Static method to get items by status
+BabyItemSchema.statics.getByStatus = function(status, options = {}) {
+  const query = this.find({ status });
+  
+  if (options.populate) {
+    query.populate(options.populate);
+  }
+  
+  if (options.sort) {
+    query.sort(options.sort);
+  }
+  
+  if (options.limit) {
+    query.limit(options.limit);
+  }
+  
+  return query;
+};
+
+// Static method to get featured items
+BabyItemSchema.statics.getFeatured = function(limit = 10) {
+  return this.find({ 
+    featured: true, 
+    status: 'active' 
+  })
+  .populate('user', 'username profileImage')
+  .sort('-createdAt')
+  .limit(limit);
+};
 
 module.exports = mongoose.model('BabyItem', BabyItemSchema);

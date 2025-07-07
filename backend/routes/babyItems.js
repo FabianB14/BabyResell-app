@@ -85,6 +85,11 @@ router.post('/', protect, asyncHandler(async (req, res, next) => {
       req.body.images = [req.body.images];
     }
     
+    // Set default status based on user role
+    if (!req.body.status) {
+      req.body.status = req.user.isAdmin ? 'active' : 'pending';
+    }
+    
     // Create baby item
     const babyItem = await BabyItem.create(req.body);
     
@@ -130,14 +135,22 @@ router.get('/', asyncHandler(async (req, res, next) => {
     }
     
     // Handle category filter
-    if (query.category && query.category === 'all') {
+    if (query.category && (query.category === 'all' || query.category === 'All Categories')) {
       delete query.category;
     }
     
-    // Handle status filter for admin
-    if (!query.status || query.status === 'all') {
-      // For admin, show all items regardless of status
-      delete query.status;
+    // Handle status filter
+    if (query.status) {
+      if (query.status === 'all') {
+        // For admin, show all items regardless of status
+        delete query.status;
+      }
+      // Otherwise, keep the specific status filter
+    } else {
+      // For public view, only show active items by default
+      if (!req.user || !req.user.isAdmin) {
+        query.status = 'active';
+      }
     }
     
     // Finding resource
@@ -171,33 +184,49 @@ router.get('/', asyncHandler(async (req, res, next) => {
     // Execute query
     const babyItems = await babyItemQuery;
     
-    // Transform data for admin dashboard
-    const transformedItems = babyItems.map(item => ({
-      id: item._id,
-      title: item.title,
-      description: item.description,
-      price: item.price,
-      category: item.category,
-      condition: item.condition,
-      status: item.status || 'active',
-      listedDate: item.createdAt,
-      images: item.images || [],
-      ageGroup: item.ageGroup,
-      brand: item.brand,
-      seller: item.user?.username || item.user?.firstName || 'Unknown',
-      sellerId: item.user?._id,
-      views: item.views || 0,
-      saves: item.saves?.length || 0,
-      featured: item.featured || false,
-      thumbnail: item.images?.[0] || item.thumbnail || null
-    }));
+    // Transform data to ensure consistent format
+    const transformedItems = babyItems.map(item => {
+      const itemObj = item.toObject();
+      
+      return {
+        _id: itemObj._id,
+        id: itemObj._id, // Include both for compatibility
+        title: itemObj.title,
+        description: itemObj.description,
+        price: itemObj.price,
+        category: itemObj.category,
+        condition: itemObj.condition,
+        status: itemObj.status || 'active',
+        listedDate: itemObj.createdAt,
+        createdAt: itemObj.createdAt,
+        images: itemObj.images || [],
+        ageGroup: itemObj.ageGroup,
+        brand: itemObj.brand,
+        seller: itemObj.user?.username || itemObj.user?.firstName || 'Unknown',
+        sellerId: itemObj.user?._id,
+        user: itemObj.user,
+        views: itemObj.views || 0,
+        saves: itemObj.saves?.length || itemObj.saveCount || 0,
+        likes: itemObj.likes?.length || itemObj.likeCount || 0,
+        featured: itemObj.featured || false,
+        thumbnail: itemObj.thumbnail || itemObj.images?.[0] || null,
+        active: itemObj.active,
+        approved: itemObj.approved,
+        sold: itemObj.sold,
+        negotiable: itemObj.negotiable,
+        shipping: itemObj.shipping,
+        pickup: itemObj.pickup,
+        location: itemObj.location
+      };
+    });
     
     res.status(200).json({
       success: true,
       count: transformedItems.length,
       pagination: {
-        total,
         page,
+        limit,
+        total,
         pages: Math.ceil(total / limit)
       },
       data: transformedItems
@@ -213,7 +242,7 @@ router.get('/', asyncHandler(async (req, res, next) => {
 router.get('/:id', asyncHandler(async (req, res, next) => {
   try {
     const babyItem = await BabyItem.findById(req.params.id)
-      .populate('user', 'username profileImage location')
+      .populate('user', 'username profileImage location firstName lastName')
       .populate('likes', 'username profileImage')
       .populate('saves', 'username profileImage');
     
@@ -224,21 +253,24 @@ router.get('/:id', asyncHandler(async (req, res, next) => {
       });
     }
     
-    // Increment view count
-    babyItem.views += 1;
-    await babyItem.save();
+    // Only increment view count for active items and non-owners
+    if (babyItem.status === 'active' && (!req.user || req.user.id !== babyItem.user._id.toString())) {
+      babyItem.views += 1;
+      await babyItem.save();
+    }
     
     // Get similar items based on category and age group
     const similarItems = await BabyItem.find({
       _id: { $ne: babyItem._id },
+      status: 'active',
       $or: [
         { category: babyItem.category },
         { ageGroup: babyItem.ageGroup }
-      ],
-      status: 'active'
+      ]
     })
     .limit(6)
-    .select('title thumbnail price condition');
+    .select('title thumbnail price condition status')
+    .populate('user', 'username');
     
     res.status(200).json({
       success: true,
@@ -272,28 +304,50 @@ router.put('/:id', protect, asyncHandler(async (req, res, next) => {
       });
     }
     
-    // Handle status updates for admin
-    if (req.body.status && req.user.isAdmin) {
-      babyItem.status = req.body.status;
-    }
-    
-    // Handle featured updates for admin
-    if (typeof req.body.featured !== 'undefined' && req.user.isAdmin) {
-      babyItem.featured = req.body.featured;
-    }
-    
-    // Handle approved updates for admin
-    if (typeof req.body.approved !== 'undefined' && req.user.isAdmin) {
-      babyItem.approved = req.body.approved;
-      if (req.body.approved && !req.body.status) {
-        babyItem.status = 'active';
+    // Handle status updates
+    if (req.body.status) {
+      // Update related fields based on status
+      switch (req.body.status) {
+        case 'sold':
+          req.body.sold = true;
+          req.body.active = false;
+          if (!babyItem.soldDate) {
+            req.body.soldDate = new Date();
+          }
+          break;
+        case 'active':
+          req.body.active = true;
+          req.body.approved = true;
+          req.body.sold = false;
+          break;
+        case 'inactive':
+          req.body.active = false;
+          break;
+        case 'pending':
+          req.body.approved = false;
+          break;
+        case 'rejected':
+          req.body.approved = false;
+          req.body.active = false;
+          break;
       }
     }
     
+    // Handle featured updates for admin
+    if (typeof req.body.featured !== 'undefined' && !req.user.isAdmin) {
+      delete req.body.featured; // Only admins can feature items
+    }
+    
+    // Handle approved updates for admin
+    if (typeof req.body.approved !== 'undefined' && !req.user.isAdmin) {
+      delete req.body.approved; // Only admins can approve items
+    }
+    
+    // Update the item
     babyItem = await BabyItem.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
-    });
+    }).populate('user', 'username profileImage');
     
     res.status(200).json({
       success: true,
@@ -326,7 +380,7 @@ router.delete('/:id', protect, asyncHandler(async (req, res, next) => {
       });
     }
     
-    await babyItem.remove();
+    await babyItem.deleteOne();
     
     res.status(200).json({
       success: true,
@@ -438,7 +492,10 @@ router.post('/:id/save', protect, asyncHandler(async (req, res, next) => {
     
     // Also add to user's saved items
     const user = await User.findById(req.user.id);
-    if (user.savedItems) {
+    if (!user.savedItems) {
+      user.savedItems = [];
+    }
+    if (!user.savedItems.includes(babyItem._id)) {
       user.savedItems.push(babyItem._id);
       await user.save();
     }
@@ -492,6 +549,121 @@ router.post('/:id/unsave', protect, asyncHandler(async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Baby item removed from collection'
+    });
+  } catch (error) {
+    next(error);
+  }
+}));
+
+// @route   PUT /api/baby-items/:id/approve
+// @desc    Approve a baby item (Admin only)
+// @access  Private (Admin)
+router.put('/:id/approve', protect, authorize('admin'), asyncHandler(async (req, res, next) => {
+  try {
+    const babyItem = await BabyItem.findById(req.params.id);
+    
+    if (!babyItem) {
+      return res.status(404).json({
+        success: false,
+        message: 'Baby item not found'
+      });
+    }
+    
+    await babyItem.approve();
+    
+    res.status(200).json({
+      success: true,
+      data: babyItem
+    });
+  } catch (error) {
+    next(error);
+  }
+}));
+
+// @route   PUT /api/baby-items/:id/reject
+// @desc    Reject a baby item (Admin only)
+// @access  Private (Admin)
+router.put('/:id/reject', protect, authorize('admin'), asyncHandler(async (req, res, next) => {
+  try {
+    const babyItem = await BabyItem.findById(req.params.id);
+    
+    if (!babyItem) {
+      return res.status(404).json({
+        success: false,
+        message: 'Baby item not found'
+      });
+    }
+    
+    await babyItem.reject();
+    
+    res.status(200).json({
+      success: true,
+      data: babyItem
+    });
+  } catch (error) {
+    next(error);
+  }
+}));
+
+// @route   PUT /api/baby-items/:id/feature
+// @desc    Toggle featured status (Admin only)
+// @access  Private (Admin)
+router.put('/:id/feature', protect, authorize('admin'), asyncHandler(async (req, res, next) => {
+  try {
+    const babyItem = await BabyItem.findById(req.params.id);
+    
+    if (!babyItem) {
+      return res.status(404).json({
+        success: false,
+        message: 'Baby item not found'
+      });
+    }
+    
+    babyItem.featured = !babyItem.featured;
+    await babyItem.save();
+    
+    res.status(200).json({
+      success: true,
+      data: babyItem
+    });
+  } catch (error) {
+    next(error);
+  }
+}));
+
+// @route   GET /api/baby-items/stats/overview
+// @desc    Get item statistics (Admin only)
+// @access  Private (Admin)
+router.get('/stats/overview', protect, authorize('admin'), asyncHandler(async (req, res, next) => {
+  try {
+    const stats = await BabyItem.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          totalViews: { $sum: '$views' },
+          avgPrice: { $avg: '$price' }
+        }
+      }
+    ]);
+    
+    const categoryStats = await BabyItem.aggregate([
+      {
+        $group: {
+          _id: '$category',
+          count: { $sum: 1 },
+          avgPrice: { $avg: '$price' }
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        statusStats: stats,
+        categoryStats
+      }
     });
   } catch (error) {
     next(error);

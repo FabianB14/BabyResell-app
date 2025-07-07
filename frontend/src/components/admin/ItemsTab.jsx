@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
-import { itemsAPI } from '../../services/api'; // Import your existing API
+import { itemsAPI } from '../../services/api';
 import { 
   Package, 
   Search, 
@@ -39,6 +39,14 @@ const ItemsTab = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [stats, setStats] = useState({
+    active: 0,
+    sold: 0,
+    pending: 0,
+    draft: 0,
+    totalViews: 0,
+    totalSaves: 0
+  });
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -60,6 +68,21 @@ const ItemsTab = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Helper function to determine item status
+  const getItemStatus = (item) => {
+    // If item already has a status field, use it
+    if (item.status) {
+      return item.status;
+    }
+    
+    // Otherwise, derive it from other fields
+    if (item.sold) return 'sold';
+    if (item.active === false) return 'inactive';
+    if (item.approved === false) return 'pending';
+    if (item.draft === true) return 'draft';
+    return 'active';
+  };
+
   // Load items from API
   const loadItems = async (page = 1) => {
     try {
@@ -69,7 +92,10 @@ const ItemsTab = () => {
       const params = {
         page,
         limit: pagination.limit,
-        sort: sortBy === 'createdAt' ? '-createdAt' : sortBy
+        sort: sortBy === 'createdAt' ? '-createdAt' : 
+              sortBy === 'price' ? '-price' :
+              sortBy === 'views' ? '-views' :
+              sortBy === 'saves' ? '-saves' : sortBy
       };
 
       // Add search if provided
@@ -82,31 +108,52 @@ const ItemsTab = () => {
         params.category = filterCategory;
       }
 
+      // Add status filter
+      if (filterStatus !== 'all') {
+        params.status = filterStatus;
+      }
+
+      console.log('Loading items with params:', params);
       const response = await itemsAPI.getAllItems(params);
       
       if (response.data.success) {
         // Transform the data to include computed fields
         const transformedItems = response.data.data.map(item => ({
-          id: item._id,
-          title: item.title,
-          description: item.description,
-          price: item.price,
-          category: item.category,
-          condition: item.condition,
-          status: getItemStatus(item), // Custom function to determine status
-          listedDate: item.createdAt,
+          id: item.id || item._id,
+          _id: item._id || item.id,
+          title: item.title || 'Untitled Item',
+          description: item.description || '',
+          price: item.price || 0,
+          category: item.category || 'Uncategorized',
+          condition: item.condition || 'Good',
+          status: item.status || getItemStatus(item),
+          listedDate: item.listedDate || item.createdAt,
           images: item.images || [],
-          ageGroup: item.ageGroup,
-          brand: item.brand,
-          seller: item.user?.username || item.user?.firstName || 'Unknown',
-          sellerId: item.user?._id,
+          ageGroup: item.ageGroup || 'All Ages',
+          brand: item.brand || '',
+          seller: item.seller || item.user?.username || item.user?.firstName || 'Unknown',
+          sellerId: item.sellerId || item.user?._id,
           views: item.views || 0,
-          saves: item.saves?.length || 0,
+          saves: item.saves || 0,
           featured: item.featured || false,
-          thumbnail: item.images?.[0] || null
+          thumbnail: item.thumbnail || item.images?.[0] || null,
+          active: item.active !== false,
+          approved: item.approved !== false,
+          sold: item.sold || false
         }));
 
         setItems(transformedItems);
+        
+        // Calculate stats
+        const newStats = transformedItems.reduce((acc, item) => {
+          acc[item.status] = (acc[item.status] || 0) + 1;
+          acc.totalViews += item.views;
+          acc.totalSaves += item.saves;
+          return acc;
+        }, { active: 0, sold: 0, pending: 0, draft: 0, inactive: 0, totalViews: 0, totalSaves: 0 });
+        
+        setStats(newStats);
+        
         setPagination({
           page: response.data.pagination?.page || page,
           limit: response.data.pagination?.limit || 20,
@@ -117,6 +164,10 @@ const ItemsTab = () => {
     } catch (error) {
       console.error('Error loading items:', error);
       setError('Failed to load items. Please try again.');
+      
+      // Set empty data on error
+      setItems([]);
+      setStats({ active: 0, sold: 0, pending: 0, draft: 0, totalViews: 0, totalSaves: 0 });
     } finally {
       setLoading(false);
     }
@@ -132,39 +183,46 @@ const ItemsTab = () => {
     } catch (error) {
       console.warn('Failed to load categories:', error);
       // Fallback categories
-      setCategories(['Strollers', 'Furniture', 'Clothing', 'Feeding', 'Carriers', 'Toys', 'Safety']);
+      setCategories([
+        'All Categories',
+        'Strollers',
+        'Car Seats', 
+        'Furniture',
+        'Clothing',
+        'Feeding',
+        'Carriers',
+        'Toys',
+        'Safety',
+        'Bath & Care',
+        'Nursery',
+        'Diapering'
+      ]);
     }
-  };
-
-  // Helper function to determine item status
-  const getItemStatus = (item) => {
-    if (item.sold) return 'sold';
-    if (item.active === false) return 'inactive';
-    if (item.approved === false) return 'pending';
-    return 'active';
   };
 
   // Initial load
   useEffect(() => {
     loadItems();
     loadCategories();
+  }, []);
+
+  // Reload when sort changes
+  useEffect(() => {
+    if (!loading) {
+      loadItems(1);
+    }
   }, [sortBy]);
 
   // Search debounce
   useEffect(() => {
     const delayedSearch = setTimeout(() => {
-      if (searchTerm !== '' || items.length === 0) {
+      if (!loading) {
         loadItems(1);
       }
     }, 500);
 
     return () => clearTimeout(delayedSearch);
-  }, [searchTerm, filterCategory]);
-
-  const filteredItems = items.filter(item => {
-    const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
-    return matchesStatus;
-  });
+  }, [searchTerm, filterCategory, filterStatus]);
 
   const handleItemAction = async (action, itemId) => {
     console.log(`${action} item ${itemId}`);
@@ -182,6 +240,7 @@ const ItemsTab = () => {
           
         case 'delete':
           if (window.confirm('Are you sure you want to delete this item?')) {
+            setLoading(true);
             const response = await itemsAPI.deleteItem(itemId);
             if (response.data.success) {
               alert('Item deleted successfully!');
@@ -194,20 +253,34 @@ const ItemsTab = () => {
           
         case 'feature':
           // Toggle featured status
-          const featuredResponse = await itemsAPI.updateItem(itemId, { featured: true });
+          setLoading(true);
+          const item = items.find(i => i.id === itemId || i._id === itemId);
+          const featuredResponse = await itemsAPI.updateItem(itemId, { 
+            featured: !item.featured 
+          });
           if (featuredResponse.data.success) {
-            alert('Item featured successfully!');
+            alert(`Item ${item.featured ? 'unfeatured' : 'featured'} successfully!`);
             await loadItems(pagination.page);
           }
           break;
           
         case 'approve':
           // Approve pending item
-          const approveResponse = await itemsAPI.updateItem(itemId, { approved: true, active: true });
+          setLoading(true);
+          const approveResponse = await itemsAPI.updateItem(itemId, { 
+            approved: true, 
+            active: true,
+            status: 'active'
+          });
           if (approveResponse.data.success) {
             alert('Item approved successfully!');
             await loadItems(pagination.page);
           }
+          break;
+          
+        case 'more':
+          // Show more options menu (implement as needed)
+          console.log('Show more options for item:', itemId);
           break;
           
         default:
@@ -216,6 +289,7 @@ const ItemsTab = () => {
     } catch (error) {
       console.error(`Error performing ${action} on item ${itemId}:`, error);
       setError(`Failed to ${action} item. Please try again.`);
+      setLoading(false);
     }
   };
 
@@ -228,10 +302,10 @@ const ItemsTab = () => {
     }
     
     try {
+      setLoading(true);
       switch (action) {
         case 'feature':
           if (window.confirm(`Feature ${selectedItems.length} items?`)) {
-            // Feature multiple items
             const promises = selectedItems.map(itemId => 
               itemsAPI.updateItem(itemId, { featured: true })
             );
@@ -242,9 +316,8 @@ const ItemsTab = () => {
           
         case 'archive':
           if (window.confirm(`Archive ${selectedItems.length} items?`)) {
-            // Archive multiple items
             const promises = selectedItems.map(itemId => 
-              itemsAPI.updateItem(itemId, { active: false, archived: true })
+              itemsAPI.updateItem(itemId, { active: false, status: 'inactive' })
             );
             await Promise.all(promises);
             alert(`${selectedItems.length} items archived successfully!`);
@@ -261,10 +334,13 @@ const ItemsTab = () => {
           
         case 'export':
           // Export selected items to CSV
-          const itemsToExport = items.filter(item => selectedItems.includes(item.id));
+          const itemsToExport = items.filter(item => 
+            selectedItems.includes(item.id) || selectedItems.includes(item._id)
+          );
           const csv = convertToCSV(itemsToExport);
           downloadCSV(csv, 'items-export.csv');
-          break;
+          setLoading(false);
+          return; // Don't reload for export
           
         default:
           console.log('Unknown bulk action:', action);
@@ -276,6 +352,8 @@ const ItemsTab = () => {
     } catch (error) {
       console.error(`Error performing bulk ${action}:`, error);
       setError(`Failed to ${action} items. Please try again.`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -288,23 +366,23 @@ const ItemsTab = () => {
   };
 
   const convertToCSV = (items) => {
-    const headers = ['ID', 'Title', 'Category', 'Price', 'Condition', 'Status', 'Seller', 'Views', 'Saves'];
+    const headers = ['ID', 'Title', 'Category', 'Price', 'Condition', 'Status', 'Seller', 'Views', 'Saves', 'Listed Date'];
     const rows = items.map(item => [
-      item.id,
-      item.title,
+      item._id || item.id,
+      `"${item.title.replace(/"/g, '""')}"`,
       item.category,
       item.price,
       item.condition,
       item.status,
       item.seller,
       item.views,
-      item.saves
+      item.saves,
+      formatDate(item.listedDate)
     ]);
     
     return [headers, ...rows].map(row => row.join(',')).join('\n');
   };
 
-  // Helper to trigger CSV download
   const downloadCSV = (csv, filename) => {
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -316,8 +394,20 @@ const ItemsTab = () => {
   };
 
   const handleAddItem = () => {
-    // Navigate to create item page
     window.location.href = '/admin/items/create';
+  };
+
+  const handleExportAll = () => {
+    const csv = convertToCSV(items);
+    downloadCSV(csv, `all-items-${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  const handleRefresh = () => {
+    loadItems(pagination.page);
+  };
+
+  const handlePageChange = (newPage) => {
+    loadItems(newPage);
   };
 
   const getStatusColor = (status) => {
@@ -326,35 +416,31 @@ const ItemsTab = () => {
       case 'sold': return '#3b82f6';
       case 'draft': return '#f59e0b';
       case 'pending': return '#8b5cf6';
+      case 'inactive': return '#6b7280';
       case 'rejected': return '#ef4444';
       default: return '#6b7280';
     }
   };
 
-  const handleExportAll = () => {
-    const csv = convertToCSV(items);
-    downloadCSV(csv, `all-items-${new Date().toISOString().split('T')[0]}.csv`);
-  };
-
   const getStatusIcon = (status) => {
     switch (status) {
       case 'active': return CheckCircle;
-      case 'sold': return CheckCircle;
+      case 'sold': return DollarSign;
       case 'draft': return Clock;
       case 'pending': return Clock;
+      case 'inactive': return XCircle;
       case 'rejected': return XCircle;
       default: return Clock;
     }
   };
 
   const getConditionColor = (condition) => {
-    switch (condition) {
-      case 'excellent': return '#10b981';
-      case 'good': return '#3b82f6';
-      case 'fair': return '#f59e0b';
-      case 'poor': return '#ef4444';
-      default: return '#6b7280';
-    }
+    const conditionLower = condition?.toLowerCase() || '';
+    if (conditionLower.includes('new') || conditionLower.includes('excellent')) return '#10b981';
+    if (conditionLower.includes('good')) return '#3b82f6';
+    if (conditionLower.includes('fair')) return '#f59e0b';
+    if (conditionLower.includes('poor')) return '#ef4444';
+    return '#6b7280';
   };
 
   const styles = {
@@ -407,7 +493,6 @@ const ItemsTab = () => {
       fontSize: '14px',
       color: themeColors.text,
       width: '100%',
-      placeholder: themeColors.textSecondary,
     },
 
     filtersContainer: {
@@ -521,6 +606,25 @@ const ItemsTab = () => {
       overflow: 'hidden',
     },
 
+    loadingContainer: {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '60px',
+      color: themeColors.textSecondary,
+    },
+
+    errorContainer: {
+      backgroundColor: '#fee',
+      color: '#c00',
+      padding: '12px',
+      borderRadius: '8px',
+      marginBottom: '16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+    },
+
     table: {
       width: '100%',
       borderCollapse: 'collapse',
@@ -565,6 +669,7 @@ const ItemsTab = () => {
       justifyContent: 'center',
       color: themeColors.textSecondary,
       flexShrink: 0,
+      overflow: 'hidden',
     },
 
     itemDetails: {
@@ -579,6 +684,9 @@ const ItemsTab = () => {
       color: themeColors.text,
       fontSize: '14px',
       lineHeight: '1.3',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
     },
 
     itemMeta: {
@@ -599,6 +707,7 @@ const ItemsTab = () => {
       fontWeight: '500',
       backgroundColor: `${getStatusColor(status)}15`,
       color: getStatusColor(status),
+      textTransform: 'capitalize',
     }),
 
     conditionBadge: (condition) => ({
@@ -743,10 +852,49 @@ const ItemsTab = () => {
       padding: '40px 20px',
       color: themeColors.textSecondary,
     },
+
+    pagination: {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '16px',
+      borderTop: `1px solid ${themeColors.secondary}`,
+    },
+
+    pageButton: {
+      padding: '6px 12px',
+      backgroundColor: 'transparent',
+      border: `1px solid ${themeColors.secondary}`,
+      borderRadius: '6px',
+      color: themeColors.text,
+      cursor: 'pointer',
+      fontSize: '14px',
+      transition: 'all 0.2s ease',
+    },
+
+    activePageButton: {
+      backgroundColor: themeColors.primary,
+      color: 'white',
+      borderColor: themeColors.primary,
+    },
   };
 
   return (
     <div style={styles.container}>
+      {error && (
+        <div style={styles.errorContainer}>
+          <AlertTriangle size={16} />
+          {error}
+          <button 
+            onClick={() => setError(null)}
+            style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div style={styles.header}>
         <h2 style={styles.title}>Item Management</h2>
         <div style={styles.headerActions}>
@@ -784,6 +932,7 @@ const ItemsTab = () => {
               <option value="draft">Draft</option>
               <option value="sold">Sold</option>
               <option value="pending">Pending</option>
+              <option value="inactive">Inactive</option>
             </select>
 
             <select 
@@ -791,7 +940,7 @@ const ItemsTab = () => {
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
-              <option value="listedDate">Listed Date</option>
+              <option value="createdAt">Listed Date</option>
               <option value="price">Price</option>
               <option value="views">Views</option>
               <option value="saves">Saves</option>
@@ -807,12 +956,27 @@ const ItemsTab = () => {
             Filters
           </button>
 
-          <button style={{ ...styles.button, ...styles.secondaryButton }}>
+          <button 
+            style={{ ...styles.button, ...styles.secondaryButton }}
+            onClick={handleRefresh}
+            disabled={loading}
+          >
+            <RefreshCw size={16} />
+            {!isMobile && 'Refresh'}
+          </button>
+
+          <button 
+            style={{ ...styles.button, ...styles.secondaryButton }}
+            onClick={handleExportAll}
+          >
             <Download size={16} />
             {!isMobile && 'Export'}
           </button>
 
-          <button style={styles.button}>
+          <button 
+            style={styles.button}
+            onClick={handleAddItem}
+          >
             <Plus size={16} />
             {!isMobile && 'Add Item'}
           </button>
@@ -842,6 +1006,7 @@ const ItemsTab = () => {
           <option value="draft">Draft</option>
           <option value="sold">Sold</option>
           <option value="pending">Pending</option>
+          <option value="inactive">Inactive</option>
         </select>
 
         <select 
@@ -849,7 +1014,7 @@ const ItemsTab = () => {
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value)}
         >
-          <option value="listedDate">Sort by Listed Date</option>
+          <option value="createdAt">Sort by Listed Date</option>
           <option value="price">Sort by Price</option>
           <option value="views">Sort by Views</option>
           <option value="saves">Sort by Saves</option>
@@ -859,19 +1024,19 @@ const ItemsTab = () => {
       {/* Stats Row */}
       <div style={styles.statsRow}>
         <div style={styles.statCard}>
-          <div style={styles.statValue}>{items.filter(i => i.status === 'active').length}</div>
+          <div style={styles.statValue}>{stats.active}</div>
           <div style={styles.statLabel}>Active Items</div>
         </div>
         <div style={styles.statCard}>
-          <div style={styles.statValue}>{items.filter(i => i.status === 'sold').length}</div>
+          <div style={styles.statValue}>{stats.sold}</div>
           <div style={styles.statLabel}>Sold Items</div>
         </div>
         <div style={styles.statCard}>
-          <div style={styles.statValue}>{items.reduce((sum, i) => sum + i.views, 0)}</div>
+          <div style={styles.statValue}>{stats.totalViews}</div>
           <div style={styles.statLabel}>Total Views</div>
         </div>
         <div style={styles.statCard}>
-          <div style={styles.statValue}>{items.reduce((sum, i) => sum + i.saves, 0)}</div>
+          <div style={styles.statValue}>{stats.totalSaves}</div>
           <div style={styles.statLabel}>Total Saves</div>
         </div>
       </div>
@@ -902,225 +1067,348 @@ const ItemsTab = () => {
           <Trash2 size={14} />
           Delete
         </button>
+        <button 
+          style={{ ...styles.button, ...styles.secondaryButton, padding: '6px 12px' }}
+          onClick={() => handleBulkAction('export')}
+        >
+          <Download size={14} />
+          Export Selected
+        </button>
       </div>
 
       <div style={styles.tableContainer}>
-        {/* Desktop Table */}
-        <table style={styles.table}>
-          <thead style={styles.tableHeader}>
-            <tr>
-              <th style={styles.th}>
-                <input 
-                  type="checkbox" 
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedItems(filteredItems.map(item => item.id));
-                    } else {
-                      setSelectedItems([]);
-                    }
-                  }}
-                />
-              </th>
-              <th style={styles.th}>Item</th>
-              <th style={styles.th}>Price</th>
-              <th style={styles.th}>Status</th>
-              <th style={styles.th}>Listed</th>
-              <th style={styles.th}>Metrics</th>
-              <th style={styles.th}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredItems.map((item) => {
-              const StatusIcon = getStatusIcon(item.status);
-              return (
-                <tr key={item.id}>
-                  <td style={styles.td}>
+        {loading ? (
+          <div style={styles.loadingContainer}>
+            <Loader size={32} className="animate-spin" />
+            <span style={{ marginLeft: '12px' }}>Loading items...</span>
+          </div>
+        ) : items.length === 0 ? (
+          <div style={styles.emptyState}>
+            <Package size={48} />
+            <p>No items found matching your criteria.</p>
+            <button 
+              style={{ ...styles.button, marginTop: '16px' }}
+              onClick={handleAddItem}
+            >
+              <Plus size={16} />
+              Add First Item
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Desktop Table */}
+            <table style={styles.table}>
+              <thead style={styles.tableHeader}>
+                <tr>
+                  <th style={styles.th}>
                     <input 
-                      type="checkbox" 
-                      checked={selectedItems.includes(item.id)}
+                      type="checkbox"
+                      checked={selectedItems.length === items.length && items.length > 0}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedItems([...selectedItems, item.id]);
+                          setSelectedItems(items.map(item => item._id || item.id));
                         } else {
-                          setSelectedItems(selectedItems.filter(id => id !== item.id));
+                          setSelectedItems([]);
                         }
                       }}
                     />
-                  </td>
-                  <td style={styles.td}>
-                    <div style={styles.itemInfo}>
-                      <div style={styles.itemImage}>
-                        <Image size={20} />
-                      </div>
-                      <div style={styles.itemDetails}>
-                        <div style={styles.itemTitle}>
-                          {item.title}
-                          {item.featured && (
-                            <span style={styles.featuredBadge}>
-                              <Star size={8} />
-                              Featured
-                            </span>
-                          )}
-                        </div>
-                        <div style={styles.itemMeta}>
-                          <span>{item.category}</span>
-                          <span style={styles.conditionBadge(item.condition)}>
-                            {item.condition}
-                          </span>
-                          <span>by {item.seller}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={styles.td}>
-                    <span style={{ fontWeight: '600', color: themeColors.primary }}>
-                      ${item.price}
-                    </span>
-                  </td>
-                  <td style={styles.td}>
-                    <span style={styles.statusBadge(item.status)}>
-                      <StatusIcon size={12} />
-                      {item.status}
-                    </span>
-                  </td>
-                  <td style={styles.td}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Calendar size={14} color={themeColors.textSecondary} />
-                      {formatDate(item.listedDate)}
-                    </div>
-                  </td>
-                  <td style={styles.td}>
-                    <div style={styles.metricsContainer}>
-                      <div style={styles.metric}>
-                        <Eye size={14} />
-                        {item.views}
-                      </div>
-                      <div style={styles.metric}>
-                        <Heart size={14} />
-                        {item.saves}
-                      </div>
-                    </div>
-                  </td>
-                  <td style={styles.td}>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <button 
-                        style={styles.actionButton}
-                        onClick={() => handleItemAction('view', item.id)}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button 
-                        style={styles.actionButton}
-                        onClick={() => handleItemAction('edit', item.id)}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button 
-                        style={styles.actionButton}
-                        onClick={() => handleItemAction('delete', item.id)}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
+                  </th>
+                  <th style={styles.th}>Item</th>
+                  <th style={styles.th}>Price</th>
+                  <th style={styles.th}>Status</th>
+                  <th style={styles.th}>Listed</th>
+                  <th style={styles.th}>Metrics</th>
+                  <th style={styles.th}>Actions</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              </thead>
+              <tbody>
+                {items.map((item) => {
+                  const StatusIcon = getStatusIcon(item.status);
+                  const itemId = item._id || item.id;
+                  return (
+                    <tr key={itemId}>
+                      <td style={styles.td}>
+                        <input 
+                          type="checkbox" 
+                          checked={selectedItems.includes(itemId)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedItems([...selectedItems, itemId]);
+                            } else {
+                              setSelectedItems(selectedItems.filter(id => id !== itemId));
+                            }
+                          }}
+                        />
+                      </td>
+                      <td style={styles.td}>
+                        <div style={styles.itemInfo}>
+                          <div style={styles.itemImage}>
+                            {item.thumbnail ? (
+                              <img 
+                                src={item.thumbnail} 
+                                alt={item.title}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            ) : (
+                              <Image size={20} />
+                            )}
+                          </div>
+                          <div style={styles.itemDetails}>
+                            <div style={styles.itemTitle}>
+                              {item.title}
+                              {item.featured && (
+                                <span style={styles.featuredBadge}>
+                                  <Star size={8} />
+                                  Featured
+                                </span>
+                              )}
+                            </div>
+                            <div style={styles.itemMeta}>
+                              <span>{item.category}</span>
+                              <span style={styles.conditionBadge(item.condition)}>
+                                {item.condition}
+                              </span>
+                              <span>by {item.seller}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{ fontWeight: '600', color: themeColors.primary }}>
+                          ${item.price}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={styles.statusBadge(item.status)}>
+                          <StatusIcon size={12} />
+                          {item.status}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Calendar size={14} color={themeColors.textSecondary} />
+                          {formatDate(item.listedDate)}
+                        </div>
+                      </td>
+                      <td style={styles.td}>
+                        <div style={styles.metricsContainer}>
+                          <div style={styles.metric}>
+                            <Eye size={14} />
+                            {item.views}
+                          </div>
+                          <div style={styles.metric}>
+                            <Heart size={14} />
+                            {item.saves}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={styles.td}>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button 
+                            style={styles.actionButton}
+                            onClick={() => handleItemAction('view', itemId)}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            title="View Item"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button 
+                            style={styles.actionButton}
+                            onClick={() => handleItemAction('edit', itemId)}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            title="Edit Item"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button 
+                            style={styles.actionButton}
+                            onClick={() => handleItemAction('feature', itemId)}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            title={item.featured ? 'Unfeature Item' : 'Feature Item'}
+                          >
+                            <Star size={16} fill={item.featured ? themeColors.primary : 'none'} />
+                          </button>
+                          {item.status === 'pending' && (
+                            <button 
+                              style={styles.actionButton}
+                              onClick={() => handleItemAction('approve', itemId)}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                              title="Approve Item"
+                            >
+                              <CheckCircle size={16} />
+                            </button>
+                          )}
+                          <button 
+                            style={styles.actionButton}
+                            onClick={() => handleItemAction('delete', itemId)}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.secondary}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            title="Delete Item"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
 
-        {/* Mobile Cards */}
-        <div style={styles.mobileCards}>
-          {filteredItems.length === 0 ? (
-            <div style={styles.emptyState}>
-              <Package size={48} />
-              <p>No items found matching your criteria.</p>
-            </div>
-          ) : (
-            filteredItems.map((item) => {
-              const StatusIcon = getStatusIcon(item.status);
-              return (
-                <div key={item.id} style={styles.mobileCard}>
-                  <div style={styles.mobileCardHeader}>
-                    <div style={styles.mobileCardItem}>
-                      <div style={styles.itemImage}>
-                        <Image size={20} />
-                      </div>
-                      <div style={styles.mobileCardContent}>
-                        <div style={styles.mobileCardTitle}>
-                          {item.title}
-                          {item.featured && (
-                            <span style={styles.featuredBadge}>
-                              <Star size={8} />
-                            </span>
+            {/* Mobile Cards */}
+            <div style={styles.mobileCards}>
+              {items.map((item) => {
+                const StatusIcon = getStatusIcon(item.status);
+                const itemId = item._id || item.id;
+                return (
+                  <div key={itemId} style={styles.mobileCard}>
+                    <div style={styles.mobileCardHeader}>
+                      <div style={styles.mobileCardItem}>
+                        <div style={styles.itemImage}>
+                          {item.thumbnail ? (
+                            <img 
+                              src={item.thumbnail} 
+                              alt={item.title}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          ) : (
+                            <Image size={20} />
                           )}
                         </div>
-                        <div style={styles.mobileCardPrice}>${item.price}</div>
-                        <div style={styles.mobileCardMeta}>
-                          <span style={styles.statusBadge(item.status)}>
-                            <StatusIcon size={10} />
-                            {item.status}
-                          </span>
-                          <span style={styles.conditionBadge(item.condition)}>
-                            {item.condition}
-                          </span>
+                        <div style={styles.mobileCardContent}>
+                          <div style={styles.mobileCardTitle}>
+                            {item.title}
+                            {item.featured && (
+                              <span style={styles.featuredBadge}>
+                                <Star size={8} />
+                              </span>
+                            )}
+                          </div>
+                          <div style={styles.mobileCardPrice}>${item.price}</div>
+                          <div style={styles.mobileCardMeta}>
+                            <span style={styles.statusBadge(item.status)}>
+                              <StatusIcon size={10} />
+                              {item.status}
+                            </span>
+                            <span style={styles.conditionBadge(item.condition)}>
+                              {item.condition}
+                            </span>
+                          </div>
                         </div>
                       </div>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedItems.includes(itemId)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedItems([...selectedItems, itemId]);
+                          } else {
+                            setSelectedItems(selectedItems.filter(id => id !== itemId));
+                          }
+                        }}
+                      />
                     </div>
-                  </div>
 
-                  <div style={styles.mobileCardDetails}>
-                    <div style={styles.mobileCardStat}>
-                      <div style={styles.mobileCardLabel}>Category</div>
-                      <div style={styles.mobileCardValue}>{item.category}</div>
+                    <div style={styles.mobileCardDetails}>
+                      <div style={styles.mobileCardStat}>
+                        <div style={styles.mobileCardLabel}>Category</div>
+                        <div style={styles.mobileCardValue}>{item.category}</div>
+                      </div>
+                      <div style={styles.mobileCardStat}>
+                        <div style={styles.mobileCardLabel}>Listed</div>
+                        <div style={styles.mobileCardValue}>{formatDate(item.listedDate)}</div>
+                      </div>
+                      <div style={styles.mobileCardStat}>
+                        <div style={styles.mobileCardLabel}>Views</div>
+                        <div style={styles.mobileCardValue}>{item.views}</div>
+                      </div>
+                      <div style={styles.mobileCardStat}>
+                        <div style={styles.mobileCardLabel}>Saves</div>
+                        <div style={styles.mobileCardValue}>{item.saves}</div>
+                      </div>
                     </div>
-                    <div style={styles.mobileCardStat}>
-                      <div style={styles.mobileCardLabel}>Listed</div>
-                      <div style={styles.mobileCardValue}>{formatDate(item.listedDate)}</div>
-                    </div>
-                    <div style={styles.mobileCardStat}>
-                      <div style={styles.mobileCardLabel}>Views</div>
-                      <div style={styles.mobileCardValue}>{item.views}</div>
-                    </div>
-                    <div style={styles.mobileCardStat}>
-                      <div style={styles.mobileCardLabel}>Saves</div>
-                      <div style={styles.mobileCardValue}>{item.saves}</div>
-                    </div>
-                  </div>
 
-                  <div style={styles.mobileCardActions}>
-                    <button 
-                      style={{ ...styles.button, ...styles.secondaryButton, flex: 1 }}
-                      onClick={() => handleItemAction('view', item.id)}
-                    >
-                      <Eye size={14} />
-                      View
-                    </button>
-                    <button 
-                      style={{ ...styles.button, ...styles.secondaryButton, flex: 1 }}
-                      onClick={() => handleItemAction('edit', item.id)}
-                    >
-                      <Edit size={14} />
-                      Edit
-                    </button>
-                    <button 
-                      style={styles.actionButton}
-                      onClick={() => handleItemAction('more', item.id)}
-                    >
-                      <MoreVertical size={16} />
-                    </button>
+                    <div style={styles.mobileCardActions}>
+                      <button 
+                        style={{ ...styles.button, ...styles.secondaryButton, flex: 1 }}
+                        onClick={() => handleItemAction('view', itemId)}
+                      >
+                        <Eye size={14} />
+                        View
+                      </button>
+                      <button 
+                        style={{ ...styles.button, ...styles.secondaryButton, flex: 1 }}
+                        onClick={() => handleItemAction('edit', itemId)}
+                      >
+                        <Edit size={14} />
+                        Edit
+                      </button>
+                      <button 
+                        style={styles.actionButton}
+                        onClick={() => handleItemAction('more', itemId)}
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+                );
+              })}
+            </div>
+
+            {/* Pagination */}
+            {pagination.pages > 1 && (
+              <div style={styles.pagination}>
+                <button 
+                  style={styles.pageButton}
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page === 1}
+                >
+                  Previous
+                </button>
+                
+                {[...Array(Math.min(5, pagination.pages))].map((_, i) => {
+                  const pageNum = i + 1;
+                  return (
+                    <button
+                      key={pageNum}
+                      style={{
+                        ...styles.pageButton,
+                        ...(pageNum === pagination.page ? styles.activePageButton : {})
+                      }}
+                      onClick={() => handlePageChange(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                
+                {pagination.pages > 5 && (
+                  <>
+                    <span style={{ color: themeColors.textSecondary }}>...</span>
+                    <button
+                      style={styles.pageButton}
+                      onClick={() => handlePageChange(pagination.pages)}
+                    >
+                      {pagination.pages}
+                    </button>
+                  </>
+                )}
+                
+                <button 
+                  style={styles.pageButton}
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page === pagination.pages}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
