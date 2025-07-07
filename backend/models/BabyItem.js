@@ -69,10 +69,23 @@ const BabyItemSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  images: [{
-    type: String,
-    required: true
-  }],
+  // FIXED: Images schema to match your actual data structure
+  images: [
+    {
+      fullSize: {
+        type: String,
+        required: true
+      },
+      thumbnail: {
+        type: String,
+        required: true
+      },
+      isPrimary: {
+        type: Boolean,
+        default: false
+      }
+    }
+  ],
   thumbnail: {
     type: String
   },
@@ -245,9 +258,10 @@ BabyItemSchema.pre('save', function(next) {
     this.status = 'inactive';
   }
   
-  // Set thumbnail as first image if not set
+  // Set thumbnail as first image thumbnail if not set
   if (!this.thumbnail && this.images && this.images.length > 0) {
-    this.thumbnail = this.images[0];
+    // Use the thumbnail URL from the first image object
+    this.thumbnail = this.images[0].thumbnail || this.images[0].fullSize;
   }
   
   next();
