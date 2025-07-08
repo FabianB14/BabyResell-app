@@ -102,7 +102,6 @@ const SettingsTab = () => {
   });
   
   const [settings, setSettings] = useState(getDefaultSettings());
-
   const [originalSettings, setOriginalSettings] = useState(null);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -135,6 +134,28 @@ const SettingsTab = () => {
     }
   }, [settings, originalSettings]);
 
+  // Deep merge helper function
+  const deepMerge = (target, source) => {
+    const output = { ...target };
+    if (isObject(target) && isObject(source)) {
+      Object.keys(source).forEach(key => {
+        if (isObject(source[key])) {
+          if (!(key in target))
+            Object.assign(output, { [key]: source[key] });
+          else
+            output[key] = deepMerge(target[key], source[key]);
+        } else {
+          Object.assign(output, { [key]: source[key] });
+        }
+      });
+    }
+    return output;
+  };
+
+  const isObject = (item) => {
+    return item && typeof item === 'object' && !Array.isArray(item);
+  };
+
   const loadSettings = async () => {
     setLoading(true);
     try {
@@ -143,7 +164,7 @@ const SettingsTab = () => {
         // Check if adminAPI.getSettings exists
         if (adminAPI.getSettings) {
           const response = await adminAPI.getSettings();
-          if (response.data) {
+          if (response && response.data) {
             // Merge with defaults to ensure all properties exist
             const mergedSettings = deepMerge(getDefaultSettings(), response.data);
             setSettings(mergedSettings);
@@ -179,28 +200,6 @@ const SettingsTab = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Deep merge helper function
-  const deepMerge = (target, source) => {
-    const output = { ...target };
-    if (isObject(target) && isObject(source)) {
-      Object.keys(source).forEach(key => {
-        if (isObject(source[key])) {
-          if (!(key in target))
-            Object.assign(output, { [key]: source[key] });
-          else
-            output[key] = deepMerge(target[key], source[key]);
-        } else {
-          Object.assign(output, { [key]: source[key] });
-        }
-      });
-    }
-    return output;
-  };
-
-  const isObject = (item) => {
-    return item && typeof item === 'object' && !Array.isArray(item);
   };
 
   const settingSections = [
@@ -325,14 +324,7 @@ const SettingsTab = () => {
   const applySettingsChanges = (newSettings) => {
     // Apply maintenance mode
     if (newSettings.general.maintenanceMode) {
-      // You could set a global flag or redirect users
       console.log('Maintenance mode enabled');
-    }
-
-    // Apply theme/language changes if needed
-    if (newSettings.general.language !== originalSettings?.general?.language) {
-      // Trigger language change
-      console.log('Language changed to:', newSettings.general.language);
     }
 
     // Update document title
@@ -414,6 +406,22 @@ const SettingsTab = () => {
         }
       };
       reader.readAsText(file);
+    }
+  };
+
+  const testEmailSettings = async () => {
+    const email = prompt('Enter email address to send test email:');
+    if (!email) return;
+    
+    try {
+      if (adminAPI.testEmailSettings) {
+        await adminAPI.testEmailSettings(email);
+        showNotification(`Test email sent to ${email}`, 'success');
+      } else {
+        showNotification('Email testing not configured yet', 'warning');
+      }
+    } catch (error) {
+      showNotification('Failed to send test email', 'error');
     }
   };
 
@@ -963,6 +971,16 @@ const SettingsTab = () => {
 
   const renderNotificationSettings = () => (
     <div style={styles.settingsGrid}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+        <button
+          style={{ ...styles.button, ...styles.secondaryButton }}
+          onClick={testEmailSettings}
+        >
+          <Mail size={16} />
+          Test Email
+        </button>
+      </div>
+      
       {Object.entries(settings.notifications).map(([key, value]) => (
         <div key={key} style={styles.settingItem}>
           <div style={styles.settingInfo}>
