@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
-import { adminAPI } from '../../utils/api';
-import { showNotification } from '../../utils/adminUtils';
+import { adminAPI } from '../../servives/api';
+import { showNotification } from './adminUtils';
 import { 
   Settings, 
   Save, 
