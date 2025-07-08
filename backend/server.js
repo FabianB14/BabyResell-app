@@ -99,10 +99,28 @@ app.use(
   })
 );
 
-// Rate limiting
+// Rate limiting with proper proxy configuration
 const limiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  // Skip rate limiting for trusted IPs (optional)
+  skip: (req) => {
+    // Skip rate limiting for health checks
+    return req.path === '/api/health';
+  },
+  // Configure for use behind a proxy
+  keyGenerator: (req) => {
+    // Use the rightmost IP in the chain (the real client IP)
+    return req.ip || req.connection.remoteAddress;
+  },
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Too many requests, please try again later.'
+    });
+  }
 });
 app.use('/api/', limiter);
 
