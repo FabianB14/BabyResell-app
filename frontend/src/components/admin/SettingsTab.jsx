@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
-import { adminAPI } from '../../services/api';
-import { showNotification } from './adminUtils';
+import { adminAPI } from '../../utils/api';
+import { showNotification } from '../../utils/adminUtils';
 import { 
   Settings, 
   Save, 
@@ -33,7 +33,8 @@ const SettingsTab = () => {
   const { themeColors } = useTheme();
   const [activeSection, setActiveSection] = useState('general');
   const [loading, setLoading] = useState(true);
-  const [settings, setSettings] = useState({
+  
+  const getDefaultSettings = () => ({
     general: {
       siteName: 'BabyResell',
       siteDescription: 'A marketplace for parents to buy and sell pre-loved baby items',
@@ -99,6 +100,8 @@ const SettingsTab = () => {
       moderationKeywords: []
     }
   });
+  
+  const [settings, setSettings] = useState(getDefaultSettings());
 
   const [originalSettings, setOriginalSettings] = useState(null);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
@@ -137,29 +140,67 @@ const SettingsTab = () => {
     try {
       // Try to load from API first
       try {
-        const response = await adminAPI.getSettings();
-        if (response.data) {
-          setSettings(response.data);
-          setOriginalSettings(response.data);
+        // Check if adminAPI.getSettings exists
+        if (adminAPI.getSettings) {
+          const response = await adminAPI.getSettings();
+          if (response.data) {
+            // Merge with defaults to ensure all properties exist
+            const mergedSettings = deepMerge(getDefaultSettings(), response.data);
+            setSettings(mergedSettings);
+            setOriginalSettings(mergedSettings);
+            return;
+          }
         }
       } catch (apiError) {
-        // If API fails, load from localStorage
-        const savedSettings = localStorage.getItem('adminSettings');
-        if (savedSettings) {
-          const parsedSettings = JSON.parse(savedSettings);
-          setSettings(parsedSettings);
-          setOriginalSettings(parsedSettings);
-        } else {
-          // If no saved settings, use defaults
-          setOriginalSettings(settings);
-        }
+        console.log('API not available, using localStorage');
+      }
+      
+      // If API fails or doesn't exist, load from localStorage
+      const savedSettings = localStorage.getItem('adminSettings');
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings);
+        // Merge with defaults to ensure all properties exist
+        const mergedSettings = deepMerge(getDefaultSettings(), parsedSettings);
+        setSettings(mergedSettings);
+        setOriginalSettings(mergedSettings);
+      } else {
+        // If no saved settings, use defaults
+        const defaults = getDefaultSettings();
+        setSettings(defaults);
+        setOriginalSettings(defaults);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
       showNotification('Failed to load settings', 'error');
+      // Use defaults on error
+      const defaults = getDefaultSettings();
+      setSettings(defaults);
+      setOriginalSettings(defaults);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Deep merge helper function
+  const deepMerge = (target, source) => {
+    const output = { ...target };
+    if (isObject(target) && isObject(source)) {
+      Object.keys(source).forEach(key => {
+        if (isObject(source[key])) {
+          if (!(key in target))
+            Object.assign(output, { [key]: source[key] });
+          else
+            output[key] = deepMerge(target[key], source[key]);
+        } else {
+          Object.assign(output, { [key]: source[key] });
+        }
+      });
+    }
+    return output;
+  };
+
+  const isObject = (item) => {
+    return item && typeof item === 'object' && !Array.isArray(item);
   };
 
   const settingSections = [
@@ -178,7 +219,11 @@ const SettingsTab = () => {
         const newSettings = { ...prev };
         let current = newSettings[section];
         
+        // Ensure nested objects exist
         for (let i = 0; i < keys.length - 1; i++) {
+          if (!current[keys[i]]) {
+            current[keys[i]] = {};
+          }
           current = current[keys[i]];
         }
         
@@ -253,7 +298,9 @@ const SettingsTab = () => {
       
       // Try to save to API
       try {
-        await adminAPI.updateSettings(settings);
+        if (adminAPI.updateSettings) {
+          await adminAPI.updateSettings(settings);
+        }
       } catch (apiError) {
         console.warn('API save failed, but settings saved locally:', apiError);
       }
@@ -302,72 +349,7 @@ const SettingsTab = () => {
 
   const handleResetToDefaults = () => {
     if (window.confirm('Are you sure you want to reset ALL settings to defaults? This cannot be undone.')) {
-      const defaultSettings = {
-        general: {
-          siteName: 'BabyResell',
-          siteDescription: 'A marketplace for parents to buy and sell pre-loved baby items',
-          supportEmail: 'support@babyresell.com',
-          timezone: 'America/Los_Angeles',
-          language: 'en',
-          maintenanceMode: false,
-          contactPhone: '',
-          address: '',
-          socialMedia: {
-            facebook: '',
-            twitter: '',
-            instagram: ''
-          }
-        },
-        notifications: {
-          emailNotifications: true,
-          pushNotifications: true,
-          smsNotifications: false,
-          transactionAlerts: true,
-          securityAlerts: true,
-          marketingEmails: false,
-          newUserNotifications: true,
-          lowStockAlerts: false,
-          dailyReports: false,
-          weeklyReports: true
-        },
-        payments: {
-          stripePublicKey: '',
-          stripeSecretKey: '',
-          paypalClientId: '',
-          paypalSecretKey: '',
-          transactionFeePercent: 8.0,
-          minimumPayout: 25.00,
-          payoutSchedule: 'weekly',
-          currency: 'USD',
-          taxEnabled: false,
-          taxRate: 0
-        },
-        security: {
-          twoFactorRequired: false,
-          sessionTimeout: 30,
-          passwordMinLength: 8,
-          maxLoginAttempts: 5,
-          accountLockoutDuration: 15,
-          requireStrongPassword: true,
-          requireEmailVerification: true,
-          ipWhitelisting: false,
-          allowedIPs: [],
-          enableCaptcha: false
-        },
-        content: {
-          autoModeratePosts: true,
-          requirePostApproval: false,
-          maxImagesPerListing: 8,
-          maxDescriptionLength: 1000,
-          allowGuestBrowsing: true,
-          minListingPrice: 1.00,
-          maxListingPrice: 9999.99,
-          enableCategories: true,
-          enableTags: true,
-          enableReviews: true,
-          moderationKeywords: []
-        }
-      };
+      const defaultSettings = getDefaultSettings();
       
       setSettings(defaultSettings);
       setOriginalSettings(defaultSettings);
@@ -933,7 +915,7 @@ const SettingsTab = () => {
             <input
               type="url"
               style={styles.input}
-              value={settings.general.socialMedia.facebook}
+              value={settings.general.socialMedia?.facebook || ''}
               onChange={(e) => handleSettingChange('general', 'socialMedia.facebook', e.target.value)}
               placeholder="https://facebook.com/yourpage"
               onFocus={(e) => e.target.style.backgroundColor = themeColors.cardBackground}
@@ -950,7 +932,7 @@ const SettingsTab = () => {
             <input
               type="url"
               style={styles.input}
-              value={settings.general.socialMedia.twitter}
+              value={settings.general.socialMedia?.twitter || ''}
               onChange={(e) => handleSettingChange('general', 'socialMedia.twitter', e.target.value)}
               placeholder="https://twitter.com/yourhandle"
               onFocus={(e) => e.target.style.backgroundColor = themeColors.cardBackground}
@@ -967,7 +949,7 @@ const SettingsTab = () => {
             <input
               type="url"
               style={styles.input}
-              value={settings.general.socialMedia.instagram}
+              value={settings.general.socialMedia?.instagram || ''}
               onChange={(e) => handleSettingChange('general', 'socialMedia.instagram', e.target.value)}
               placeholder="https://instagram.com/yourhandle"
               onFocus={(e) => e.target.style.backgroundColor = themeColors.cardBackground}
