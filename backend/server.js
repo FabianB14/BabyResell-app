@@ -83,6 +83,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Settings route for admin 
+app.use('/api/admin/settings', require('./routes/settings'));
+
 // Dev logging middleware
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
