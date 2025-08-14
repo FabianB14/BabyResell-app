@@ -31,7 +31,9 @@ const corsOptions = {
   origin: function (origin, callback) {
     console.log("Origin requesting access:", origin);
     const allowedOrigins = [
-      'https://babyresell-62jr6.ondigitalocean.app',
+      'https://baby-resell-app.vercel.app',
+      'https://babyresell.vercel.app',
+      'https://*.vercel.app',
       'http://localhost:3000',
       'http://localhost:8080'
     ];
