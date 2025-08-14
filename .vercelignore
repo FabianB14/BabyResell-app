@@ -1,0 +1,11 @@
+# Exclude backend from Vercel
+backend/
+backend/**
+
+# Other files to ignore
+.git/
+.env
+*.md
+.DS_Store
+node_modules/
+.do/
