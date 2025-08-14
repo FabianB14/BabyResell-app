@@ -1,4 +1,3 @@
-// frontend/src/services/api.js
 import axios from 'axios';
 
 // Determine if we're in production
@@ -6,7 +5,7 @@ const isProduction = window.location.hostname !== 'localhost';
 
 // Set the base URL based on environment
 const baseURL = isProduction 
-  ? '/api' // Use relative URL in production
+  ? 'https://babyresell-backend.onrender.com/api' // Use relative URL in production
   : 'http://localhost:5000/api';
 
 console.log('API is using baseURL:', baseURL);
