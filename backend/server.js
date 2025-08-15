@@ -33,7 +33,6 @@ const corsOptions = {
     const allowedOrigins = [
       'https://baby-resell-app.vercel.app',
       'https://babyresell.vercel.app',
-      'https://*.vercel.app',
       'http://localhost:3000',
       'http://localhost:8080'
     ];
@@ -56,28 +55,7 @@ const corsOptions = {
 };
 
 // Apply CORS middleware FIRST
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const allowedOrigins = [
-    'https://babyresell-62jr6.ondigitalocean.app',
-    'http://localhost:3000',
-    'http://localhost:8080'
-  ];
-  
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin); // Use dynamic origin
-  }
-  
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
-  next();
-});
+app.use(cors(corsOptions));
 
 // Add CORS logging middleware
 app.use((req, res, next) => {
@@ -137,16 +115,6 @@ app.use(hpp());
 app.use((req, res, next) => {
   console.log(`[REQUEST] ${req.method} ${req.originalUrl}`);
   next();
-});
-
-// Special handler for OPTIONS requests
-app.options('*', (req, res) => {
-  console.log("Handling OPTIONS preflight request");
-  res.header('Access-Control-Allow-Origin', 'https://babyresell-62jr6.ondigitalocean.app');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.status(200).end();
 });
 
 // Adding a simple route for the root path
